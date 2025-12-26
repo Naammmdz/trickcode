@@ -35,7 +35,7 @@ function HomePage() {
 
 function App() {
   return (
-    <Router>
+    <Router basename="/trickcode">
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
