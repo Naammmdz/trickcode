@@ -64,7 +64,7 @@ $ read_latest --category=tech
 
 ---
 
-## 🚀 Tính Năng Nổi Bật
+## 🚀 Key Features
 
 ### ⚙️ Automated Testing
 Run your solutions against comprehensive test cases with instant feedback on edge cases and runtime performance metrics.
@@ -243,18 +243,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter)
+Email: [tagiangnamttg@gmail.com](mailto:tagiangnamttg@gmail.com)
 
-Project Link: [https://github.com/yourusername/trickcode](https://github.com/yourusername/trickcode)
+Project Link: [https://github.com/naammmdz/trickcode](https://github.com/naammmdz/trickcode)
 
 ---
 
 <div align="center">
 
-**© 2024 TrickCode Inc. All rights reserved. System V.2.4.0**
+**© 2025 TrickCode Inc. All rights reserved. System V.2.4.0**
 
 Made with ❤️ and ☕ by passionate developers
 
-[Website](https://trickcode.vercel.app) · [GitHub](https://github.com/yourusername/trickcode) · [Twitter](https://twitter.com/trickcode)
+[Website]() · [GitHub](https://github.com/naammmdz/trickcode)
 
 </div>
