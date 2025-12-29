@@ -1,3 +1,5 @@
+import logo from '/logo.png';
+
 const Footer = () => {
   return (
     <footer className="bg-[#020202] pt-16 pb-8 border-t border-white/10 font-sans">
@@ -5,13 +7,11 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="space-y-6">
             <div className="flex items-center gap-2">
-              <div className="relative w-6 h-6 flex items-center justify-center bg-white/10 rounded p-0.5 border border-white/10">
-                <img 
-                  alt="TrickCode Logo" 
-                  className="w-full h-full object-contain filter invert opacity-90" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDW1hrQ6OXGqOQLbYFycaquHMran-Id30NrQY3ropyRT-QCbC0cPOQ-Dip2o5fcCKji8F6h213ZhMHAqwU2oKK468q5ngtpf0QOSa8lD1eplvXS7-1ipYSgQNTtfPVH-47g3d7WCyxsdPXaiovHrDQB68kSIO1FFvFG-3RCRKa3tYWoa3H-gjErZKwWbou1l8AyIBkZnbZGXoS7Lwq1egXrlgy7n9wsBTNhhG7CRKRKP2o5TGz0lhNf23Dp9t43hgJv3MIR8pTo0BKH"
-                />
-              </div>
+              <img 
+                alt="TrickCode Logo" 
+                className="w-6 h-6 object-contain" 
+                src={logo}
+              />
               <span className="text-lg font-serif font-bold text-white tracking-wide">TRICKCODE</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs">
