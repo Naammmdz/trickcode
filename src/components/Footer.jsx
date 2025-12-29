@@ -10,7 +10,7 @@ const Footer = ({ simple = false }) => {
               <div className="flex items-center gap-2">
                 <img
                   alt="TrickCode Logo"
-                  className="w-6 h-6 object-contain"
+                  className="w-10 h-10 object-contain"
                   src={logo}
                 />
                 <span className="text-lg font-serif font-bold text-white tracking-wide">TRICKCODE</span>

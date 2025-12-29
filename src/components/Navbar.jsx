@@ -24,7 +24,7 @@ const Navbar = ({ simple = false }) => {
       <div className="max-w-7xl mx-auto flex items-center justify-between relative">
         {/* Logo left */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="relative w-10 h-10 flex items-center justify-center">
+          <div className="relative w-14 h-14 flex items-center justify-center">
             <img
               alt="TrickCode Logo"
               className="w-full h-full object-contain rounded"
