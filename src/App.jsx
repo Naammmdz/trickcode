@@ -1,4 +1,5 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
+import { useEffect } from 'react'
 import CoreTechnologies from './components/CoreTechnologies'
 import CTA from './components/CTA'
 import DeveloperLogs from './components/DeveloperLogs'
@@ -17,17 +18,54 @@ import Problems from './pages/Problems'
 import Signup from './pages/Signup'
 
 function HomePage() {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed')
+          }
+        })
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px'
+      }
+    )
+
+    const sections = document.querySelectorAll('.scroll-reveal')
+    sections.forEach((section) => observer.observe(section))
+
+    return () => {
+      sections.forEach((section) => observer.unobserve(section))
+    }
+  }, [])
+
   return (
     <div className="selection:bg-primary/40 selection:text-white">
       <Navbar />
       <Hero />
-      <SystemArchitecture />
-      <CoreTechnologies />
-      <Modules />
-      <PlatformCapabilities />
-      <DeveloperLogs />
-      <FAQ />
-      <CTA />
+      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+        <SystemArchitecture />
+      </div>
+      <div className="scroll-reveal" style={{transitionDelay: '0.2s'}}>
+        <CoreTechnologies />
+      </div>
+      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+        <Modules />
+      </div>
+      <div className="scroll-reveal" style={{transitionDelay: '0.2s'}}>
+        <PlatformCapabilities />
+      </div>
+      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+        <DeveloperLogs />
+      </div>
+      <div className="scroll-reveal" style={{transitionDelay: '0.2s'}}>
+        <FAQ />
+      </div>
+      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+        <CTA />
+      </div>
       <Footer />
     </div>
   )
