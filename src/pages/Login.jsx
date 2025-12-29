@@ -1,21 +1,22 @@
 import { Link } from 'react-router-dom';
+import logo from '/logo.png';
 
 const Login = () => {
   return (
     <div className="selection:bg-primary/40 selection:text-white min-h-screen flex flex-col relative overflow-x-hidden">
       <div className="fixed inset-0 w-full h-full z-0 pointer-events-none">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.05] grid-bg"></div>
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] opacity-20 animate-pulse" style={{animationDuration: '4s'}}></div>
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] opacity-20 animate-pulse" style={{ animationDuration: '4s' }}></div>
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px] opacity-20"></div>
       </div>
-      
-      <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 relative">
+
+      <nav className="w-full py-2 px-6 md:px-12 flex justify-between items-center z-50 relative">
         <a className="flex items-center gap-3 group" href="/">
-          <div className="relative w-10 h-10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-            <img 
-              alt="TrickCode Logo" 
-              className="w-full h-full object-contain rounded" 
-              src="/logo.png"
+          <div className="relative w-11 h-11 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+            <img
+              alt="TrickCode Logo"
+              className="w-full h-full object-contain rounded"
+              src={logo}
             />
           </div>
           <span className="text-xl font-serif tracking-tight text-white font-medium group-hover:text-primary transition-colors">TrickCode</span>
@@ -30,7 +31,7 @@ const Login = () => {
         <div className="w-full max-w-md">
           <div className="bg-[#121212]/80 backdrop-blur-xl border border-white/10 rounded-xl p-8 shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-70"></div>
-            
+
             <div className="mb-8 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6">
                 <span className="w-1.5 h-1.5 rounded-full bg-terminal-green shadow-[0_0_5px_#4ade80]"></span>
@@ -68,9 +69,9 @@ const Login = () => {
               <div className="space-y-1.5">
                 <label className="block text-xs font-mono text-gray-400 font-bold uppercase tracking-wide ml-1">Email or Username</label>
                 <div className="relative group">
-                  <input 
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans" 
-                    placeholder="user@trickcode.com" 
+                  <input
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans"
+                    placeholder="user@trickcode.com"
                     type="text"
                   />
                   <span className="material-symbols-outlined absolute right-3 top-3 text-gray-600 text-sm group-focus-within:text-primary transition-colors">person</span>
@@ -83,16 +84,16 @@ const Login = () => {
                   <a className="text-xs text-primary/80 hover:text-primary transition-colors font-mono" href="#">Forgot Password?</a>
                 </div>
                 <div className="relative group">
-                  <input 
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans" 
-                    placeholder="••••••••" 
+                  <input
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans"
+                    placeholder="••••••••"
                     type="password"
                   />
                   <span className="material-symbols-outlined absolute right-3 top-3 text-gray-600 text-sm group-focus-within:text-primary transition-colors">lock</span>
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 className="w-full mt-2 bg-primary hover:bg-primary-hover text-white font-bold py-3.5 rounded shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:shadow-[0_0_25px_rgba(249,115,22,0.5)] transition-all flex items-center justify-center gap-2 group font-mono text-sm uppercase tracking-wide border border-transparent hover:border-white/20"
               >
@@ -103,7 +104,7 @@ const Login = () => {
 
             <div className="mt-8 text-center pt-6 border-t border-white/5">
               <p className="text-sm text-gray-400">
-                New to the frontier? 
+                New to the frontier?
                 <Link to="/signup" className="text-white hover:text-primary font-bold font-mono ml-1 transition-colors underline decoration-white/20 underline-offset-4 hover:decoration-primary/50">Sign Up</Link>
               </p>
             </div>

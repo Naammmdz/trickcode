@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import logo from '/logo.png';
 
 const Signup = () => {
   return (
@@ -11,13 +12,13 @@ const Signup = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 relative">
+      <nav className="w-full py-2 px-6 md:px-12 flex justify-between items-center z-50 relative">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative w-8 h-8 flex items-center justify-center bg-white/10 rounded p-1 border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1)] group-hover:border-primary/50 transition-colors duration-300">
-            <img 
-              alt="Codegamy Logo" 
-              className="w-full h-full object-contain filter invert opacity-100" 
-              src="/logo.png"
+          <div className="relative w-11 h-11 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+            <img
+              alt="TrickCode Logo"
+              className="w-full h-full object-contain rounded"
+              src={logo}
             />
           </div>
           <span className="text-xl font-serif tracking-tight text-white font-medium group-hover:text-primary transition-colors">
@@ -35,7 +36,7 @@ const Signup = () => {
         <div className="w-full max-w-md animate-fade-in-up">
           <div className="bg-[#121212]/80 backdrop-blur-xl border border-white/10 rounded-xl p-8 shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-70"></div>
-            
+
             {/* Header */}
             <div className="mb-8 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6">
@@ -78,9 +79,9 @@ const Signup = () => {
               <div className="space-y-1.5">
                 <label className="block text-xs font-mono text-gray-400 font-bold uppercase tracking-wide ml-1">Full Name</label>
                 <div className="relative group">
-                  <input 
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans" 
-                    placeholder="e.g. Ada Lovelace" 
+                  <input
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans"
+                    placeholder="e.g. Ada Lovelace"
                     type="text"
                   />
                   <span className="material-symbols-outlined absolute right-3 top-3 text-gray-600 text-sm group-focus-within:text-primary transition-colors">person</span>
@@ -91,9 +92,9 @@ const Signup = () => {
               <div className="space-y-1.5">
                 <label className="block text-xs font-mono text-gray-400 font-bold uppercase tracking-wide ml-1">Email Address</label>
                 <div className="relative group">
-                  <input 
-                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans" 
-                    placeholder="dev@codegamy.com" 
+                  <input
+                    className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans"
+                    placeholder="dev@codegamy.com"
                     type="email"
                   />
                   <span className="material-symbols-outlined absolute right-3 top-3 text-gray-600 text-sm group-focus-within:text-primary transition-colors">mail</span>
@@ -105,9 +106,9 @@ const Signup = () => {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-mono text-gray-400 font-bold uppercase tracking-wide ml-1">Password</label>
                   <div className="relative group">
-                    <input 
-                      className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans" 
-                      placeholder="••••••••" 
+                    <input
+                      className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans"
+                      placeholder="••••••••"
                       type="password"
                     />
                   </div>
@@ -115,9 +116,9 @@ const Signup = () => {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-mono text-gray-400 font-bold uppercase tracking-wide ml-1">Confirm</label>
                   <div className="relative group">
-                    <input 
-                      className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans" 
-                      placeholder="••••••••" 
+                    <input
+                      className="w-full bg-[#0A0A0A] border border-white/10 rounded px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-sans"
+                      placeholder="••••••••"
                       type="password"
                     />
                   </div>
@@ -134,7 +135,7 @@ const Signup = () => {
               </div>
 
               {/* Submit Button */}
-              <button 
+              <button
                 type="submit"
                 className="w-full mt-2 bg-primary hover:bg-primary-hover text-white font-bold py-3.5 rounded shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:shadow-[0_0_25px_rgba(249,115,22,0.5)] transition-all flex items-center justify-center gap-2 group font-mono text-sm uppercase tracking-wide border border-transparent hover:border-white/20"
               >
@@ -146,9 +147,9 @@ const Signup = () => {
             {/* Login Link */}
             <div className="mt-8 text-center pt-6 border-t border-white/5">
               <p className="text-sm text-gray-400">
-                Already have an account? 
-                <Link 
-                  to="/login" 
+                Already have an account?
+                <Link
+                  to="/login"
                   className="text-white hover:text-primary font-bold font-mono ml-1 transition-colors underline decoration-white/20 underline-offset-4 hover:decoration-primary/50"
                 >
                   Log In
