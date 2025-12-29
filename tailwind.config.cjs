@@ -14,6 +14,8 @@ module.exports = {
         "frontier-dark": "#0F0F0F",
         "frontier-card": "#18181b",
         "terminal-green": "#4ade80",
+        "neon-blue": "#00F0FF",
+        "sharp-yellow": "#FACC15",
       },
       fontFamily: {
         serif: ["DM Serif Display", "serif"],

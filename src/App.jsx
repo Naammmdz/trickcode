@@ -16,6 +16,7 @@ import NewsDetail from './pages/NewsDetail'
 import NewsFeed from './pages/NewsFeed'
 import Problems from './pages/Problems'
 import Signup from './pages/Signup'
+import NotFound from './pages/NotFound'
 
 function HomePage() {
   useEffect(() => {
@@ -45,25 +46,25 @@ function HomePage() {
     <div className="selection:bg-primary/40 selection:text-white">
       <Navbar />
       <Hero />
-      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+      <div className="scroll-reveal" style={{ transitionDelay: '0.1s' }}>
         <SystemArchitecture />
       </div>
-      <div className="scroll-reveal" style={{transitionDelay: '0.2s'}}>
+      <div className="scroll-reveal" style={{ transitionDelay: '0.2s' }}>
         <CoreTechnologies />
       </div>
-      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+      <div className="scroll-reveal" style={{ transitionDelay: '0.1s' }}>
         <Modules />
       </div>
-      <div className="scroll-reveal" style={{transitionDelay: '0.2s'}}>
+      <div className="scroll-reveal" style={{ transitionDelay: '0.2s' }}>
         <PlatformCapabilities />
       </div>
-      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+      <div className="scroll-reveal" style={{ transitionDelay: '0.1s' }}>
         <DeveloperLogs />
       </div>
-      <div className="scroll-reveal" style={{transitionDelay: '0.2s'}}>
+      <div className="scroll-reveal" style={{ transitionDelay: '0.2s' }}>
         <FAQ />
       </div>
-      <div className="scroll-reveal" style={{transitionDelay: '0.1s'}}>
+      <div className="scroll-reveal" style={{ transitionDelay: '0.1s' }}>
         <CTA />
       </div>
       <Footer />
@@ -82,6 +83,7 @@ function App() {
         <Route path="/news" element={<NewsFeed />} />
         <Route path="/news/:id" element={<NewsDetail />} />
         <Route path="/problems" element={<Problems />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   )
