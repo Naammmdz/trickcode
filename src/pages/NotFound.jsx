@@ -1,8 +1,7 @@
-import React from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import ErrorContent from '../components/error/ErrorContent';
 import ErrorTerminal from '../components/error/ErrorTerminal';
+import Footer from '../components/layout/Footer';
+import Navbar from '../components/layout/Navbar';
 
 const NotFound = () => {
     return (

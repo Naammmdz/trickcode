@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import Footer from '../components/Footer';
-import Navbar from '../components/Navbar';
+import Footer from '../components/layout/Footer';
+import Navbar from '../components/layout/Navbar';
 import ArticleCard from '../components/newsfeed/ArticleCard';
 import CategoryFilter from '../components/newsfeed/CategoryFilter';
 import FeaturedArticle from '../components/newsfeed/FeaturedArticle';

@@ -1,5 +1,5 @@
-import Footer from '../components/Footer';
-import Navbar from '../components/Navbar';
+import Footer from '../components/layout/Footer';
+import Navbar from '../components/layout/Navbar';
 import ProblemFilters from '../components/problems/ProblemFilters';
 import ProblemPagination from '../components/problems/ProblemPagination';
 import ProblemRow from '../components/problems/ProblemRow';

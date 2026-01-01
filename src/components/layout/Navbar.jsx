@@ -46,9 +46,9 @@ const Navbar = ({ simple = false }) => {
               <Link className={navLinkClass('/problems')} to="/problems">
                 {navLinkPrefix('/problems')}Problems
               </Link>
-              <a className={navLinkClass('/contest')} href="#">
-                {navLinkPrefix('/contest')}Contest
-              </a>
+              <Link className={navLinkClass('/contests')} to="/contests">
+                {navLinkPrefix('/contests')}Contest
+              </Link>
               <a className={navLinkClass('/interview')} href="#">
                 {navLinkPrefix('/interview')}Interview
               </a>
