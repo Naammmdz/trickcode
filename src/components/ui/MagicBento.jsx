@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const DEFAULT_PARTICLE_COUNT = 12;
 const DEFAULT_SPOTLIGHT_RADIUS = 300;
