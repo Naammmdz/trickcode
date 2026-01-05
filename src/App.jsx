@@ -10,6 +10,7 @@ import Modules from './components/landing/Modules'
 import Navbar from './components/layout/Navbar'
 import PlatformCapabilities from './components/landing/PlatformCapabilities'
 import SystemArchitecture from './components/landing/SystemArchitecture'
+import Interview from './pages/Interview'
 import Learn from './pages/Learn'
 import Login from './pages/Login'
 import NewsDetail from './pages/NewsDetail'
@@ -83,6 +84,7 @@ function App() {
         <Route path="/learn" element={<Learn />} />
         <Route path="/news" element={<NewsFeed />} />
         <Route path="/contests" element={<Contests />} />
+        <Route path="/interview" element={<Interview />} />
         <Route path="/news/:id" element={<NewsDetail />} />
         <Route path="/problems" element={<Problems />} />
         <Route path="*" element={<NotFound />} />

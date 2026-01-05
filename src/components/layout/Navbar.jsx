@@ -49,9 +49,9 @@ const Navbar = ({ simple = false }) => {
               <Link className={navLinkClass('/contests')} to="/contests">
                 {navLinkPrefix('/contests')}Contest
               </Link>
-              <a className={navLinkClass('/interview')} href="#">
+              <Link className={navLinkClass('/interview')} to="/interview">
                 {navLinkPrefix('/interview')}Interview
-              </a>
+              </Link>
               <Link className={navLinkClass('/news')} to="/news">
                 {navLinkPrefix('/news')}News_Feed
               </Link>
