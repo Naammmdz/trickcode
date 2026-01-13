@@ -58,6 +58,66 @@ export const articles = [
     description: 'We\'ve added experimental support for Mojo, the new programming language for AI developers. Try the "Hello World" challenge today.',
     link: '#',
     linkText: 'Start_Coding'
+  },
+  {
+    id: 5,
+    category: 'Tech News',
+    categoryColor: '#60a5fa',
+    date: '1 week ago',
+    title: 'Understanding React Server Components',
+    description: 'A comprehensive guide to React Server Components and how they revolutionize the way we build modern web applications.',
+    link: '#',
+    linkText: 'Read_More'
+  },
+  {
+    id: 6,
+    category: 'Community Event',
+    categoryColor: '#4ade80',
+    date: '2 weeks ago',
+    title: 'Monthly Coding Challenge Winners',
+    description: 'Congratulations to this month\'s top performers! See their solutions and learn from their approaches.',
+    link: '#',
+    linkText: 'View_Winners'
+  },
+  {
+    id: 7,
+    category: 'Patch Notes',
+    categoryColor: '#fbbf24',
+    date: '3 weeks ago',
+    title: 'Version 2.1.0 Release Notes',
+    description: 'New features include improved code editor, better performance, and bug fixes. Check out all the improvements!',
+    link: '#',
+    linkText: 'View_Release'
+  },
+  {
+    id: 8,
+    category: 'Dev Log',
+    categoryColor: '#a78bfa',
+    date: '1 month ago',
+    title: 'Building Scalable Microservices',
+    description: 'Learn how to design and implement microservices architecture that can scale with your application needs.',
+    link: '#',
+    linkText: 'Read_Guide'
+  },
+  {
+    id: 9,
+    category: 'Platform Update',
+    categoryColor: '#F97316',
+    date: '1 month ago',
+    title: 'New Dark Mode Theme',
+    description: 'We\'ve introduced a new dark mode theme with improved contrast and reduced eye strain for long coding sessions.',
+    link: '#',
+    linkText: 'Try_Theme'
+  },
+  {
+    id: 10,
+    category: 'Tech News',
+    categoryColor: '#60a5fa',
+    date: '1 month ago',
+    title: 'The Future of Web Development',
+    description: 'Exploring emerging technologies and trends that will shape the future of web development in 2024 and beyond.',
+    link: '#',
+    linkText: 'Explore'
   }
 ];
 

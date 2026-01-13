@@ -504,6 +504,10 @@ const MagicBento = ({
           }
           
           .card {
+             background-color: #ffffff !important; /* Light mode default */
+          }
+          
+          .dark .card {
              background-color: #0F0F0F !important; /* Frontier Dark override */
           }
 
@@ -532,6 +536,11 @@ const MagicBento = ({
           }
           
           .card--border-glow:hover {
+            box-shadow: 0 4px 20px rgba(249, 115, 22, 0.1), 0 0 30px rgba(${glowColor}, 0.2);
+            border-color: rgba(249, 115, 22, 0.5) !important;
+          }
+          
+          .dark .card--border-glow:hover {
             box-shadow: 0 4px 20px rgba(249, 115, 22, 0.1), 0 0 30px rgba(${glowColor}, 0.2);
             border-color: rgba(249, 115, 22, 0.5) !important;
           }
@@ -599,13 +608,13 @@ const MagicBento = ({
             <BentoCardGrid gridRef={gridRef}>
                 <div className="card-responsive grid gap-2">
                     {cards.map((card, index) => {
-                        const baseClassName = `card flex flex-col justify-between relative aspect-[4/3] min-h-[200px] w-full max-w-full p-5 rounded-[20px] border border-solid font-light overflow-hidden transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)] bg-frontier-card ${enableBorderGlow ? 'card--border-glow' : ''
+                        const baseClassName = `card flex flex-col justify-between relative aspect-[4/3] min-h-[200px] w-full max-w-full p-5 rounded-[20px] border border-solid font-light overflow-hidden transition-all duration-300 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)] bg-white dark:bg-frontier-card border-gray-200 dark:border-white/10 ${enableBorderGlow ? 'card--border-glow' : ''
                             }`;
 
                         const cardStyle = {
-                            backgroundColor: card.color || 'rgba(24, 24, 27, 1)', // frontier-card
-                            borderColor: 'rgba(255, 255, 255, 0.1)',
-                            color: 'var(--white)',
+                            backgroundColor: card.color || undefined, // Let CSS handle it
+                            borderColor: undefined, // Let CSS handle it
+                            color: undefined, // Let CSS handle it
                             '--glow-x': '50%',
                             '--glow-y': '50%',
                             '--glow-intensity': '0',
@@ -625,15 +634,15 @@ const MagicBento = ({
                                     clickEffect={clickEffect}
                                     enableMagnetism={enableMagnetism}
                                 >
-                                    <div className="card__header flex justify-between gap-3 relative text-white">
-                                        <span className="card__label text-base font-mono text-gray-400">{card.label}</span>
+                                    <div className="card__header flex justify-between gap-3 relative text-gray-900 dark:text-white">
+                                        <span className="card__label text-base font-mono text-gray-600 dark:text-gray-400">{card.label}</span>
                                     </div>
-                                    <div className="card__content flex flex-col relative text-white">
+                                    <div className="card__content flex flex-col relative text-gray-900 dark:text-white">
                                         <h3 className={`card__title font-bold text-xl m-0 mb-2 font-serif ${textAutoHide ? 'text-clamp-1' : ''}`}>
                                             {card.title}
                                         </h3>
                                         <p
-                                            className={`card__description text-xs leading-relaxed text-gray-400 ${textAutoHide ? 'text-clamp-2' : ''}`}
+                                            className={`card__description text-xs leading-relaxed text-gray-600 dark:text-gray-400 ${textAutoHide ? 'text-clamp-2' : ''}`}
                                         >
                                             {card.description}
                                         </p>
@@ -757,14 +766,14 @@ const MagicBento = ({
                                     el.addEventListener('click', handleClick);
                                 }}
                             >
-                                <div className="card__header flex justify-between gap-3 relative text-white">
-                                    <span className="card__label text-base font-mono text-gray-400">{card.label}</span>
+                                <div className="card__header flex justify-between gap-3 relative text-gray-900 dark:text-white">
+                                    <span className="card__label text-base font-mono text-gray-600 dark:text-gray-400">{card.label}</span>
                                 </div>
-                                <div className="card__content flex flex-col relative text-white">
+                                <div className="card__content flex flex-col relative text-gray-900 dark:text-white">
                                     <h3 className={`card__title font-bold text-xl m-0 mb-2 font-serif ${textAutoHide ? 'text-clamp-1' : ''}`}>
                                         {card.title}
                                     </h3>
-                                    <p className={`card__description text-xs leading-relaxed text-gray-400 ${textAutoHide ? 'text-clamp-2' : ''}`}>
+                                    <p className={`card__description text-xs leading-relaxed text-gray-600 dark:text-gray-400 ${textAutoHide ? 'text-clamp-2' : ''}`}>
                                         {card.description}
                                     </p>
                                 </div>

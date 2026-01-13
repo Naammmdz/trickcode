@@ -18,7 +18,7 @@ const SearchBar = ({ onSearch, placeholder = "Search keywords..." }) => {
           type="text"
           onChange={handleSearch}
         />
-        <span className="material-icons-outlined absolute left-3 top-3 text-gray-500 text-lg group-focus-within:text-primary transition-colors">
+        <span className="material-icons-outlined absolute left-3 top-3 text-gray-500 dark:text-gray-500 text-lg group-focus-within:text-primary transition-colors">
           search
         </span>
       </div>

@@ -21,24 +21,24 @@ const DeveloperLogs = () => {
   ];
 
   return (
-    <section className="py-24 bg-frontier-dark border-t border-white/10">
+    <section className="py-24 bg-gray-50 dark:bg-frontier-dark border-t border-gray-200 dark:border-white/10">
       <div className="max-w-7xl mx-auto px-6 md:px-12">
-        <h2 className="text-3xl font-serif text-white mb-16 text-left">Developer Logs</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-l border-t border-white/10">
+        <h2 className="text-3xl font-serif text-gray-900 dark:text-white mb-16 text-left">Developer Logs</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-l border-t border-gray-200 dark:border-white/10">
           {testimonials.map((testimonial) => (
-            <div key={testimonial.name} className="bg-frontier-card p-10 border-r border-b border-white/10 hover:bg-[#202023] transition duration-300">
+            <div key={testimonial.name} className="bg-white dark:bg-frontier-card p-10 border-r border-b border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-[#202023] transition duration-300">
               <div className="flex items-center gap-4 mb-8">
-                <img 
-                  alt={`User ${testimonial.name}`} 
-                  className="w-10 h-10 rounded grayscale border border-white/20" 
+                <img
+                  alt={`User ${testimonial.name}`}
+                  className="w-10 h-10 rounded grayscale border border-gray-300 dark:border-white/20"
                   src={testimonial.image}
                 />
                 <div>
-                  <h4 className="font-bold text-white text-sm font-mono">{testimonial.name}</h4>
-                  <p className="text-xs text-gray-400 font-mono">{testimonial.role}</p>
+                  <h4 className="font-bold text-gray-900 dark:text-white text-sm font-mono">{testimonial.name}</h4>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 font-mono">{testimonial.role}</p>
                 </div>
               </div>
-              <p className="text-gray-300 italic text-sm leading-7 font-light">
+              <p className="text-gray-700 dark:text-gray-300 italic text-sm leading-7 font-light">
                 "{testimonial.quote}"
               </p>
             </div>

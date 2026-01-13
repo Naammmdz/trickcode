@@ -12,7 +12,10 @@ module.exports = {
         "primary-hover": "#EA580C",
         "frontier-black": "#050505",
         "frontier-dark": "#0F0F0F",
-        "frontier-card": "#18181b",
+        "frontier-card": {
+          DEFAULT: "#18181b",
+          light: "#ffffff",
+        },
         "terminal-green": "#4ade80",
         "neon-blue": "#00F0FF",
         "sharp-yellow": "#FACC15",

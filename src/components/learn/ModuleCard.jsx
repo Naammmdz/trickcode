@@ -1,7 +1,9 @@
+import { Link } from 'react-router-dom';
+
 const ModuleCard = ({ module, getDifficultyColor }) => {
-  return (
+  const cardContent = (
     <div 
-      className={`group relative bg-frontier-card border ${module.locked ? 'border-white/10 hover:border-white/20' : 'border-white/10 hover:border-primary/50'} rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] hover:-translate-y-1 flex flex-col ${
+      className={`group relative bg-white dark:bg-frontier-card border ${module.locked ? 'border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20' : 'border-gray-200 dark:border-white/10 hover:border-primary/50'} rounded-lg overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] hover:-translate-y-1 flex flex-col ${
         module.locked ? 'opacity-75 hover:opacity-100 grayscale hover:grayscale-0' : ''
       }`}
     >
@@ -21,8 +23,8 @@ const ModuleCard = ({ module, getDifficultyColor }) => {
             module.status === 'ACTIVE' 
               ? 'bg-primary/10 border-primary/20 text-primary shadow-[0_0_10px_rgba(249,115,22,0.2)]'
               : module.locked
-              ? 'bg-white/5 border-white/10 text-gray-500'
-              : 'bg-white/5 border-white/10 text-gray-300 group-hover:text-primary group-hover:border-primary/30'
+              ? 'bg-gray-100 dark:bg-white/5 border-gray-300 dark:border-white/10 text-gray-600 dark:text-gray-500'
+              : 'bg-gray-100 dark:bg-white/5 border-gray-300 dark:border-white/10 text-gray-700 dark:text-gray-300 group-hover:text-primary group-hover:border-primary/30'
           } transition-all`}>
             <span className="material-symbols-outlined text-2xl">{module.icon}</span>
           </div>
@@ -33,11 +35,11 @@ const ModuleCard = ({ module, getDifficultyColor }) => {
               ACTIVE
             </span>
           ) : module.locked ? (
-            <span className="text-[10px] font-mono text-gray-600 border border-white/5 px-2 py-1 rounded tracking-wider">
+            <span className="text-[10px] font-mono text-gray-600 dark:text-gray-600 border border-gray-300 dark:border-white/5 px-2 py-1 rounded tracking-wider">
               LOCKED
             </span>
           ) : (
-            <span className="text-[10px] font-mono text-gray-500 border border-white/10 px-2 py-1 rounded tracking-wider">
+            <span className="text-[10px] font-mono text-gray-600 dark:text-gray-500 border border-gray-300 dark:border-white/10 px-2 py-1 rounded tracking-wider">
               {module.pathId && `PATH_ID: ${module.pathId}`}
               {module.modId && `MOD_ID: ${module.modId}`}
               {module.langId && `LANG_ID: ${module.langId}`}
@@ -47,12 +49,12 @@ const ModuleCard = ({ module, getDifficultyColor }) => {
         </div>
 
         <h3 className={`text-xl font-serif mb-2 group-hover:text-primary transition-colors ${
-          module.locked ? 'text-gray-300' : 'text-white'
+          module.locked ? 'text-gray-600 dark:text-gray-300' : 'text-gray-900 dark:text-white'
         }`}>
           {module.title}
         </h3>
         <p className={`text-sm leading-relaxed line-clamp-2 mb-6 ${
-          module.locked ? 'text-gray-500' : 'text-gray-400'
+          module.locked ? 'text-gray-500 dark:text-gray-500' : 'text-gray-600 dark:text-gray-400'
         }`}>
           {module.description}
         </p>
@@ -62,12 +64,12 @@ const ModuleCard = ({ module, getDifficultyColor }) => {
             {module.difficulty}
           </span>
           {module.lessons && (
-            <span className="text-[10px] font-mono text-gray-400 bg-white/5 border border-white/10 px-2 py-1 rounded">
+            <span className="text-[10px] font-mono text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-2 py-1 rounded">
               {module.lessons} LESSONS
             </span>
           )}
           {module.type && !module.lessons && (
-            <span className="text-[10px] font-mono text-gray-400 bg-white/5 border border-white/10 px-2 py-1 rounded">
+            <span className="text-[10px] font-mono text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/10 px-2 py-1 rounded">
               {module.type}
             </span>
           )}
@@ -75,39 +77,43 @@ const ModuleCard = ({ module, getDifficultyColor }) => {
       </div>
 
       <div className="px-6 pb-6 mt-auto">
-        {module.progress !== undefined && module.progress > 0 && (
-          <div className="mb-4">
-            <div className="flex justify-between text-xs font-mono text-gray-400 mb-1.5">
-              <span>Progress: Module {module.currentLesson}/{module.lessons}</span>
-              <span className="text-white">{module.progress}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-              <div 
-                className="h-full bg-gradient-to-r from-primary to-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                style={{ width: `${module.progress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        {module.progress === 0 && (
-          <div className="mb-4">
-            <div className="flex justify-between text-xs font-mono text-gray-400 mb-1.5">
-              <span>Progress</span>
-              <span className="text-white">0%</span>
-            </div>
-            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-white/20 w-0"></div>
-            </div>
-          </div>
-        )}
+        {/* Progress Bar - Always show to maintain consistent card height */}
+        <div className="mb-4 min-h-[2.5rem]">
+          {module.progress !== undefined && module.progress > 0 ? (
+            <>
+              <div className="flex justify-between text-xs font-mono text-gray-600 dark:text-gray-400 mb-1.5">
+                <span>Progress: Module {module.currentLesson}/{module.lessons}</span>
+                <span className="text-gray-900 dark:text-white">{module.progress}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden border border-gray-300 dark:border-white/5">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                  style={{ width: `${module.progress}%` }}
+                ></div>
+              </div>
+            </>
+          ) : module.progress === 0 ? (
+            <>
+              <div className="flex justify-between text-xs font-mono text-gray-600 dark:text-gray-400 mb-1.5">
+                <span>Progress</span>
+                <span className="text-gray-900 dark:text-white">0%</span>
+              </div>
+              <div className="w-full h-1.5 bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden border border-gray-300 dark:border-white/5">
+                <div className="h-full bg-white/20 w-0"></div>
+              </div>
+            </>
+          ) : (
+            // Empty space to maintain consistent height when not enrolled
+            <div className="h-1.5"></div>
+          )}
+        </div>
 
         <button className={`w-full py-2.5 text-sm font-bold font-mono rounded transition-all flex items-center justify-center gap-2 group-btn ${
           module.status === 'ACTIVE'
             ? 'bg-primary hover:bg-primary-hover text-white shadow-[0_0_15px_rgba(249,115,22,0.3)]'
             : module.locked
-            ? 'bg-transparent border border-white/10 text-gray-500 cursor-not-allowed'
-            : 'bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/30 text-gray-300 hover:text-white'
+            ? 'bg-transparent border border-gray-300 dark:border-white/10 text-gray-500 dark:text-gray-500 cursor-not-allowed'
+            : 'bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
         }`}>
           <span>{module.buttonText}</span>
           {module.status === 'ACTIVE' && (
@@ -121,6 +127,17 @@ const ModuleCard = ({ module, getDifficultyColor }) => {
         </button>
       </div>
     </div>
+  );
+
+  // Wrap in Link if not locked
+  if (module.locked) {
+    return cardContent;
+  }
+
+  return (
+    <Link to={`/learn/${module.id}`} className="block">
+      {cardContent}
+    </Link>
   );
 };
 

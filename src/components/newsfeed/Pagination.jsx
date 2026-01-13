@@ -9,7 +9,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         className={`w-10 h-10 flex items-center justify-center rounded border transition-colors ${
           isActive
             ? 'bg-primary text-white shadow-[0_0_10px_rgba(249,115,22,0.4)] border-primary'
-            : 'bg-[#121212] border-white/10 text-gray-300 hover:border-white/30 hover:bg-white/5'
+            : 'bg-white dark:bg-[#121212] border-gray-300 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-white/30 hover:bg-gray-100 dark:hover:bg-white/5'
         }`}
       >
         {page}
@@ -29,7 +29,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       pages.push(renderPageButton(1));
       
       if (currentPage > 3) {
-        pages.push(<span key="dots1" className="text-gray-600 px-2">...</span>);
+        pages.push(<span key="dots1" className="text-gray-500 dark:text-gray-600 px-2">...</span>);
       }
       
       const start = Math.max(2, currentPage - 1);
@@ -40,7 +40,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
       }
       
       if (currentPage < totalPages - 2) {
-        pages.push(<span key="dots2" className="text-gray-600 px-2">...</span>);
+        pages.push(<span key="dots2" className="text-gray-500 dark:text-gray-600 px-2">...</span>);
       }
       
       pages.push(renderPageButton(totalPages));
@@ -55,10 +55,10 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className={`w-10 h-10 flex items-center justify-center rounded bg-[#121212] border border-white/10 ${
+          className={`w-10 h-10 flex items-center justify-center rounded bg-white dark:bg-[#121212] border border-gray-300 dark:border-white/10 ${
             currentPage === 1
-              ? 'text-gray-500 cursor-not-allowed'
-              : 'text-gray-300 hover:border-white/30 hover:bg-white/5'
+              ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              : 'text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-white/30 hover:bg-gray-100 dark:hover:bg-white/5'
           }`}
         >
           <span className="material-icons-outlined text-sm">chevron_left</span>
@@ -69,10 +69,10 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className={`w-10 h-10 flex items-center justify-center rounded bg-[#121212] border border-white/10 ${
+          className={`w-10 h-10 flex items-center justify-center rounded bg-white dark:bg-[#121212] border border-gray-300 dark:border-white/10 ${
             currentPage === totalPages
-              ? 'text-gray-500 cursor-not-allowed'
-              : 'text-gray-300 hover:border-white/30 hover:bg-white/5'
+              ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              : 'text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-white/30 hover:bg-gray-100 dark:hover:bg-white/5'
           }`}
         >
           <span className="material-icons-outlined text-sm">chevron_right</span>

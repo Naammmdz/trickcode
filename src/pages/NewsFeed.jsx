@@ -8,7 +8,8 @@ import NewsFeedHeader from '../components/newsfeed/NewsFeedHeader';
 import Pagination from '../components/newsfeed/Pagination';
 import SearchBar from '../components/newsfeed/SearchBar';
 import SubscribeBox from '../components/newsfeed/SubscribeBox';
-import { categories, featuredArticle, fetchArticles } from '../data/newsData';
+import { categories, featuredArticle, fetchArticles as fetchMockArticles } from '../data/newsData';
+import { newsService } from '../services/newsService';
 
 const NewsFeed = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -26,11 +27,22 @@ const NewsFeed = () => {
   const loadArticles = async () => {
     setLoading(true);
     try {
-      const data = await fetchArticles(currentPage, selectedCategory, searchQuery);
-      setArticles(data.articles);
-      setTotalPages(data.totalPages);
+      // Try to fetch from API
+      const data = await newsService.getArticles(currentPage, selectedCategory, searchQuery);
+      setArticles(data.articles || []);
+      setTotalPages(data.totalPages || 1);
     } catch (error) {
-      console.error('Error loading articles:', error);
+      console.error('Error loading articles from API, using mock data:', error);
+      // Fallback to mock data if API fails
+      try {
+        const mockData = await fetchMockArticles(currentPage, selectedCategory, searchQuery);
+        setArticles(mockData.articles || []);
+        setTotalPages(mockData.totalPages || 1);
+      } catch (mockError) {
+        console.error('Error loading mock articles:', mockError);
+        setArticles([]);
+        setTotalPages(1);
+      }
     } finally {
       setLoading(false);
     }
@@ -52,10 +64,14 @@ const NewsFeed = () => {
     setCurrentPage(1);
   };
 
-  const handleSubscribe = (email) => {
-    // TODO: Implement API call to subscribe user
-    console.log('Subscribing email:', email);
-    alert('Subscription feature will be implemented with backend!');
+  const handleSubscribe = async (email) => {
+    try {
+      await newsService.subscribe(email);
+      alert('Successfully subscribed to newsletter!');
+    } catch (error) {
+      console.error('Subscription error:', error);
+      alert(error.message || 'Failed to subscribe. Please try again.');
+    }
   };
 
   const handlePageChange = (page) => {
@@ -64,7 +80,7 @@ const NewsFeed = () => {
   };
 
   return (
-    <div className="bg-frontier-black text-gray-200 antialiased font-sans selection:bg-primary/40 selection:text-white flex flex-col min-h-screen">
+    <div className="bg-gray-50 text-gray-900 dark:bg-frontier-black dark:text-gray-200 antialiased font-sans selection:bg-primary/40 selection:text-white flex flex-col min-h-screen">
       <style>{`
         .text-glow {
             text-shadow: 0 0 20px rgba(255,255,255,0.15);
@@ -77,22 +93,30 @@ const NewsFeed = () => {
         
         .frontier-input {
             width: 100%;
-            background-color: #121212;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #ffffff;
+            border: 1px solid rgba(209, 213, 219, 0.8);
             border-radius: 0.125rem;
             padding: 0.75rem;
-            color: white;
+            color: #111827;
             outline: none;
             transition: all 0.2s;
             font-family: 'Fira Code', monospace;
             font-size: 0.875rem;
             box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
         }
+        .dark .frontier-input {
+            background-color: #121212;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
         .frontier-input:focus {
             border-color: rgba(249, 115, 22, 0.6);
             box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.6);
         }
         .frontier-input::placeholder {
+            color: #9ca3af;
+        }
+        .dark .frontier-input::placeholder {
             color: #4b5563;
         }
 
@@ -117,7 +141,7 @@ const NewsFeed = () => {
         isLive={true}
       />
       
-      <main className="flex-grow py-12 px-6 md:px-12 lg:px-24 bg-[#0a0a0a] min-h-screen relative">
+      <main className="flex-grow py-12 px-6 md:px-12 lg:px-24 bg-gray-50 dark:bg-[#0a0a0a] min-h-screen relative">
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Sidebar */}
           <aside className="lg:col-span-3 space-y-10 lg:sticky lg:top-32 h-fit">
@@ -162,7 +186,7 @@ const NewsFeed = () => {
 
                 {articles.length === 0 && (
                   <div className="text-center py-20">
-                    <p className="text-gray-500 font-mono">No articles found. Try adjusting your filters.</p>
+                    <p className="text-gray-600 dark:text-gray-500 font-mono">No articles found. Try adjusting your filters.</p>
                   </div>
                 )}
               </>

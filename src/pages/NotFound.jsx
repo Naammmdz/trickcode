@@ -5,7 +5,7 @@ import Navbar from '../components/layout/Navbar';
 
 const NotFound = () => {
     return (
-        <div className="bg-frontier-black text-gray-200 antialiased font-sans flex flex-col min-h-screen selection:bg-sharp-yellow/40 selection:text-black overflow-hidden relative">
+        <div className="bg-gray-50 text-gray-900 dark:bg-frontier-black dark:text-gray-200 antialiased font-sans flex flex-col min-h-screen selection:bg-sharp-yellow/40 selection:text-black overflow-hidden relative">
             <style>{`
         .grid-bg {
             background-size: 4rem 4rem;

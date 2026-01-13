@@ -82,14 +82,14 @@ const Learn = () => {
   };
 
   return (
-    <div className="bg-frontier-black text-gray-200 antialiased font-sans selection:bg-primary/40 selection:text-white flex flex-col min-h-screen">
+    <div className="bg-gray-50 text-gray-900 dark:bg-frontier-black dark:text-gray-200 antialiased font-sans selection:bg-primary/40 selection:text-white flex flex-col min-h-screen">
       <Navbar />
       <LearnHeader />
       
-      <main className="flex-grow relative bg-[#0a0a0a] py-12">
+      <main className="flex-grow relative bg-gray-50 dark:bg-[#0a0a0a] py-12">
         <div className="absolute inset-0 w-full h-full z-0 pointer-events-none overflow-hidden">
-          <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] grid-bg"></div>
-          <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] opacity-20"></div>
+          <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-[0.03] grid-bg"></div>
+          <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] opacity-20 dark:opacity-20"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12">
@@ -107,7 +107,7 @@ const Learn = () => {
 
               {/* Load More */}
               <div className="mt-12 flex justify-center">
-                <button className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/30 text-gray-300 hover:text-white text-sm font-mono font-bold rounded transition-all flex items-center gap-2">
+                <button className="px-6 py-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm font-mono font-bold rounded transition-all flex items-center gap-2">
                   <span className="material-symbols-outlined text-lg">refresh</span>
                   Load_More_Modules()
                 </button>

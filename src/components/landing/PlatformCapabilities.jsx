@@ -35,11 +35,11 @@ const PlatformCapabilities = () => {
   ];
 
   return (
-    <section className="py-24 bg-frontier-black relative">
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+    <section className="py-24 bg-gray-50 dark:bg-frontier-black relative">
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-white/20"></div>
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-serif text-white">Platform Capabilities</h2>
+          <h2 className="text-3xl font-serif text-gray-900 dark:text-white">Platform Capabilities</h2>
         </div>
 
         <MagicBento cards={capabilities} textAutoHide={false} />

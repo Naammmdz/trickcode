@@ -7,7 +7,7 @@ import CompanyTrackCard from '../components/interview/CompanyTrackCard';
 
 const Interview = () => {
     return (
-        <div className="bg-frontier-black text-gray-200 antialiased font-sans selection:bg-primary/40 selection:text-white flex flex-col min-h-screen">
+        <div className="bg-gray-50 text-gray-900 dark:bg-frontier-black dark:text-gray-200 antialiased font-sans selection:bg-primary/40 selection:text-white flex flex-col min-h-screen">
             <Navbar />
 
             <InterviewHeader />
