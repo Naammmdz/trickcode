@@ -1,0 +1,88 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health,prometheus,metrics
+
+---
+spring:
+  application:
+    name: AGW
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            pool:
+              type: fixed
+              max-connections: 3000
+              acquire-timeout: 8000
+              max-life-time: 300s
+              max-idle-time: 10s
+            connect-timeout: 30000
+            response-timeout: 60s
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: 
+                  - "http://localhost:3000"
+                  - "http://localhost:5173"
+                  # Add production domain here
+                  # - "https://profolio.yourdomain.com"
+                allowedMethods: 
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                  - PATCH
+                allowedHeaders: 
+                  - "*"
+                  - "Authorization"
+                allowCredentials: true
+                maxAge: 3600
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
+            # IAM service (Quarkus) expects routes like /auth/** at root.
+            # We expose it behind gateway as /iam-service/** and strip the prefix.
+            - id: iam-service
+              uri: lb://iam-service
+              predicates:
+                - Path=/iam-service/**
+              filters:
+                - StripPrefix=1
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+    loadbalancer:
+      ribbon:
+        enabled: false
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        enabled: true
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        register: false
+        register-health-check: false
+      config:
+        enabled: false
+      retry:
+        enabled: true
+        initial-interval: 1000
+        max-attempts: 6
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Verify JWTs using IAM's JWKS endpoint (works with Quarkus SmallRye JWT)
+          jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/jwks}
+
+server:
+  port: ${SERVER_PORT:8080}
+  ssl:
+    enabled: false
