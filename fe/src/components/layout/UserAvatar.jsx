@@ -83,23 +83,36 @@ const UserAvatar = () => {
             </p>
           </div>
           <div className="py-1">
-            <Link
-              to="/my-courses"
-              onClick={() => setDropdownOpen(false)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors font-sans"
-            >
-              <span className="material-symbols-outlined text-base">book</span>
-              My Courses
-            </Link>
-            <Link
-              to="/transactions"
-              onClick={() => setDropdownOpen(false)}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors font-sans"
-            >
-              <span className="material-symbols-outlined text-base">receipt</span>
-              Transaction History
-            </Link>
-            {!user?.isPro && (
+            {user?.roles?.includes('ADMIN') ? (
+              <Link
+                to="/admin"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors font-sans"
+              >
+                <span className="material-symbols-outlined text-base">admin_panel_settings</span>
+                Admin Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/my-courses"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors font-sans"
+              >
+                <span className="material-symbols-outlined text-base">book</span>
+                My Courses
+              </Link>
+            )}
+            {!user?.roles?.includes('ADMIN') && (
+              <Link
+                to="/transactions"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white transition-colors font-sans"
+              >
+                <span className="material-symbols-outlined text-base">receipt</span>
+                Transaction History
+              </Link>
+            )}
+            {!user?.roles?.includes('ADMIN') && !user?.isPro && (
               <Link
                 to="/checkout/pro"
                 onClick={() => setDropdownOpen(false)}

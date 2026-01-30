@@ -7,6 +7,8 @@ import CourseSyllabus from '../components/course/CourseSyllabus';
 const VideoWorkspace = () => {
   const { courseId, lessonId } = useParams();
 
+  const youtubeEmbedUrl = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-hidden selection:bg-primary selection:text-white h-screen flex flex-col">
       {/* Navbar */}
@@ -47,32 +49,16 @@ const VideoWorkspace = () => {
           {/* Video Player */}
           <div className="flex-1 overflow-y-auto scroll-smooth pb-20">
             <div className="max-w-5xl mx-auto p-6 md:p-8 lg:p-10 pb-8">
-              <div className="relative aspect-video bg-neutral-900 rounded-lg shadow-2xl overflow-hidden group mb-8 border border-neutral-800">
-                <div className="absolute inset-0 bg-cover bg-center opacity-80" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDmRlR0G1GEt3zyZ6RH0_TdHF0-mXZSvpr-5j578HX6K7qX65Q_i5IDY5HADYZ9paECN_bYnR1Vh78Mk0TpO4gVBJh018OR1o19NdIGBemUxEfYAeHi9M8uuN4LDdRDsrbSgdN4ZB0CUp-aR77u2FloNkeKkKPtoBY9LxKzPgAFpCu-okPM92Qg0cIvTNTRHe72m-FawuIU-6o0I9RDjtWrYFQTnguH6UCFQwOfkTY6griXUwxlo8Pu8mS1UNQyre4szD31alRdPg2N')" }}></div>
-                <div className="absolute inset-0 flex items-center justify-center z-20">
-                  <button className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white hover:scale-110 hover:bg-white/20 transition-all duration-300 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.2)]">
-                    <span className="material-symbols-outlined text-5xl ml-1">play_arrow</span>
-                  </button>
-                </div>
-                <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/60 to-transparent flex flex-col justify-end px-6 pb-6 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="w-full bg-white/20 h-1 mb-4 cursor-pointer hover:h-1.5 transition-all rounded-full relative group/progress">
-                    <div className="bg-orange-500 h-full w-[35%] rounded-full relative">
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow opacity-0 group-hover/progress:opacity-100 transition-opacity transform scale-0 group-hover/progress:scale-100 duration-200"></div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center text-white/90">
-                    <div className="flex items-center gap-4">
-                      <button className="hover:text-white transition-colors"><span className="material-symbols-outlined">play_arrow</span></button>
-                      <button className="hover:text-white transition-colors"><span className="material-symbols-outlined">replay_10</span></button>
-                      <span className="text-xs font-sans ml-2">04:22 / 12:40</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <button className="hover:text-white transition-colors" title="Captions"><span className="material-symbols-outlined">closed_caption</span></button>
-                      <button className="hover:text-white transition-colors" title="Settings"><span className="material-symbols-outlined">settings</span></button>
-                      <button className="hover:text-white transition-colors" title="Fullscreen"><span className="material-symbols-outlined">fullscreen</span></button>
-                    </div>
-                  </div>
-                </div>
+              <div className="relative aspect-video bg-neutral-900 rounded-lg shadow-2xl overflow-hidden mb-8 border border-neutral-800">
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={youtubeEmbedUrl}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
               </div>
 
               {/* Lesson Info */}

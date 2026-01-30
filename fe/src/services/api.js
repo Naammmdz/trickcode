@@ -11,10 +11,24 @@ const apiClient = axios.create({
 // Request interceptor - Add auth token to requests
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const url = config?.url || '';
+
+    // Do not attach a potentially stale/invalid token to public auth endpoints.
+    // If a Bearer token is present, Spring Security Resource Server may try to decode it
+    // and return 401 even though the path is permitAll().
+    const isAuthPublicEndpoint =
+      url.includes('/iam-service/auth/token') ||
+      url.includes('/iam-service/auth/register') ||
+      url.includes('/auth/token') ||
+      url.includes('/auth/register');
+
+    if (!isAuthPublicEndpoint) {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
+
     return config;
   },
   (error) => {
@@ -33,10 +47,10 @@ apiClient.interceptors.response.use(
       const { status, data } = error.response;
       
       if (status === 401) {
-        // Unauthorized - clear token and redirect to login
+        // Unauthorized - clear token.
+        // Avoid hard redirect loops during auth flows; let the UI handle it.
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
-        window.location.href = '/login';
       }
       
       return Promise.reject({

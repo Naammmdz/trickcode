@@ -22,7 +22,7 @@ import jakarta.ws.rs.core.MediaType;
 /**
  * JWKS endpoint so other services (e.g., API Gateway) can verify JWTs issued by this IAM.
  */
-@Path("/jwks")
+@Path("/.well-known/jwks.json")
 @Produces(MediaType.APPLICATION_JSON)
 public class JwksResource {
 
