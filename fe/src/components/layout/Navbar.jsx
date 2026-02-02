@@ -7,7 +7,7 @@ import ThemeToggler from '../ui/ThemeToggler';
 const Navbar = ({ simple = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -121,6 +121,17 @@ const Navbar = ({ simple = false }) => {
                         </p>
                       </div>
                       <div className="py-1">
+                        {/* Admin Dashboard Link */}
+                        {(isAdmin || user?.roles?.includes('ROLE_ADMIN') || user?.authorities?.includes('ROLE_ADMIN') || user?.login === 'admin') && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-colors"
+                          >
+                            <span className="material-icons-outlined text-base">dashboard</span>
+                            Admin Dashboard
+                          </Link>
+                        )}
                         <Link
                           to="/profile"
                           onClick={() => setDropdownOpen(false)}

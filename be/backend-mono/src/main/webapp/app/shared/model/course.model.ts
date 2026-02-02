@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { IUser } from 'app/shared/model/user.model';
 import { CourseLevel } from 'app/shared/model/enumerations/course-level.model';
 import { CourseStatus } from 'app/shared/model/enumerations/course-status.model';
 
@@ -16,6 +17,7 @@ export interface ICourse {
   createdAt?: dayjs.Dayjs | null;
   updatedAt?: dayjs.Dayjs | null;
   publishedAt?: dayjs.Dayjs | null;
+  instructor?: IUser | null;
 }
 
 export const defaultValue: Readonly<ICourse> = {};

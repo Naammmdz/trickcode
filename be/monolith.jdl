@@ -98,6 +98,8 @@ entity Order {
 relationship ManyToOne {
     Order{user(login)} to User with builtInEntity
     Order{course(title)} to Course
+    
+    Course{instructor(login)} to User with builtInEntity
 }
 
 /* ================= OPTIONS ================= */

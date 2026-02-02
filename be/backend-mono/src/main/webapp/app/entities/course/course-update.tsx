@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { convertDateTimeFromServer, convertDateTimeToServer, displayDefaultDateTime } from 'app/shared/util/date-utils';
 import { useAppDispatch, useAppSelector } from 'app/config/store';
 
+import { getUsers } from 'app/modules/administration/user-management/user-management.reducer';
 import { CourseLevel } from 'app/shared/model/enumerations/course-level.model';
 import { CourseStatus } from 'app/shared/model/enumerations/course-status.model';
 import { createEntity, getEntity, reset, updateEntity } from './course.reducer';
@@ -19,6 +20,7 @@ export const CourseUpdate = () => {
   const { id } = useParams<'id'>();
   const isNew = id === undefined;
 
+  const users = useAppSelector(state => state.userManagement.users);
   const courseEntity = useAppSelector(state => state.course.entity);
   const loading = useAppSelector(state => state.course.loading);
   const updating = useAppSelector(state => state.course.updating);
@@ -36,6 +38,8 @@ export const CourseUpdate = () => {
     } else {
       dispatch(getEntity(id));
     }
+
+    dispatch(getUsers({}));
   }, []);
 
   useEffect(() => {
@@ -61,6 +65,7 @@ export const CourseUpdate = () => {
     const entity = {
       ...courseEntity,
       ...values,
+      instructor: users.find(it => it.id.toString() === values.instructor?.toString()),
     };
 
     if (isNew) {
@@ -84,6 +89,7 @@ export const CourseUpdate = () => {
           createdAt: convertDateTimeFromServer(courseEntity.createdAt),
           updatedAt: convertDateTimeFromServer(courseEntity.updatedAt),
           publishedAt: convertDateTimeFromServer(courseEntity.publishedAt),
+          instructor: courseEntity?.instructor?.id,
         };
 
   return (
@@ -201,6 +207,22 @@ export const CourseUpdate = () => {
                 type="datetime-local"
                 placeholder="YYYY-MM-DD HH:mm"
               />
+              <ValidatedField
+                id="course-instructor"
+                name="instructor"
+                data-cy="instructor"
+                label={translate('trickcodeApp.course.instructor')}
+                type="select"
+              >
+                <option value="" key="0" />
+                {users
+                  ? users.map(otherEntity => (
+                      <option value={otherEntity.id} key={otherEntity.id}>
+                        {otherEntity.login}
+                      </option>
+                    ))
+                  : null}
+              </ValidatedField>
               <Button tag={Link} id="cancel-save" data-cy="entityCreateCancelButton" to="/course" replace color="info">
                 <FontAwesomeIcon icon="arrow-left" />
                 &nbsp;

@@ -1,113 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { courseService } from '../services/courseService';
 import { Link } from 'react-router-dom';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 
 const Marketplace = () => {
-  const [searchQuery, setSearchQuery] = useState('Dynamic Programming');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  const courses = [
-    {
-      id: 1,
-      title: 'Dynamic Programming Patterns',
-      difficulty: 'Hard',
-      rating: 4.8,
-      reviews: 420,
-      students: 8502,
-      instructor: 'Sarah J.',
-      price: '$39.99',
-      symbol: 'DP[]'
-    },
-    {
-      id: 2,
-      title: 'Binary Search Deep Dive',
-      difficulty: 'Medium',
-      rating: 4.9,
-      reviews: 850,
-      students: 1204,
-      instructor: 'Dr. A. Chen',
-      price: '$24.99',
-      symbol: 'O(log n)'
-    },
-    {
-      id: 3,
-      title: 'Recursion for Beginners',
-      difficulty: 'Easy',
-      rating: 4.7,
-      reviews: 120,
-      students: 3400,
-      instructor: 'Elena Vo',
-      price: 'Free',
-      symbol: 'fib(n)'
-    },
-    {
-      id: 4,
-      title: 'Advanced 2D DP Grids',
-      difficulty: 'Hard',
-      rating: 5.0,
-      reviews: 56,
-      students: 480,
-      instructor: 'M. Roberts',
-      price: '$29.99',
-      symbol: 'dp[i][j]'
-    },
-    {
-      id: 5,
-      title: 'Knapsack Problems',
-      difficulty: 'Medium',
-      rating: 4.6,
-      reviews: 890,
-      students: 2100,
-      instructor: 'Sarah Jenkins',
-      price: '$19.99',
-      symbol: '∑'
-    },
-    {
-      id: 6,
-      title: 'Greedy Algorithms 101',
-      difficulty: 'Easy',
-      rating: 4.5,
-      reviews: 3000,
-      students: 10000,
-      instructor: 'Marcus R.',
-      price: '$14.50',
-      symbol: 'Max()'
-    },
-    {
-      id: 7,
-      title: 'Trees & Graphs Masterclass',
-      difficulty: 'Medium',
-      rating: 4.8,
-      reviews: 1500,
-      students: 5600,
-      instructor: 'Elena Vo',
-      price: '$34.99',
-      symbol: 'T->N'
-    },
-    {
-      id: 8,
-      title: 'Bit Manipulation Secrets',
-      difficulty: 'Hard',
-      rating: 4.9,
-      reviews: 210,
-      students: 1100,
-      instructor: 'M. Roberts',
-      price: '$22.00',
-      symbol: '0x01'
-    },
-    {
-      id: 9,
-      title: 'Backtracking Visualized',
-      difficulty: 'Medium',
-      rating: 4.7,
-      reviews: 95,
-      students: 850,
-      instructor: 'Dr. A. Chen',
-      price: '$27.50',
-      symbol: 'DFS'
-    },
-  ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        // Note: 'q' filter is passed to courseService. Backend should handle filtering.
+        const data = await courseService.getCourses({ page, size: 9, q: searchQuery, sort: 'id,desc' });
+        setTotalPages(data.totalPages);
+        setTotalElements(data.totalElements);
+
+        // Map backend entities to UI model
+        const mapped = (data.content || []).map(c => ({
+          id: c.id,
+          title: c.title,
+          difficulty: c.level || 'Beginner',
+          rating: 5.0, // Placeholder
+          reviews: 0,  // Placeholder
+          students: 0, // Placeholder
+          instructor: c.instructor ? (c.instructor.firstName ? `${c.instructor.firstName} ${c.instructor.lastName}` : c.instructor.login) : 'Unknown',
+          price: c.price ? `$${c.price}` : 'Free',
+          symbol: c.title ? c.title.substring(0, 2).toUpperCase() : '??'
+        }));
+        setCourses(mapped);
+      } catch (err) {
+        console.error("Marketplace: Failed to fetch courses", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchCourses();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, page]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
@@ -150,20 +96,20 @@ const Marketplace = () => {
             <h1 className="text-3xl md:text-5xl font-serif mb-6 text-neutral-900 dark:text-white">
               Results for <span className="italic font-light text-neutral-500">"{searchQuery}"</span>
             </h1>
-            
+
             {/* Search Bar */}
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                 <span className="material-symbols-outlined text-neutral-400 group-focus-within:text-primary transition-colors">search</span>
               </div>
-              <input 
-                className="block w-full p-4 pl-12 text-sm font-sans text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-1 focus:ring-primary focus:border-primary placeholder-neutral-400 shadow-sm transition-all rounded" 
-                type="text" 
+              <input
+                className="block w-full p-4 pl-12 text-sm font-sans text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-1 focus:ring-primary focus:border-primary placeholder-neutral-400 shadow-sm transition-all rounded"
+                type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                <button 
+                <button
                   className="hidden sm:block px-4 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-[10px] uppercase font-sans tracking-widest text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 transition-colors rounded"
                   onClick={() => setSearchQuery('')}
                 >
@@ -171,10 +117,10 @@ const Marketplace = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="mt-3 flex gap-4 text-[10px] font-sans uppercase tracking-widest text-neutral-500">
-              <span>148 results found</span>
-              <span className="text-primary">Search took 0.04s</span>
+              <span>{totalElements} results found</span>
+              <span className="text-primary">Page {page + 1} of {totalPages}</span>
             </div>
           </div>
         </div>
@@ -226,8 +172,8 @@ const Marketplace = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {courses.map((course) => (
-              <Link 
-                key={course.id} 
+              <Link
+                key={course.id}
                 to={`/learn/${course.id}`}
                 className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full cursor-pointer rounded"
               >
@@ -262,21 +208,48 @@ const Marketplace = () => {
           </div>
 
           {/* Pagination */}
-          <div className="mt-16 flex justify-center border-t border-neutral-100 dark:border-neutral-800 pt-8">
-            <nav className="flex items-center gap-1">
-              <button className="p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
-                <span className="material-symbols-outlined text-sm">chevron_left</span>
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-sans bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-sm">1</button>
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-sans text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-sm transition-colors">2</button>
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-sans text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-sm transition-colors">3</button>
-              <span className="w-8 h-8 flex items-center justify-center text-xs font-sans text-neutral-300">...</span>
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-sans text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-sm transition-colors">8</button>
-              <button className="p-2 text-neutral-900 dark:text-white hover:text-primary transition-colors">
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
-              </button>
-            </nav>
-          </div>
+          {totalPages > 1 && (
+            <div className="mt-16 flex justify-center border-t border-neutral-100 dark:border-neutral-800 pt-8">
+              <nav className="flex items-center gap-1">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 0}
+                  className="p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+
+                {[...Array(totalPages)].map((_, index) => {
+                  // Simple pagination logic: show all pages if totalPages <= 7, else show simplified range (skip complex logic for now)
+                  if (totalPages > 7 && Math.abs(index - page) > 2 && index !== 0 && index !== totalPages - 1) {
+                    if (index === 1 || index === totalPages - 2) return <span key={index} className="w-8 h-8 flex items-center justify-center text-xs font-sans text-neutral-300">...</span>;
+                    return null;
+                  }
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handlePageChange(index)}
+                      className={`w-8 h-8 flex items-center justify-center text-xs font-sans rounded-sm transition-colors ${page === index
+                          ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                          : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                        }`}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
+
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages - 1}
+                  className="p-2 text-neutral-900 dark:text-white hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </nav>
+            </div>
+          )}
         </div>
       </main>
 

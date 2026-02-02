@@ -3,34 +3,39 @@ import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import { useAuth } from '../contexts/AuthContext';
 import ThemeToggler from '../components/ui/ThemeToggler';
+import { courseService } from '../services/courseService';
+import { useState, useEffect } from 'react';
 
 const MyCourses = () => {
   const { user } = useAuth();
+  const [activeCourses, setActiveCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeCourses = [
-    {
-      id: 1,
-      symbol: 'G(V)',
-      title: 'Graph Algorithms for Production',
-      rating: 5.0,
-      progress: 32,
-    },
-    {
-      id: 2,
-      symbol: 'O(n)',
-      title: 'Binary Search Deep Dive',
-      rating: 4.9,
-      progress: 88,
-    },
-    {
-      id: 3,
-      symbol: '</>',
-      title: 'Advanced System Design Interview',
-      rating: null,
-      progress: 0,
-      isNew: true,
-    },
-  ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        // In a real app, this should be getEnrolledCourses()
+        const data = await courseService.getCourses({ page: 0, size: 5, sort: 'id,desc' });
+
+        const mapped = (data.content || []).map(c => ({
+          id: c.id,
+          symbol: c.title ? c.title.substring(0, 2).toUpperCase() : '??',
+          title: c.title,
+          rating: 5.0, // Placeholder
+          progress: 10, // Placeholder for enrolled progress
+          isNew: c.createdDate && new Date(c.createdDate) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // New if created in last 7 days (mock logic)
+        }));
+        setActiveCourses(mapped);
+      } catch (err) {
+        console.error("MyCourses: Failed to fetch courses", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white flex flex-col min-h-screen">

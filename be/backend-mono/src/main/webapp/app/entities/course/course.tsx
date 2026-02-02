@@ -161,6 +161,9 @@ export const Course = () => {
                   <Translate contentKey="trickcodeApp.course.publishedAt">Published At</Translate>{' '}
                   <FontAwesomeIcon icon={getSortIconByFieldName('publishedAt')} />
                 </th>
+                <th>
+                  <Translate contentKey="trickcodeApp.course.instructor">Instructor</Translate> <FontAwesomeIcon icon="sort" />
+                </th>
                 <th />
               </tr>
             </thead>
@@ -188,6 +191,7 @@ export const Course = () => {
                   <td>{course.createdAt ? <TextFormat type="date" value={course.createdAt} format={APP_DATE_FORMAT} /> : null}</td>
                   <td>{course.updatedAt ? <TextFormat type="date" value={course.updatedAt} format={APP_DATE_FORMAT} /> : null}</td>
                   <td>{course.publishedAt ? <TextFormat type="date" value={course.publishedAt} format={APP_DATE_FORMAT} /> : null}</td>
+                  <td>{course.instructor ? course.instructor.login : ''}</td>
                   <td className="text-end">
                     <div className="btn-group flex-btn-group-container">
                       <Button tag={Link} to={`/course/${course.id}`} color="info" size="sm" data-cy="entityDetailsButton">

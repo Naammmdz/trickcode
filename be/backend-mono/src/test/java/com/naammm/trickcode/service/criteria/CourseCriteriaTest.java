@@ -88,6 +88,7 @@ class CourseCriteriaTest {
         courseCriteria.updatedAt();
         courseCriteria.publishedAt();
         courseCriteria.sectionsId();
+        courseCriteria.instructorId();
         courseCriteria.distinct();
     }
 
@@ -107,6 +108,7 @@ class CourseCriteriaTest {
                 condition.apply(criteria.getUpdatedAt()) &&
                 condition.apply(criteria.getPublishedAt()) &&
                 condition.apply(criteria.getSectionsId()) &&
+                condition.apply(criteria.getInstructorId()) &&
                 condition.apply(criteria.getDistinct()),
             "every filter matches"
         );
@@ -128,6 +130,7 @@ class CourseCriteriaTest {
                 condition.apply(criteria.getUpdatedAt(), copy.getUpdatedAt()) &&
                 condition.apply(criteria.getPublishedAt(), copy.getPublishedAt()) &&
                 condition.apply(criteria.getSectionsId(), copy.getSectionsId()) &&
+                condition.apply(criteria.getInstructorId(), copy.getInstructorId()) &&
                 condition.apply(criteria.getDistinct(), copy.getDistinct()),
             "every filter matches"
         );

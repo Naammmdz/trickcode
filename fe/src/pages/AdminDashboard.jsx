@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -14,10 +14,8 @@ import SettingsTab from '../components/admin/tabs/SettingsTab';
 import PlaceholderTab from '../components/admin/tabs/PlaceholderTab';
 
 const AdminDashboard = () => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
-
-  const isAdmin = useMemo(() => user?.roles?.includes('ADMIN'), [user]);
 
   useEffect(() => {
     if (loading) return; // Wait until auth state is loaded

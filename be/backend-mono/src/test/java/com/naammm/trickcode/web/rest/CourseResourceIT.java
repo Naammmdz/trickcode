@@ -5,26 +5,36 @@ import static com.naammm.trickcode.web.rest.TestUtil.createUpdateProxyForBean;
 import static com.naammm.trickcode.web.rest.TestUtil.sameNumber;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.naammm.trickcode.IntegrationTest;
 import com.naammm.trickcode.domain.Course;
+import com.naammm.trickcode.domain.User;
 import com.naammm.trickcode.domain.enumeration.CourseLevel;
 import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import com.naammm.trickcode.repository.CourseRepository;
+import com.naammm.trickcode.repository.UserRepository;
+import com.naammm.trickcode.service.CourseService;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,6 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Integration tests for the {@link CourseResource} REST controller.
  */
 @IntegrationTest
+@ExtendWith(MockitoExtension.class)
 @AutoConfigureMockMvc
 @WithMockUser
 class CourseResourceIT {
@@ -87,6 +98,15 @@ class CourseResourceIT {
 
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Mock
+    private CourseRepository courseRepositoryMock;
+
+    @Mock
+    private CourseService courseServiceMock;
 
     @Autowired
     private EntityManager em;
@@ -234,6 +254,23 @@ class CourseResourceIT {
             .andExpect(jsonPath("$.[*].createdAt").value(hasItem(DEFAULT_CREATED_AT.toString())))
             .andExpect(jsonPath("$.[*].updatedAt").value(hasItem(DEFAULT_UPDATED_AT.toString())))
             .andExpect(jsonPath("$.[*].publishedAt").value(hasItem(DEFAULT_PUBLISHED_AT.toString())));
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    void getAllCoursesWithEagerRelationshipsIsEnabled() throws Exception {
+        when(courseServiceMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
+
+        restCourseMockMvc.perform(get(ENTITY_API_URL + "?eagerload=true")).andExpect(status().isOk());
+
+        verify(courseServiceMock, times(1)).findAllWithEagerRelationships(any());
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    void getAllCoursesWithEagerRelationshipsIsNotEnabled() throws Exception {
+        when(courseServiceMock.findAllWithEagerRelationships(any())).thenReturn(new PageImpl(new ArrayList<>()));
+
+        restCourseMockMvc.perform(get(ENTITY_API_URL + "?eagerload=false")).andExpect(status().isOk());
+        verify(courseRepositoryMock, times(1)).findAll(any(Pageable.class));
     }
 
     @Test
@@ -795,6 +832,28 @@ class CourseResourceIT {
 
         // Get all the courseList where publishedAt is not null
         defaultCourseFiltering("publishedAt.specified=true", "publishedAt.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllCoursesByInstructorIsEqualToSomething() throws Exception {
+        User instructor;
+        if (TestUtil.findAll(em, User.class).isEmpty()) {
+            courseRepository.saveAndFlush(course);
+            instructor = UserResourceIT.createEntity();
+        } else {
+            instructor = TestUtil.findAll(em, User.class).get(0);
+        }
+        em.persist(instructor);
+        em.flush();
+        course.setInstructor(instructor);
+        courseRepository.saveAndFlush(course);
+        Long instructorId = instructor.getId();
+        // Get all the courseList where instructor equals to instructorId
+        defaultCourseShouldBeFound("instructorId.equals=" + instructorId);
+
+        // Get all the courseList where instructor equals to (instructorId + 1)
+        defaultCourseShouldNotBeFound("instructorId.equals=" + (instructorId + 1));
     }
 
     private void defaultCourseFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {

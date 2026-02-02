@@ -13,14 +13,11 @@ apiClient.interceptors.request.use(
   (config) => {
     const url = config?.url || '';
 
-    // Do not attach a potentially stale/invalid token to public auth endpoints.
-    // If a Bearer token is present, Spring Security Resource Server may try to decode it
-    // and return 401 even though the path is permitAll().
+    // Do not attach token to public auth endpoints to avoid loops or 401s on login
     const isAuthPublicEndpoint =
-      url.includes('/iam-service/auth/token') ||
-      url.includes('/iam-service/auth/register') ||
-      url.includes('/auth/token') ||
-      url.includes('/auth/register');
+      url.includes('/api/authenticate') ||
+      url.includes('/api/register') ||
+      url.includes('/auth/token');
 
     if (!isAuthPublicEndpoint) {
       const token = localStorage.getItem('authToken');
@@ -39,22 +36,21 @@ apiClient.interceptors.request.use(
 // Response interceptor - Handle errors globally
 apiClient.interceptors.response.use(
   (response) => {
-    return response.data;
+    return response;
   },
   (error) => {
     if (error.response) {
       // Server responded with error status
       const { status, data } = error.response;
-      
+
       if (status === 401) {
         // Unauthorized - clear token.
-        // Avoid hard redirect loops during auth flows; let the UI handle it.
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
+        // localStorage.removeItem('authToken');
+        // localStorage.removeItem('user');
       }
-      
+
       return Promise.reject({
-        message: data?.message || 'An error occurred',
+        message: data?.detail || data?.message || 'An error occurred', // JHipster uses 'detail' often
         status,
         data: data,
       });

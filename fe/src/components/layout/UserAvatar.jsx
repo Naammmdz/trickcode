@@ -83,7 +83,7 @@ const UserAvatar = () => {
             </p>
           </div>
           <div className="py-1">
-            {user?.roles?.includes('ADMIN') ? (
+            {user?.roles?.includes('ROLE_ADMIN') || user?.authorities?.includes('ROLE_ADMIN') ? (
               <Link
                 to="/admin"
                 onClick={() => setDropdownOpen(false)}
@@ -92,7 +92,7 @@ const UserAvatar = () => {
                 <span className="material-symbols-outlined text-base">admin_panel_settings</span>
                 Admin Dashboard
               </Link>
-            ) : user?.roles?.includes('INSTRUCTOR') ? (
+            ) : user?.roles?.includes('ROLE_INSTRUCTOR') || user?.authorities?.includes('ROLE_INSTRUCTOR') ? (
               <Link
                 to="/instructor"
                 onClick={() => setDropdownOpen(false)}
@@ -111,7 +111,7 @@ const UserAvatar = () => {
                 My Courses
               </Link>
             )}
-            {!user?.roles?.includes('ADMIN') && (
+            {!(user?.roles?.includes('ROLE_ADMIN') || user?.authorities?.includes('ROLE_ADMIN')) && (
               <Link
                 to="/transactions"
                 onClick={() => setDropdownOpen(false)}
@@ -121,7 +121,7 @@ const UserAvatar = () => {
                 Transaction History
               </Link>
             )}
-            {!user?.roles?.includes('ADMIN') && !user?.isPro && (
+            {!(user?.roles?.includes('ROLE_ADMIN') || user?.authorities?.includes('ROLE_ADMIN')) && !user?.isPro && (
               <Link
                 to="/checkout/pro"
                 onClick={() => setDropdownOpen(false)}

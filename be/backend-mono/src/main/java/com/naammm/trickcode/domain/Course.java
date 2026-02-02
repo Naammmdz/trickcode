@@ -75,6 +75,9 @@ public class Course implements Serializable {
     @JsonIgnoreProperties(value = { "lessons", "course" }, allowSetters = true)
     private Set<Section> sections = new HashSet<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User instructor;
+
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
     public Long getId() {
@@ -274,6 +277,19 @@ public class Course implements Serializable {
     public Course removeSections(Section section) {
         this.sections.remove(section);
         section.setCourse(null);
+        return this;
+    }
+
+    public User getInstructor() {
+        return this.instructor;
+    }
+
+    public void setInstructor(User user) {
+        this.instructor = user;
+    }
+
+    public Course instructor(User user) {
+        this.setInstructor(user);
         return this;
     }
 

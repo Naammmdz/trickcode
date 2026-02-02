@@ -1,7 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  // For local dev, hit Spring Cloud Gateway by default.
-  // Set VITE_API_BASE_URL to override (e.g. production gateway URL).
+  // For local dev, hit JHipster Monolith directly
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '10000'),
   headers: {
@@ -11,14 +10,19 @@ export const API_CONFIG = {
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  // Auth
+  // Auth (JHipster Standard)
   AUTH: {
-    // IAM is exposed behind AGW as /iam-service/** (StripPrefix=1 in gateway route)
-    LOGIN: '/iam-service/auth/token',
-    SIGNUP: '/iam-service/auth/register',
-    PROFILE: '/iam-service/auth/profile',
+    LOGIN: '/api/authenticate',
+    SIGNUP: '/api/register',
+    PROFILE: '/api/account',
   },
-  
+
+  // Courses
+  COURSES: {
+    LIST: '/api/courses',
+    DETAIL: (id) => `/api/courses/${id}`,
+  },
+
   // News
   NEWS: {
     LIST: '/news',
@@ -27,7 +31,7 @@ export const API_ENDPOINTS = {
     SEARCH: '/news/search',
     SUBSCRIBE: '/news/subscribe',
   },
-  
+
   // Problems
   PROBLEMS: {
     LIST: '/problems',
@@ -35,21 +39,21 @@ export const API_ENDPOINTS = {
     SUBMIT: (id) => `/problems/${id}/submit`,
     FILTERS: '/problems/filters',
   },
-  
+
   // Contests
   CONTESTS: {
     LIST: '/contests',
     DETAIL: (id) => `/contests/${id}`,
     REGISTER: (id) => `/contests/${id}/register`,
   },
-  
+
   // Interview
   INTERVIEW: {
     TRACKS: '/interview/tracks',
     PRACTICE: '/interview/practice',
     SESSIONS: '/interview/sessions',
   },
-  
+
   // Learn
   LEARN: {
     MODULES: '/learn/modules',
@@ -57,31 +61,21 @@ export const API_ENDPOINTS = {
     PROGRESS: '/learn/progress',
   },
 
-  // Admin
+  // Admin Endpoints (Mapped to JHipster API)
   ADMIN: {
-    // All admin endpoints are behind /iam-service/**
     USERS: {
-      LIST: '/iam-service/users',
-      CREATE: '/iam-service/users',
-      DETAIL: (id) => `/iam-service/users/${id}`,
-      UPDATE: (id) => `/iam-service/users/${id}`,
-      DELETE: (id) => `/iam-service/users/${id}`,
-      ACTIVATE: (id) => `/iam-service/users/${id}/activate`,
-      DEACTIVATE: (id) => `/iam-service/users/${id}/deactivate`,
+      LIST: '/api/admin/users',
+      CREATE: '/api/admin/users', // POST
+      DETAIL: (login) => `/api/admin/users/${login}`, // GET (by login)
+      UPDATE: () => `/api/admin/users`, // PUT (or /api/admin/users/{login})
+      DELETE: (login) => `/api/admin/users/${login}`, // DELETE (by login)
     },
+    // JHipster manages Authorities, not separate Roles/Permissions usually
     ROLES: {
-      LIST: '/iam-service/roles',
-      CREATE: '/iam-service/roles',
-      DETAIL: (id) => `/iam-service/roles/${id}`,
-      UPDATE: (id) => `/iam-service/roles/${id}`,
-      DELETE: (id) => `/iam-service/roles/${id}`,
+      LIST: '/api/authorities',
     },
     PERMISSIONS: {
-      LIST: '/iam-service/permissions',
-      CREATE: '/iam-service/permissions',
-      DETAIL: (id) => `/iam-service/permissions/${id}`,
-      UPDATE: (id) => `/iam-service/permissions/${id}`,
-      DELETE: (id) => `/iam-service/permissions/${id}`,
+      LIST: '/api/permissions', // Placeholder if we add Permission entity later
     },
   },
 };

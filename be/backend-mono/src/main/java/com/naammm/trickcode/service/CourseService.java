@@ -5,6 +5,8 @@ import com.naammm.trickcode.repository.CourseRepository;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -100,6 +102,15 @@ public class CourseService {
     }
 
     /**
+     * Get all the courses with eager load of many-to-many relationships.
+     *
+     * @return the list of entities.
+     */
+    public Page<Course> findAllWithEagerRelationships(Pageable pageable) {
+        return courseRepository.findAllWithEagerRelationships(pageable);
+    }
+
+    /**
      * Get one course by id.
      *
      * @param id the id of the entity.
@@ -108,7 +119,7 @@ public class CourseService {
     @Transactional(readOnly = true)
     public Optional<Course> findOne(Long id) {
         LOG.debug("Request to get Course : {}", id);
-        return courseRepository.findById(id);
+        return courseRepository.findOneWithEagerRelationships(id);
     }
 
     /**

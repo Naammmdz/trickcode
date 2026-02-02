@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggler from '../ui/ThemeToggler';
 
 const AdminDashboardSidebar = ({ currentTab, onTabChange }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
-
-  const isAdmin = useMemo(() => user?.roles?.includes('ADMIN'), [user]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -64,77 +62,70 @@ const AdminDashboardSidebar = ({ currentTab, onTabChange }) => {
         <nav className="space-y-1 mb-10">
           <button
             onClick={() => onTabChange('overview')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'overview'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'overview'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">dashboard</span>
             Overview
           </button>
           <button
             onClick={() => onTabChange('users')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'users'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'users'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">group</span>
             Users
           </button>
           <button
             onClick={() => onTabChange('roles')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'roles'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'roles'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">badge</span>
             Roles
           </button>
           <button
             onClick={() => onTabChange('permissions')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'permissions'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'permissions'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">verified_user</span>
             Permissions
           </button>
           <button
             onClick={() => onTabChange('courses')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'courses'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'courses'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">menu_book</span>
             Courses
           </button>
           <button
             onClick={() => onTabChange('instructors')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'instructors'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'instructors'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">school</span>
             Instructors
           </button>
           <button
             onClick={() => onTabChange('payments')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'payments'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'payments'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">payments</span>
             Payments
@@ -148,11 +139,10 @@ const AdminDashboardSidebar = ({ currentTab, onTabChange }) => {
           <nav className="space-y-1">
             <button
               onClick={() => onTabChange('settings')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group ${
-                currentTab === 'settings'
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group ${currentTab === 'settings'
                   ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white'
                   : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-[18px]">settings</span>

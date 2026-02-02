@@ -1,15 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import Select from 'react-select';
+import { useEffect, useState } from 'react';
 import AdminModal from '../AdminModal';
 import Pill from '../common/Pill';
 import Pagination from '../common/Pagination';
 import { adminService } from '../../../services/adminService';
-import { getSelectStyles } from '../styles';
 
 const RolesTab = () => {
   const [query, setQuery] = useState('');
   const [roles, setRoles] = useState([]);
-  const [allPermissions, setAllPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -20,43 +17,22 @@ const RolesTab = () => {
   const [totalElements, setTotalElements] = useState(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('create');
-  const [draft, setDraft] = useState({});
-
-  const [viewingPermissions, setViewingPermissions] = useState(null);
-
-  // Dynamic styles for react-select based on theme
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDarkTheme(document.documentElement.classList.contains('dark'));
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    setIsDarkTheme(document.documentElement.classList.contains('dark')); // Initial check
-    return () => observer.disconnect();
-  }, []);
-  const selectStyles = getSelectStyles(isDarkTheme);
+  const [modalType, setModalType] = useState('create'); // 'create' | 'delete'
+  const [draft, setDraft] = useState({ name: '' });
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError('');
 
-      const [rolesResp, fetchedPermissions] = await Promise.all([
-        adminService.getRoles({ page, size, q: query }),
-        adminService.getPermissions({ page: 0, size: 100 }), // Get permissions for selection
-      ]);
-
-      const rolesData = rolesResp.content ? rolesResp : { content: rolesResp, totalPages: 1, totalElements: rolesResp?.length || 0 };
-      const permsData = fetchedPermissions.content ? fetchedPermissions.content : (fetchedPermissions || []);
+      const rolesResp = await adminService.getRoles({ page, size, q: query });
+      const rolesData = rolesResp?.content ? rolesResp : { content: rolesResp || [], totalPages: 1, totalElements: (rolesResp || []).length };
 
       setRoles(rolesData.content || []);
       setTotalPages(rolesData.totalPages || 0);
       setTotalElements(rolesData.totalElements || 0);
-
-      setAllPermissions(permsData);
     } catch (err) {
-      setError(err.message || 'Failed to fetch data.');
+      setError(err.message || 'Failed to fetch roles.');
     } finally {
       setLoading(false);
     }
@@ -69,20 +45,18 @@ const RolesTab = () => {
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      setPage(0); // Reset to first page on search
+      setPage(0);
       fetchData();
     }, 500);
     return () => clearTimeout(timer);
   }, [query]);
 
-  const permissionOptions = useMemo(() => allPermissions.map(p => ({ value: p.id, label: p.name })), [allPermissions]);
-
   const openModal = (type, role = null) => {
     setModalType(type);
     if (type === 'create') {
-      setDraft({ name: '', description: '', permissionIds: [] });
-    } else if (role) {
-      setDraft({ ...role, permissionIds: role.permissions ? role.permissions.map(p => p.id) : [] });
+      setDraft({ name: '' });
+    } else if (type === 'delete' && role) {
+      setDraft(role);
     }
     setIsModalOpen(true);
   };
@@ -91,13 +65,13 @@ const RolesTab = () => {
     try {
       setError('');
       setLoading(true);
+
       if (modalType === 'create') {
         await adminService.createRole(draft);
-      } else if (modalType === 'edit') {
-        await adminService.updateRole(draft.id, draft);
       } else if (modalType === 'delete') {
-        await adminService.deleteRole(draft.id);
+        await adminService.deleteRole(draft?.id || draft?.name);
       }
+
       await fetchData();
       setIsModalOpen(false);
     } catch (err) {
@@ -105,10 +79,6 @@ const RolesTab = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePermissionChange = (selectedOptions) => {
-    setDraft((prev) => ({ ...prev, permissionIds: selectedOptions.map(opt => opt.value) }));
   };
 
   return (
@@ -119,7 +89,7 @@ const RolesTab = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="text-lg font-serif text-neutral-900 dark:text-white">Roles</div>
-              <div className="text-xs text-neutral-500 dark:text-zinc-400 mt-1">Manage user roles and permissions.</div>
+              <div className="text-xs text-neutral-500 dark:text-zinc-400 mt-1">Manage authorities (roles). Backend supports Create / Read / Delete.</div>
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -145,7 +115,7 @@ const RolesTab = () => {
           <table className="min-w-full">
             <thead className="bg-neutral-50 dark:bg-zinc-950 border-b border-neutral-100 dark:border-zinc-800">
               <tr>
-                {['ID', 'Role', 'Description', 'Permissions'].map((c) => (
+                {['Role'].map((c) => (
                   <th key={c} className="text-left px-6 py-3 text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">
                     {c}
                   </th>
@@ -155,41 +125,23 @@ const RolesTab = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="px-6 py-10 text-sm text-center text-neutral-500 dark:text-zinc-400">Loading...</td></tr>
+                <tr><td colSpan={2} className="px-6 py-10 text-sm text-center text-neutral-500 dark:text-zinc-400">Loading...</td></tr>
               ) : roles.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-10 text-sm text-center text-neutral-500 dark:text-zinc-400">No roles found.</td></tr>
+                <tr><td colSpan={2} className="px-6 py-10 text-sm text-center text-neutral-500 dark:text-zinc-400">No roles found.</td></tr>
               ) : (
-                roles.map((r) => {
-                  const permissions = r.permissions || [];
-                  const displayedPermissions = permissions.slice(0, 3);
-                  const remainingCount = permissions.length - 3;
+                roles.map((r, idx) => {
+                  const roleName = typeof r === 'string' ? r : (r?.name || r?.id || '');
+                  const roleKey = roleName ? roleName : String(idx);
 
                   return (
-                    <tr key={r.id} className="border-b border-neutral-100 dark:border-zinc-800 last:border-b-0">
-                      <td className="px-6 py-4 text-sm font-mono">{r.id}</td>
-                      <td className="px-6 py-4"><Pill>{r.name}</Pill></td>
-                      <td className="px-6 py-4 text-sm">{r.description || '-'}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <div className="flex flex-wrap gap-2 items-center">
-                          {displayedPermissions.map((p) => (
-                            <Pill key={p.id}>{p.name}</Pill>
-                          ))}
-                          {remainingCount > 0 && (
-                            <button
-                              onClick={() => setViewingPermissions(r)}
-                              className="text-[10px] font-mono text-neutral-500 dark:text-zinc-400 hover:text-neutral-900 dark:hover:text-zinc-200 hover:underline cursor-pointer"
-                            >
-                              +{remainingCount} more
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                    <tr key={roleKey} className="border-b border-neutral-100 dark:border-zinc-800 last:border-b-0">
+                      <td className="px-6 py-4"><Pill>{roleName}</Pill></td>
                       <td className="px-6 py-4">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => openModal('edit', r)} className="px-3 py-2 text-[10px] font-sans uppercase tracking-widest border border-neutral-200 dark:border-zinc-800 hover:border-neutral-400 dark:hover:border-zinc-700 hover:bg-neutral-50 dark:hover:bg-zinc-950 transition-colors">
-                            Edit
-                          </button>
-                          <button onClick={() => openModal('delete', r)} className="px-3 py-2 text-[10px] font-sans uppercase tracking-widest border border-red-500/30 text-red-600 dark:text-red-300 hover:bg-red-500/10 transition-colors">
+                          <button
+                            onClick={() => openModal('delete', r)}
+                            className="px-3 py-2 text-[10px] font-sans uppercase tracking-widest border border-red-500/30 text-red-600 dark:text-red-300 hover:bg-red-500/10 transition-colors"
+                          >
                             Delete
                           </button>
                         </div>
@@ -201,6 +153,7 @@ const RolesTab = () => {
             </tbody>
           </table>
         </div>
+
         <Pagination
           currentPage={page}
           totalPages={totalPages}
@@ -210,9 +163,8 @@ const RolesTab = () => {
         />
       </div>
 
-      {/* CRUD Modal */}
       <AdminModal
-        title={`${modalType.charAt(0).toUpperCase() + modalType.slice(1)} Role`}
+        title={modalType === 'create' ? 'Create Role' : 'Delete Role'}
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         footer={
@@ -228,7 +180,7 @@ const RolesTab = () => {
       >
         {modalType === 'delete' ? (
           <div className="text-sm text-neutral-700 dark:text-zinc-200">
-            You are about to delete role: <Pill>{draft.name}</Pill>
+            You are about to delete role: <Pill>{draft?.name || draft?.id || ''}</Pill>
           </div>
         ) : (
           <div className="space-y-4">
@@ -238,54 +190,10 @@ const RolesTab = () => {
                 className="mt-2 w-full bg-neutral-50 dark:bg-zinc-950 border border-neutral-200 dark:border-zinc-800 p-3 text-sm"
                 value={draft.name || ''}
                 onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-                placeholder="ADMIN"
-                disabled={modalType === 'edit'}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">Description</label>
-              <input
-                className="mt-2 w-full bg-neutral-50 dark:bg-zinc-950 border border-neutral-200 dark:border-zinc-800 p-3 text-sm"
-                value={draft.description || ''}
-                onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                placeholder="What can this role do?"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">Permissions</label>
-              <Select
-                isMulti
-                options={permissionOptions}
-                value={permissionOptions.filter(o => draft.permissionIds?.includes(o.value))}
-                onChange={handlePermissionChange}
-                className="mt-2 text-sm"
-                styles={selectStyles}
-                classNamePrefix="react-select"
-                closeMenuOnSelect={false}
+                placeholder="ROLE_ADMIN"
               />
             </div>
           </div>
-        )}
-      </AdminModal>
-
-      {/* Permissions Detail Modal */}
-      <AdminModal
-        title={viewingPermissions ? `Permissions: ${viewingPermissions.name}` : 'Permissions'}
-        open={!!viewingPermissions}
-        onClose={() => setViewingPermissions(null)}
-        footer={
-          <button onClick={() => setViewingPermissions(null)} className="px-4 py-2 text-xs font-sans uppercase tracking-widest bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90 transition-colors">
-            Close
-          </button>
-        }
-      >
-        <div className="flex flex-wrap gap-2">
-          {viewingPermissions?.permissions?.map((p) => (
-            <Pill key={p.id}>{p.name}</Pill>
-          ))}
-        </div>
-        {(!viewingPermissions?.permissions || viewingPermissions.permissions.length === 0) && (
-          <div className="text-sm text-neutral-500 italic">No permissions assigned.</div>
         )}
       </AdminModal>
     </div>

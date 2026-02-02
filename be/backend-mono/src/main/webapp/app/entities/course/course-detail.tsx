@@ -104,6 +104,10 @@ export const CourseDetail = () => {
             </span>
           </dt>
           <dd>{courseEntity.publishedAt ? <TextFormat value={courseEntity.publishedAt} type="date" format={APP_DATE_FORMAT} /> : null}</dd>
+          <dt>
+            <Translate contentKey="trickcodeApp.course.instructor">Instructor</Translate>
+          </dt>
+          <dd>{courseEntity.instructor ? courseEntity.instructor.login : ''}</dd>
         </dl>
         <Button tag={Link} to="/course" replace color="info" data-cy="entityDetailsBackButton">
           <FontAwesomeIcon icon="arrow-left" />{' '}

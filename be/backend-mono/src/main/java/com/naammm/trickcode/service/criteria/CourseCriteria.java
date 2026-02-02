@@ -84,6 +84,8 @@ public class CourseCriteria implements Serializable, Criteria {
 
     private LongFilter sectionsId;
 
+    private LongFilter instructorId;
+
     private Boolean distinct;
 
     public CourseCriteria() {}
@@ -102,6 +104,7 @@ public class CourseCriteria implements Serializable, Criteria {
         this.updatedAt = other.optionalUpdatedAt().map(InstantFilter::copy).orElse(null);
         this.publishedAt = other.optionalPublishedAt().map(InstantFilter::copy).orElse(null);
         this.sectionsId = other.optionalSectionsId().map(LongFilter::copy).orElse(null);
+        this.instructorId = other.optionalInstructorId().map(LongFilter::copy).orElse(null);
         this.distinct = other.distinct;
     }
 
@@ -357,6 +360,25 @@ public class CourseCriteria implements Serializable, Criteria {
         this.sectionsId = sectionsId;
     }
 
+    public LongFilter getInstructorId() {
+        return instructorId;
+    }
+
+    public Optional<LongFilter> optionalInstructorId() {
+        return Optional.ofNullable(instructorId);
+    }
+
+    public LongFilter instructorId() {
+        if (instructorId == null) {
+            setInstructorId(new LongFilter());
+        }
+        return instructorId;
+    }
+
+    public void setInstructorId(LongFilter instructorId) {
+        this.instructorId = instructorId;
+    }
+
     public Boolean getDistinct() {
         return distinct;
     }
@@ -399,6 +421,7 @@ public class CourseCriteria implements Serializable, Criteria {
             Objects.equals(updatedAt, that.updatedAt) &&
             Objects.equals(publishedAt, that.publishedAt) &&
             Objects.equals(sectionsId, that.sectionsId) &&
+            Objects.equals(instructorId, that.instructorId) &&
             Objects.equals(distinct, that.distinct)
         );
     }
@@ -419,6 +442,7 @@ public class CourseCriteria implements Serializable, Criteria {
             updatedAt,
             publishedAt,
             sectionsId,
+            instructorId,
             distinct
         );
     }
@@ -440,6 +464,7 @@ public class CourseCriteria implements Serializable, Criteria {
             optionalUpdatedAt().map(f -> "updatedAt=" + f + ", ").orElse("") +
             optionalPublishedAt().map(f -> "publishedAt=" + f + ", ").orElse("") +
             optionalSectionsId().map(f -> "sectionsId=" + f + ", ").orElse("") +
+            optionalInstructorId().map(f -> "instructorId=" + f + ", ").orElse("") +
             optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +
         "}";
     }

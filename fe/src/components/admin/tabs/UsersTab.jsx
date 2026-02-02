@@ -97,7 +97,7 @@ const UsersTab = () => {
     if (type === 'create') {
       setDraft({ email: '', fullName: '', password: '', roleIds: [], status: 'ACTIVE' });
     } else if (user) {
-      setDraft({ ...user, roleIds: user.roles ? user.roles.map((r) => r.id) : [] });
+      setDraft({ ...user, roleIds: (user.roles || []).map((r) => r?.id || r) });
     }
     setIsModalOpen(true);
   };
@@ -111,7 +111,8 @@ const UsersTab = () => {
       } else if (modalType === 'edit') {
         await adminService.updateUser(draft.id, draft);
       } else if (modalType === 'delete') {
-        await adminService.deleteUser(draft.id);
+        // JHipster uses login for delete
+        await adminService.deleteUser(draft.login);
       }
       await fetchData();
       setIsModalOpen(false);
@@ -129,11 +130,15 @@ const UsersTab = () => {
   const toggleStatus = async (user) => {
     try {
       setLoading(true);
-      if (user.status === 'ACTIVE') {
-        await adminService.deactivateUser(user.id);
-      } else {
-        await adminService.activateUser(user.id);
-      }
+      const newStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      // Use updateUser to toggle status
+      const updatePayload = {
+        ...user,
+        status: newStatus,
+        roleIds: (user.roles || []).map(r => r?.id || r),
+      };
+
+      await adminService.updateUser(user.id, updatePayload);
       await fetchData();
     } catch (err) {
       setError(err.message || 'Failed to toggle status.');
@@ -224,9 +229,11 @@ const UsersTab = () => {
                     <td className="px-6 py-4 text-sm text-neutral-700 dark:text-zinc-200">{u.fullName}</td>
                     <td className="px-6 py-4 text-sm text-neutral-700 dark:text-zinc-200">
                       <div className="flex flex-wrap gap-2">
-                        {u.roles?.map((r) => (
-                          <Pill key={r.id}>{r.name}</Pill>
-                        ))}
+                        {(u.roles || []).map((r, idx) => {
+                          const roleLabel = typeof r === 'string' ? r : (r?.name || r?.id || '');
+                          const roleKey = typeof r === 'string' ? r : (r?.id || r?.name || idx);
+                          return <Pill key={roleKey}>{roleLabel}</Pill>;
+                        })}
                       </div>
                     </td>
                     <td className="px-6 py-4"><Pill tone={statusTone(u.status)}>{u.status}</Pill></td>

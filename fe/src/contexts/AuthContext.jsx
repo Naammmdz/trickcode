@@ -16,9 +16,14 @@ export const AuthProvider = ({ children }) => {
           const currentUser = authService.getCurrentUser();
           setUser(currentUser);
           setIsAuthenticated(true);
-          
-          // Optionally refresh user data from server
-          // await authService.getProfile();
+
+          // Refresh profile to ensure roles are up to date
+          try {
+            const { user: refreshedUser } = await authService.getProfile();
+            setUser(refreshedUser);
+          } catch (e) {
+            console.warn("Failed to refresh profile on load", e);
+          }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -63,6 +68,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const hasRole = (role) => {
+    if (!user) return false;
+    // Check both 'roles' (mapped) and 'authorities' (raw JHipster)
+    const userRoles = user.roles || user.authorities || [];
+
+    // Handle Array case (standard)
+    if (Array.isArray(userRoles)) {
+      return userRoles.includes(role);
+    }
+
+    // Handle String case (legacy or single role)
+    if (typeof userRoles === 'string') {
+      return userRoles === role;
+    }
+
+    // Fallback: Check if user.role exists (legacy mock)
+    if (user.role === role) return true;
+
+    return false;
+  };
+
+  const hasAnyRole = (roles) => {
+    if (!user) return false;
+    const userRoles = user.roles || user.authorities || [];
+    if (Array.isArray(userRoles)) {
+      return roles.some(r => userRoles.includes(r));
+    }
+    return roles.includes(userRoles); // Fallback for string
+  };
+
   const value = {
     user,
     isAuthenticated,
@@ -70,6 +105,9 @@ export const AuthProvider = ({ children }) => {
     login,
     signup,
     logout,
+    hasRole,
+    hasAnyRole,
+    isAdmin: hasRole('ROLE_ADMIN'), // Convenience
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
