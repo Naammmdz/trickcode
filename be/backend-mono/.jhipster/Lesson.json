@@ -1,0 +1,55 @@
+{
+  "annotations": {
+    "changelogDate": "20260202165751"
+  },
+  "applications": ["trickcode"],
+  "fields": [
+    {
+      "fieldName": "title",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "type",
+      "fieldType": "LessonType",
+      "fieldValues": "VIDEO,TEXT,QUIZ,CODE"
+    },
+    {
+      "fieldName": "orderIndex",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "durationSeconds",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "isPreview",
+      "fieldType": "Boolean"
+    },
+    {
+      "fieldName": "videoUrl",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "captionUrl",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "markdownContent",
+      "fieldType": "TextBlob"
+    },
+    {
+      "fieldName": "quizConfig",
+      "fieldType": "TextBlob"
+    },
+    {
+      "fieldName": "codeChallengeConfig",
+      "fieldType": "TextBlob"
+    }
+  ],
+  "name": "Lesson",
+  "pagination": "pagination",
+  "relationships": [],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

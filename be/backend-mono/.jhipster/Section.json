@@ -1,0 +1,29 @@
+{
+  "annotations": {
+    "changelogDate": "20260202165651"
+  },
+  "applications": ["trickcode"],
+  "fields": [
+    {
+      "fieldName": "title",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "orderIndex",
+      "fieldType": "Integer"
+    }
+  ],
+  "name": "Section",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityName": "lesson",
+      "relationshipName": "lessons",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

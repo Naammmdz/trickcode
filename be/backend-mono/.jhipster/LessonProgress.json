@@ -1,0 +1,41 @@
+{
+  "annotations": {
+    "changelogDate": "20260202165951"
+  },
+  "applications": ["trickcode"],
+  "fields": [
+    {
+      "fieldName": "completedAt",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "isCompleted",
+      "fieldType": "Boolean"
+    }
+  ],
+  "name": "LessonProgress",
+  "relationships": [
+    {
+      "otherEntityField": "login",
+      "otherEntityName": "user",
+      "relationshipName": "user",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one",
+      "relationshipWithBuiltInEntity": true
+    },
+    {
+      "otherEntityName": "lesson",
+      "relationshipName": "lesson",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one"
+    },
+    {
+      "otherEntityName": "enrollment",
+      "relationshipName": "enrollment",
+      "relationshipSide": "left",
+      "relationshipType": "many-to-one"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}
