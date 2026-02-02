@@ -301,7 +301,7 @@ class LessonProgressResourceIT {
         LessonProgress partialUpdatedLessonProgress = new LessonProgress();
         partialUpdatedLessonProgress.setId(lessonProgress.getId());
 
-        partialUpdatedLessonProgress.completedAt(UPDATED_COMPLETED_AT);
+        partialUpdatedLessonProgress.isCompleted(UPDATED_IS_COMPLETED);
 
         restLessonProgressMockMvc
             .perform(

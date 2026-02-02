@@ -56,4 +56,32 @@ export const API_ENDPOINTS = {
     LESSONS: (moduleId) => `/learn/modules/${moduleId}/lessons`,
     PROGRESS: '/learn/progress',
   },
+
+  // Admin
+  ADMIN: {
+    // All admin endpoints are behind /iam-service/**
+    USERS: {
+      LIST: '/iam-service/users',
+      CREATE: '/iam-service/users',
+      DETAIL: (id) => `/iam-service/users/${id}`,
+      UPDATE: (id) => `/iam-service/users/${id}`,
+      DELETE: (id) => `/iam-service/users/${id}`,
+      ACTIVATE: (id) => `/iam-service/users/${id}/activate`,
+      DEACTIVATE: (id) => `/iam-service/users/${id}/deactivate`,
+    },
+    ROLES: {
+      LIST: '/iam-service/roles',
+      CREATE: '/iam-service/roles',
+      DETAIL: (id) => `/iam-service/roles/${id}`,
+      UPDATE: (id) => `/iam-service/roles/${id}`,
+      DELETE: (id) => `/iam-service/roles/${id}`,
+    },
+    PERMISSIONS: {
+      LIST: '/iam-service/permissions',
+      CREATE: '/iam-service/permissions',
+      DETAIL: (id) => `/iam-service/permissions/${id}`,
+      UPDATE: (id) => `/iam-service/permissions/${id}`,
+      DELETE: (id) => `/iam-service/permissions/${id}`,
+    },
+  },
 };

@@ -24,8 +24,11 @@ public class PermissionResource {
 
     @GET
     @RolesAllowed("ADMIN")
-    public List<Permission> listPermissions() {
-        return permissionService.listPermissions();
+    public Response listPermissions(
+            @QueryParam("q") String query,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("10") int size) {
+        return Response.ok(permissionService.searchPermissions(query, page, size)).build();
     }
 
     @GET

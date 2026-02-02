@@ -1,0 +1,27 @@
+{
+  "trickcodeApp": {
+    "section": {
+      "home": {
+        "title": "Sections",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Section",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Section",
+        "notFound": "No Sections found"
+      },
+      "created": "Một Section mới được tạo với định danh {{ param }}",
+      "updated": "Một Section cập nhật với định danh {{ param }}",
+      "deleted": "Một Section đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Section {{ id }}?"
+      },
+      "detail": {
+        "title": "Section"
+      },
+      "id": "ID",
+      "title": "Title",
+      "orderIndex": "Order Index",
+      "lessons": "Lessons",
+      "course": "Course"
+    }
+  }
+}

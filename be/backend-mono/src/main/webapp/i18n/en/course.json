@@ -1,0 +1,36 @@
+{
+  "trickcodeApp": {
+    "course": {
+      "home": {
+        "title": "Courses",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Course",
+        "createOrEditLabel": "Create or edit a Course",
+        "notFound": "No Courses found"
+      },
+      "created": "A new Course is created with identifier {{ param }}",
+      "updated": "A Course is updated with identifier {{ param }}",
+      "deleted": "A Course is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Course {{ id }}?"
+      },
+      "detail": {
+        "title": "Course"
+      },
+      "id": "ID",
+      "title": "Title",
+      "description": "Description",
+      "price": "Price",
+      "oldPrice": "Old Price",
+      "level": "Level",
+      "status": "Status",
+      "thumbnailUrl": "Thumbnail Url",
+      "videoPreviewUrl": "Video Preview Url",
+      "rejectionReason": "Rejection Reason",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "publishedAt": "Published At",
+      "sections": "Sections"
+    }
+  }
+}

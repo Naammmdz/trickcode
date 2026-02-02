@@ -1,0 +1,10 @@
+{
+  "trickcodeApp": {
+    "CourseLevel": {
+      "null": "",
+      "BEGINNER": "BEGINNER",
+      "INTERMEDIATE": "INTERMEDIATE",
+      "ADVANCED": "ADVANCED"
+    }
+  }
+}

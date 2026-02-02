@@ -8,6 +8,8 @@ import com.naammm.iam.entity.Role;
 import com.naammm.iam.exception.RoleAlreadyExistsException;
 import com.naammm.iam.exception.RoleNotFoundException;
 import com.naammm.iam.repository.RoleRepository;
+import com.naammm.iam.dto.response.PageResponse; 
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -24,6 +26,12 @@ public class RoleService {
 
     public List<Role> listRoles() {
         return roleRepo.listAllSorted();
+    }
+
+    public PageResponse<Role> searchRoles(String query, int page, int size) {
+        PanacheQuery<Role> q = roleRepo.search(query);
+        q.page(page, size);
+        return PageResponse.of(q.list(), page, size, q.count());
     }
 
     public Role getRole(Long id) {
@@ -46,6 +54,12 @@ public class RoleService {
         }
 
         Role role = new Role(req.name(), req.description());
+
+        if (req.permissionIds() != null && !req.permissionIds().isEmpty()) {
+            java.util.Set<com.naammm.iam.entity.Permission> permissions = permissionRepo.findByIds(req.permissionIds());
+            role.setPermissions(permissions);
+        }
+
         roleRepo.persist(role);
         return role;
     }
@@ -63,6 +77,13 @@ public class RoleService {
 
         role.setName(req.name());
         role.setDescription(req.description());
+
+        if (req.permissionIds() != null && !req.permissionIds().isEmpty()) {
+             java.util.Set<com.naammm.iam.entity.Permission> permissions = permissionRepo.findByIds(req.permissionIds());
+             role.getPermissions().clear();
+             role.getPermissions().addAll(permissions);
+        }
+
         roleRepo.persist(role);
         return role;
     }

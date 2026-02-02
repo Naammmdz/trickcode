@@ -1,0 +1,107 @@
+application {
+  config {
+    baseName trickcode
+    applicationType monolith
+    packageName com.naammm.trickcode
+    authenticationType jwt
+    prodDatabaseType postgresql
+    devDatabaseType h2Disk
+    buildTool maven
+    clientFramework react
+    clientTheme quartz
+    serverPort 8080
+    skipUserManagement false
+    nativeLanguage en
+    languages [en, vi]
+  }
+  entities *
+}
+
+/* ================= COURSE DOMAIN ================= */
+
+enum CourseStatus { DRAFT, PENDING, APPROVED, PUBLISHED, REJECTED }
+enum CourseLevel { BEGINNER, INTERMEDIATE, ADVANCED }
+enum LessonType { VIDEO, TEXT, QUIZ, CODE }
+
+entity Course {
+    title String required
+    description TextBlob
+    price BigDecimal
+    oldPrice BigDecimal
+    level CourseLevel
+    status CourseStatus
+    thumbnailUrl String
+    videoPreviewUrl String
+    rejectionReason String
+    createdAt Instant
+    updatedAt Instant
+    publishedAt Instant
+}
+
+entity Section {
+    title String required
+    orderIndex Integer
+}
+
+entity Lesson {
+    title String required
+    type LessonType
+    orderIndex Integer
+    durationSeconds Integer
+    isPreview Boolean
+    videoUrl String
+    captionUrl String
+    markdownContent TextBlob
+    quizConfig TextBlob
+    codeChallengeConfig TextBlob
+}
+
+relationship OneToMany {
+    Course{sections} to Section
+    Section{lessons} to Lesson
+}
+
+/* ================= LEARNING DOMAIN ================= */
+
+entity Enrollment {
+    enrolledAt Instant required
+    completedAt Instant
+    status String // ACTIVE, COMPLETED, EXPIRED
+}
+
+entity LessonProgress {
+    completedAt Instant
+    isCompleted Boolean
+}
+
+relationship ManyToOne {
+    Enrollment{user(login)} to User with builtInEntity
+    Enrollment{course(title)} to Course
+    
+    LessonProgress{user(login)} to User with builtInEntity
+    LessonProgress{lesson} to Lesson
+    LessonProgress{enrollment} to Enrollment
+}
+
+/* ================= PAYMENT DOMAIN ================= */
+
+enum OrderStatus { PENDING, COMPLETED, FAILED, REFUNDED }
+
+entity Order {
+    totalAmount BigDecimal required
+    status OrderStatus
+    createdAt Instant
+    paymentMethod String // STRIPE, PAYPAL, VNPAY
+    transactionId String
+}
+
+relationship ManyToOne {
+    Order{user(login)} to User with builtInEntity
+    Order{course(title)} to Course
+}
+
+/* ================= OPTIONS ================= */
+
+paginate Course, Section, Lesson, Enrollment, Order with pagination
+service all with serviceClass
+filter Course, Order, Enrollment

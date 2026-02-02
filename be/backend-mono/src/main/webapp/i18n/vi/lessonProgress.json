@@ -1,0 +1,28 @@
+{
+  "trickcodeApp": {
+    "lessonProgress": {
+      "home": {
+        "title": "Lesson Progresses",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Thêm mới một Lesson Progress",
+        "createOrEditLabel": "Thêm mới hoặc cập nhật Lesson Progress",
+        "notFound": "No Lesson Progresses found"
+      },
+      "created": "Một Lesson Progress mới được tạo với định danh {{ param }}",
+      "updated": "Một Lesson Progress cập nhật với định danh {{ param }}",
+      "deleted": "Một Lesson Progress đã xóa với định danh {{ param }}",
+      "delete": {
+        "question": "Bạn có chắc là muốn xóa Lesson Progress {{ id }}?"
+      },
+      "detail": {
+        "title": "Lesson Progress"
+      },
+      "id": "ID",
+      "completedAt": "Completed At",
+      "isCompleted": "Is Completed",
+      "user": "User",
+      "lesson": "Lesson",
+      "enrollment": "Enrollment"
+    }
+  }
+}

@@ -19,6 +19,7 @@ import Profile from './pages/Profile'
 import TransactionHistory from './pages/TransactionHistory'
 import ProCheckout from './pages/ProCheckout'
 import AdminDashboard from './pages/AdminDashboard'
+import InstructorDashboard from './pages/InstructorDashboard'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
           <Route path="/transactions" element={<TransactionHistory />} />
           <Route path="/checkout/pro" element={<ProCheckout />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/instructor" element={<InstructorDashboard />} />
           <Route path="/learn/:courseId/lesson/:lessonId" element={<LessonDetail />} />
           <Route path="/learn/:courseId/quiz/:quizId" element={<QuizDetail />} />
           <Route path="/problems" element={<Problems />} />

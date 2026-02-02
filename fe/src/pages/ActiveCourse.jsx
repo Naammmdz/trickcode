@@ -1,16 +1,86 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseCurriculum from '../components/course/CourseCurriculum';
+import { useState } from 'react';
+import { courseService } from '../services/courseService';
 
 const ActiveCourse = () => {
   const { courseId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isReviewMode = location.state?.reviewMode;
+
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectInput, setShowRejectInput] = useState(false);
+
+  const handleApprove = async () => {
+    try {
+      if (window.confirm('Are you sure you want to approve this course?')) {
+        await courseService.updateStatus(courseId, 'APPROVED');
+        navigate('/admin');
+      }
+    } catch (error) {
+      alert('Failed to approve course');
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason) {
+      alert('Please provide a reason');
+      return;
+    }
+    try {
+      await courseService.updateStatus(courseId, 'REJECTED', rejectReason);
+      navigate('/admin');
+    } catch (error) {
+      alert('Failed to reject course');
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
-      {/* Navbar */}
-      <nav className="fixed w-full z-50 top-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
+
+      {/* Admin Review Banner */}
+      {isReviewMode && (
+        <div className="fixed top-0 left-0 right-0 h-16 bg-neutral-900 text-white z-[60] flex items-center justify-between px-6 shadow-xl">
+          <div className="flex items-center gap-3">
+            <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded">ADMIN REVIEW MODE</span>
+            <span className="text-sm text-neutral-300">You have full access to this course content.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {showRejectInput ? (
+              <div className="flex items-center gap-2 animate-in slide-in-from-right-2 fade-in">
+                <input
+                  autoFocus
+                  placeholder="Reason for rejection..."
+                  className="text-sm text-black px-3 py-1.5 rounded outline-none border-none w-64"
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                />
+                <button onClick={handleReject} className="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-bold uppercase">Confirm</button>
+                <button onClick={() => setShowRejectInput(false)} className="text-neutral-400 hover:text-white px-2 text-xs uppercase">Cancel</button>
+              </div>
+            ) : (
+              <>
+                <button onClick={() => setShowRejectInput(true)} className="px-4 py-2 border border-red-500/50 text-red-500 hover:bg-red-500/10 rounded text-xs font-bold uppercase tracking-widest transition-colors">
+                  Reject Course
+                </button>
+                <button onClick={handleApprove} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-green-900/20">
+                  Approve & Publish
+                </button>
+              </>
+            )}
+            <button onClick={() => navigate('/admin')} className="ml-4 text-neutral-500 hover:text-white">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Navbar - Adjusted top padding if review mode */}
+      <nav className={`fixed w-full z-50 ${isReviewMode ? 'top-16' : 'top-0'} bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 transition-all`}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="relative w-8 h-8 flex items-center justify-center">
@@ -29,7 +99,7 @@ const ActiveCourse = () => {
         </div>
       </nav>
 
-      <main className="relative z-10 pt-24 pb-12">
+      <main className={`relative z-10 ${isReviewMode ? 'pt-40' : 'pt-24'} pb-12`}>
         <div className="max-w-7xl mx-auto px-6 mb-8">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-[10px] md:text-xs font-sans uppercase tracking-widest text-neutral-500 mb-8">
@@ -164,7 +234,7 @@ const ActiveCourse = () => {
 
             {/* Sidebar */}
             <div className="lg:col-span-4 relative">
-              <div className="sticky top-24 space-y-6">
+              <div className="sticky top-40 space-y-6">
                 {/* Progress Card */}
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-lg shadow-xl shadow-neutral-200/50 dark:shadow-none">
                   <h5 className="text-xs font-sans uppercase tracking-widest text-neutral-500 mb-6 flex items-center gap-2">
@@ -190,16 +260,20 @@ const ActiveCourse = () => {
                     <span className="material-symbols-outlined text-lg">play_arrow</span>
                     Resume Mission
                   </Link>
-                  <div className="pt-6 border-t border-neutral-100 dark:border-neutral-800">
-                    <div className="flex items-center justify-between mb-3">
-                      <h5 className="text-xs font-sans uppercase tracking-widest text-neutral-500">Certificate Status</h5>
-                      <span className="material-symbols-outlined text-neutral-400 text-sm">lock</span>
+
+                  {/* Hide Locked Status in Review Mode */}
+                  {!isReviewMode && (
+                    <div className="pt-6 border-t border-neutral-100 dark:border-neutral-800">
+                      <div className="flex items-center justify-between mb-3">
+                        <h5 className="text-xs font-sans uppercase tracking-widest text-neutral-500">Certificate Status</h5>
+                        <span className="material-symbols-outlined text-neutral-400 text-sm">lock</span>
+                      </div>
+                      <div className="w-full bg-neutral-100 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden mb-2">
+                        <div className="bg-neutral-300 dark:bg-neutral-600 h-full w-[25%]"></div>
+                      </div>
+                      <p className="text-[10px] text-neutral-400 italic">Locked until 100% completion</p>
                     </div>
-                    <div className="w-full bg-neutral-100 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden mb-2">
-                      <div className="bg-neutral-300 dark:bg-neutral-600 h-full w-[25%]"></div>
-                    </div>
-                    <p className="text-[10px] text-neutral-400 italic">Locked until 100% completion</p>
-                  </div>
+                  )}
                 </div>
 
                 {/* Resources */}

@@ -11,15 +11,15 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
-/**
- * Security configuration for Spring Cloud Gateway (WebFlux)
- * Configures OAuth2 Resource Server to validate JWT tokens from Authorization Server
- */
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
@@ -27,38 +27,34 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
-                // Disable CSRF for API Gateway (stateless, uses JWT)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-
-                // Configure OAuth2 Resource Server
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 )
-
-                // Configure authorization rules
                 .authorizeExchange(exchanges -> exchanges
-                        // Allow actuator endpoints (health checks, metrics)
                         .pathMatchers("/actuator/**").permitAll()
-
-                        // Allow OAuth2 endpoints to be called directly (not through Gateway)
                         .pathMatchers("/oauth2/**").permitAll()
                         .pathMatchers("/.well-known/**").permitAll()
-
-                        // Allow IAM auth endpoints through gateway (login/register/refresh/forgot...)
-                        // These must be public because the user won't have a token yet.
                         .pathMatchers("/iam-service/auth/**").permitAll()
-
-                        // All other routes require authentication
                         .anyExchange().authenticated()
                 );
 
         return http.build();
     }
 
-    /**
-     * Reactive JWT authentication converter for WebFlux.
-     * Maps IAM roles in claim "groups" (e.g. ["STUDENT"]) to Spring authorities (ROLE_STUDENT).
-     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
     private Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthoritiesClaimName("groups");

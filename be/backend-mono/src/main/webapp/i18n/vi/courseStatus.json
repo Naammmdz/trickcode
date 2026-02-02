@@ -1,0 +1,12 @@
+{
+  "trickcodeApp": {
+    "CourseStatus": {
+      "null": "",
+      "DRAFT": "DRAFT",
+      "PENDING": "PENDING",
+      "APPROVED": "APPROVED",
+      "PUBLISHED": "PUBLISHED",
+      "REJECTED": "REJECTED"
+    }
+  }
+}

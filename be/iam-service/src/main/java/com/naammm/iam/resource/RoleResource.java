@@ -18,6 +18,8 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -31,8 +33,11 @@ public class RoleResource {
 
     @GET
     @RolesAllowed("ADMIN")
-    public List<Role> listRoles() {
-        return roleService.listRoles();
+    public Response listRoles(
+            @QueryParam("q") String query,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("10") int size) {
+        return Response.ok(roleService.searchRoles(query, page, size)).build();
     }
 
     @GET

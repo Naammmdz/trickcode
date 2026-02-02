@@ -11,5 +11,7 @@ public record CreateRoleRequest(
         String name,
 
         @Size(max = 500, message = "Description must not exceed 500 characters")
-        String description
+        String description,
+
+        java.util.List<Long> permissionIds
 ) {}

@@ -1,0 +1,79 @@
+{
+  "annotations": {
+    "changelogDate": "20260202164104"
+  },
+  "applications": ["courseService"],
+  "clientRootFolder": "courseService",
+  "databaseType": "sql",
+  "fields": [
+    {
+      "fieldName": "title",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "description",
+      "fieldType": "TextBlob"
+    },
+    {
+      "fieldName": "price",
+      "fieldType": "BigDecimal"
+    },
+    {
+      "fieldName": "oldPrice",
+      "fieldType": "BigDecimal"
+    },
+    {
+      "fieldName": "level",
+      "fieldType": "CourseLevel",
+      "fieldValues": "BEGINNER,INTERMEDIATE,ADVANCED"
+    },
+    {
+      "fieldName": "status",
+      "fieldType": "CourseStatus",
+      "fieldValues": "DRAFT,PENDING,APPROVED,PUBLISHED,REJECTED"
+    },
+    {
+      "fieldName": "thumbnailUrl",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "videoPreviewUrl",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "instructorId",
+      "fieldType": "Long"
+    },
+    {
+      "fieldName": "rejectionReason",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "createdAt",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "updatedAt",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "publishedAt",
+      "fieldType": "Instant"
+    }
+  ],
+  "jpaMetamodelFiltering": true,
+  "microserviceName": "courseService",
+  "name": "Course",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityName": "section",
+      "relationshipName": "sections",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    }
+  ],
+  "searchEngine": "no",
+  "service": "serviceClass"
+}

@@ -1,0 +1,28 @@
+{
+  "trickcodeApp": {
+    "lessonProgress": {
+      "home": {
+        "title": "Lesson Progresses",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Lesson Progress",
+        "createOrEditLabel": "Create or edit a Lesson Progress",
+        "notFound": "No Lesson Progresses found"
+      },
+      "created": "A new Lesson Progress is created with identifier {{ param }}",
+      "updated": "A Lesson Progress is updated with identifier {{ param }}",
+      "deleted": "A Lesson Progress is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Lesson Progress {{ id }}?"
+      },
+      "detail": {
+        "title": "Lesson Progress"
+      },
+      "id": "ID",
+      "completedAt": "Completed At",
+      "isCompleted": "Is Completed",
+      "user": "User",
+      "lesson": "Lesson",
+      "enrollment": "Enrollment"
+    }
+  }
+}

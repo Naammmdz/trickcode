@@ -1,5 +1,6 @@
 package com.naammm.iam.resource;
 
+import com.naammm.iam.dto.request.CreateUserRequest;
 import com.naammm.iam.dto.request.UpdateUserRequest;
 import com.naammm.iam.entity.User;
 import com.naammm.iam.service.UserService;
@@ -22,8 +23,13 @@ public class UserResource {
 
     @GET
     @RolesAllowed({"ADMIN"})
-    public List<User> listUsers() {
-        return userService.listUsers();
+    public Response listUsers(
+            @QueryParam("q") String query,
+            @QueryParam("page") @DefaultValue("0") int page,
+            @QueryParam("size") @DefaultValue("10") int size,
+            @QueryParam("roleId") Long roleId,
+            @QueryParam("status") String status) {
+        return Response.ok(userService.searchUsers(query, page, size, roleId, status)).build();
     }
 
     @GET
@@ -33,12 +39,27 @@ public class UserResource {
         return userService.getUser(id);
     }
 
+    @POST
+    @RolesAllowed({"ADMIN"})
+    public Response createUser(@Valid CreateUserRequest req) {
+        User user = userService.createUser(req);
+        return Response.status(Response.Status.CREATED).entity(user).build();
+    }
+
     @PUT
     @Path("/{id}")
     @RolesAllowed({"ADMIN"})
     public Response updateUser(@PathParam("id") Long id, @Valid UpdateUserRequest req) {
         userService.updateUser(id, req);
         return Response.ok().build();
+    }
+
+    @DELETE
+    @Path("/{id}")
+    @RolesAllowed({"ADMIN"})
+    public Response deleteUser(@PathParam("id") Long id) {
+        userService.deleteUser(id);
+        return Response.noContent().build();
     }
 
     @PUT

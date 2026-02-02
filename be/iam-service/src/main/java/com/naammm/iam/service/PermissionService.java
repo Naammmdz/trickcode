@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.naammm.iam.dto.response.PageResponse;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
+
 @ApplicationScoped
 public class PermissionService {
 
@@ -31,6 +34,12 @@ public class PermissionService {
 
     public List<Permission> listPermissions() {
         return permissionRepository.listAll();
+    }
+
+    public PageResponse<Permission> searchPermissions(String query, int page, int size) {
+        PanacheQuery<Permission> q = permissionRepository.search(query);
+        q.page(page, size);
+        return PageResponse.of(q.list(), page, size, q.count());
     }
 
     public Permission getPermission(Long id) {

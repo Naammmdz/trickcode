@@ -1,0 +1,11 @@
+{
+  "trickcodeApp": {
+    "LessonType": {
+      "null": "",
+      "VIDEO": "VIDEO",
+      "TEXT": "TEXT",
+      "QUIZ": "QUIZ",
+      "CODE": "CODE"
+    }
+  }
+}

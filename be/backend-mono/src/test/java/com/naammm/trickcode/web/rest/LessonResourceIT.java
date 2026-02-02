@@ -346,11 +346,7 @@ class LessonResourceIT {
         Lesson partialUpdatedLesson = new Lesson();
         partialUpdatedLesson.setId(lesson.getId());
 
-        partialUpdatedLesson
-            .type(UPDATED_TYPE)
-            .isPreview(UPDATED_IS_PREVIEW)
-            .captionUrl(UPDATED_CAPTION_URL)
-            .quizConfig(UPDATED_QUIZ_CONFIG);
+        partialUpdatedLesson.title(UPDATED_TITLE).captionUrl(UPDATED_CAPTION_URL).codeChallengeConfig(UPDATED_CODE_CHALLENGE_CONFIG);
 
         restLessonMockMvc
             .perform(

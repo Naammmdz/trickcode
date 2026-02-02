@@ -960,12 +960,14 @@ class CourseResourceIT {
 
         partialUpdatedCourse
             .title(UPDATED_TITLE)
-            .oldPrice(UPDATED_OLD_PRICE)
+            .description(UPDATED_DESCRIPTION)
+            .price(UPDATED_PRICE)
             .status(UPDATED_STATUS)
             .thumbnailUrl(UPDATED_THUMBNAIL_URL)
             .videoPreviewUrl(UPDATED_VIDEO_PREVIEW_URL)
             .createdAt(UPDATED_CREATED_AT)
-            .updatedAt(UPDATED_UPDATED_AT);
+            .updatedAt(UPDATED_UPDATED_AT)
+            .publishedAt(UPDATED_PUBLISHED_AT);
 
         restCourseMockMvc
             .perform(

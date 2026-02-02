@@ -703,7 +703,11 @@ class OrderResourceIT {
         Order partialUpdatedOrder = new Order();
         partialUpdatedOrder.setId(order.getId());
 
-        partialUpdatedOrder.totalAmount(UPDATED_TOTAL_AMOUNT).createdAt(UPDATED_CREATED_AT).paymentMethod(UPDATED_PAYMENT_METHOD);
+        partialUpdatedOrder
+            .totalAmount(UPDATED_TOTAL_AMOUNT)
+            .createdAt(UPDATED_CREATED_AT)
+            .paymentMethod(UPDATED_PAYMENT_METHOD)
+            .transactionId(UPDATED_TRANSACTION_ID);
 
         restOrderMockMvc
             .perform(

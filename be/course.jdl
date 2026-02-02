@@ -1,0 +1,73 @@
+application {
+  config {
+    baseName courseService
+    applicationType microservice
+    packageName com.naammm.course
+    authenticationType jwt
+    devDatabaseType h2Disk
+    prodDatabaseType postgresql
+    buildTool maven
+    serverPort 8081
+    skipUserManagement true
+    clientFramework no
+    testFrameworks []
+    nativeLanguage en
+    languages [en, vi]
+  }
+  entities *
+}
+
+enum CourseStatus {
+    DRAFT, PENDING, APPROVED, PUBLISHED, REJECTED
+}
+
+enum CourseLevel {
+    BEGINNER, INTERMEDIATE, ADVANCED
+}
+
+enum LessonType {
+    VIDEO, TEXT, QUIZ, CODE
+}
+
+entity Course {
+    title String required
+    description TextBlob
+    price BigDecimal
+    oldPrice BigDecimal
+    level CourseLevel
+    status CourseStatus
+    thumbnailUrl String
+    videoPreviewUrl String
+    instructorId Long
+    rejectionReason String
+    createdAt Instant
+    updatedAt Instant
+    publishedAt Instant
+}
+
+entity Section {
+    title String required
+    orderIndex Integer
+}
+
+entity Lesson {
+    title String required
+    type LessonType
+    orderIndex Integer
+    durationSeconds Integer
+    isPreview Boolean
+    videoUrl String
+    captionUrl String
+    markdownContent TextBlob
+    quizConfig TextBlob
+    codeChallengeConfig TextBlob
+}
+
+relationship OneToMany {
+    Course{sections} to Section
+    Section{lessons} to Lesson
+}
+
+paginate Course, Section, Lesson with pagination
+service all with serviceClass
+filter Course, Section, Lesson

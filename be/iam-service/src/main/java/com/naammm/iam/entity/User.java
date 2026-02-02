@@ -60,6 +60,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
+    @Builder.Default
     private Status status = Status.ACTIVE;
 
     @Column(name = "pro_expires_at")
