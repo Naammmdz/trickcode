@@ -1,11 +1,57 @@
 import { Link, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseCurriculum from '../components/course/CourseCurriculum';
+import { courseService } from '../services/courseService';
 
 const CourseDetail = () => {
   const { id } = useParams();
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        setLoading(true);
+        const data = await courseService.getCourse(id);
+        setCourse(data);
+      } catch (err) {
+        console.error('Failed to fetch course:', err);
+        setError('Failed to load course details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchCourse();
+    }
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-neutral-600 dark:text-neutral-400">Loading course...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error || 'Course not found'}</p>
+          <Link to="/marketplace" className="text-primary hover:underline">← Back to Marketplace</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
@@ -22,9 +68,9 @@ const CourseDetail = () => {
             </div>
             <span className="font-serif font-bold text-xl tracking-tight">Trickcode</span>
           </Link>
-          <div className="hidden md:flex items-center gap-8 text-xs font-sans text-neutral-500 dark:text-neutral-400">
-            <Link to="/" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Home</Link>
-            <Link to="/marketplace" className="text-primary transition-colors">Marketplace</Link>
+          <div className="hidden md:flex items-center gap-8 text-xs font-sans tracking-widest uppercase text-neutral-500 dark:text-neutral-400">
+            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+            <Link to="/marketplace" className="hover:text-primary transition-colors">Marketplace</Link>
           </div>
           <div className="flex items-center gap-4">
             <UserAvatar />
@@ -39,9 +85,7 @@ const CourseDetail = () => {
           <nav className="flex items-center gap-2 text-[10px] md:text-xs font-sans uppercase tracking-widest text-neutral-500 mb-8">
             <Link to="/marketplace" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Marketplace</Link>
             <span className="text-neutral-300 dark:text-neutral-700">/</span>
-            <Link to="/marketplace" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Algorithms</Link>
-            <span className="text-neutral-300 dark:text-neutral-700">/</span>
-            <span className="text-neutral-900 dark:text-white">Dynamic Programming</span>
+            <span className="text-neutral-900 dark:text-white">{course.title}</span>
           </nav>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 relative">
@@ -50,17 +94,23 @@ const CourseDetail = () => {
               {/* Header Section */}
               <div>
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 text-[10px] uppercase font-sans tracking-widest rounded-full">Hard Difficulty</span>
-                  <div className="flex items-center gap-1 text-yellow-500 text-xs font-sans">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
-                    <span className="text-neutral-400 dark:text-neutral-500 ml-1">(420 reviews)</span>
-                  </div>
+                  {course.level && (
+                    <span className="px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 text-[10px] uppercase font-sans tracking-widest rounded-full">
+                      {course.level} Difficulty
+                    </span>
+                  )}
+                  {course.rating && (
+                    <div className="flex items-center gap-1 text-yellow-500 text-xs font-sans">
+                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> {course.rating.toFixed(1)}
+                      <span className="text-neutral-400 dark:text-neutral-500 ml-1">({course.reviewCount || 0} reviews)</span>
+                    </div>
+                  )}
                 </div>
                 <h1 className="text-4xl md:text-6xl font-serif mb-6 text-neutral-900 dark:text-white leading-tight">
-                  Dynamic Programming <span className="italic font-light text-neutral-500">Patterns</span>
+                  {course.title}
                 </h1>
                 <p className="text-lg text-neutral-600 dark:text-neutral-400 font-light leading-relaxed max-w-2xl mb-8">
-                  Master the art of breaking down complex problems. Learn to identify overlapping subproblems, define optimal substructures, and construct efficient solutions from the ground up.
+                  {course.description || 'No description available.'}
                 </p>
                 
                 {/* Video Preview */}
@@ -167,12 +217,25 @@ const CourseDetail = () => {
                 {/* Pricing Card */}
                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-lg shadow-xl shadow-neutral-200/50 dark:shadow-none">
                   <div className="flex items-end gap-3 mb-6">
-                    <span className="text-4xl font-serif font-medium text-neutral-900 dark:text-white">$39.99</span>
-                    <span className="text-sm text-neutral-400 line-through mb-1.5">$89.99</span>
-                    <span className="text-xs text-primary font-sans bg-primary/10 px-2 py-1 rounded mb-1.5 ml-auto">-55%</span>
+                    <span className="text-4xl font-serif font-medium text-neutral-900 dark:text-white">
+                      ${course.price ? course.price.toFixed(2) : '0.00'}
+                    </span>
+                    {course.originalPrice && course.originalPrice > course.price && (
+                      <>
+                        <span className="text-sm text-neutral-400 line-through mb-1.5">
+                          ${course.originalPrice.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-primary font-sans bg-primary/10 px-2 py-1 rounded mb-1.5 ml-auto">
+                          -{Math.round((1 - course.price / course.originalPrice) * 100)}%
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="mb-8">
-                    <Link to="/checkout" className="w-full block py-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-sans text-xs uppercase tracking-widest hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors shadow-lg shadow-neutral-900/20 rounded text-center">
+                    <Link 
+                      to={`/checkout?courseId=${course.id}`} 
+                      className="w-full block py-4 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-sans text-xs uppercase tracking-widest hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors shadow-lg shadow-neutral-900/20 rounded text-center"
+                    >
                       Enroll Now
                     </Link>
                   </div>
@@ -180,11 +243,11 @@ const CourseDetail = () => {
                     <h5 className="text-xs font-sans uppercase tracking-widest text-neutral-500 mb-4">What's Included</h5>
                     <div className="flex items-center gap-3 text-sm text-neutral-600 dark:text-neutral-400">
                       <span className="material-symbols-outlined text-lg text-neutral-400">videocam</span>
-                      <span>24 High-def Lessons</span>
+                      <span>{course.lessonCount || 0} Lessons</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-neutral-600 dark:text-neutral-400">
-                      <span className="material-symbols-outlined text-lg text-neutral-400">terminal</span>
-                      <span>10 Code Assignments</span>
+                      <span className="material-symbols-outlined text-lg text-neutral-400">schedule</span>
+                      <span>{course.duration || 'Varies'}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-neutral-600 dark:text-neutral-400">
                       <span className="material-symbols-outlined text-lg text-neutral-400">download</span>
@@ -219,14 +282,21 @@ const CourseDetail = () => {
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg border-t border-neutral-200 dark:border-neutral-800 z-40 transform translate-y-0 transition-transform duration-300">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="hidden md:block">
-            <p className="font-serif font-medium text-neutral-900 dark:text-white">Dynamic Programming Patterns</p>
-            <div className="flex items-center gap-2 text-xs text-neutral-500">
-              <span className="material-symbols-outlined text-sm text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8 Rating
-            </div>
+            <p className="font-serif font-medium text-neutral-900 dark:text-white">{course.title}</p>
+            {course.rating && (
+              <div className="flex items-center gap-2 text-xs text-neutral-500">
+                <span className="material-symbols-outlined text-sm text-yellow-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> {course.rating.toFixed(1)} Rating
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <span className="font-serif text-xl md:text-2xl ml-auto md:ml-0">$39.99</span>
-            <Link to="/checkout" className="bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-6 py-3 font-sans text-xs uppercase tracking-widest hover:opacity-90 transition-opacity rounded inline-block">
+            <span className="font-serif text-xl md:text-2xl ml-auto md:ml-0">
+              ${course.price ? course.price.toFixed(2) : '0.00'}
+            </span>
+            <Link 
+              to={`/checkout?courseId=${course.id}`} 
+              className="bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-6 py-3 font-sans text-xs uppercase tracking-widest hover:opacity-90 transition-opacity rounded inline-block"
+            >
               Purchase Access
             </Link>
           </div>

@@ -3,16 +3,16 @@
 ## Authentication & User Management
 
 ### `AccountResource`
-- [ ] `POST /api/register` - Register new account
-- [ ] `GET /api/activate` - Activate account
-- [ ] `GET /api/account` - Get current account info
+- [x] `POST /api/register` - Register new account (✅ Used in Signup)
+- [x] `GET /api/activate` - Activate account (✅ Used in ActivateAccount)
+- [x] `GET /api/account` - Get current account info (✅ Used in AuthContext)
 - [ ] `POST /api/account` - Update account info
 - [ ] `POST /api/account/change-password` - Change password
 - [ ] `POST /api/account/reset-password/init` - Initiate password reset
 - [ ] `POST /api/account/reset-password/finish` - Complete password reset
 
 ### `AuthenticateController`
-- [ ] `POST /api/authenticate` - User login
+- [x] `POST /api/authenticate` - User login (✅ Used in Login)
 - [ ] `GET /api/authenticate` - Check authentication status
 
 ## User Management (Admin)
@@ -36,25 +36,25 @@
 - [ ] `POST /api/courses` - Create new course
 - [ ] `PUT /api/courses/{id}` - Update course
 - [ ] `PATCH /api/courses/{id}` - Partially update course
-- [ ] `GET /api/courses` - Get all courses
+- [x] `GET /api/courses` - Get all courses (✅ Used in Marketplace)
 - [ ] `GET /api/courses/count` - Get course count
-- [ ] `GET /api/courses/{id}` - Get course by ID
+- [x] `GET /api/courses/{id}` - Get course by ID (✅ Used in CourseDetail)
 - [ ] `DELETE /api/courses/{id}` - Delete course
 
 ### `SectionResource`
 - [ ] `POST /api/sections` - Create new section
 - [ ] `PUT /api/sections/{id}` - Update section
 - [ ] `PATCH /api/sections/{id}` - Partially update section
-- [ ] `GET /api/sections` - Get all sections
-- [ ] `GET /api/sections/{id}` - Get section by ID
+- [x] `GET /api/sections` - Get all sections (✅ Used with courseId.equals filter)
+- [x] `GET /api/sections/{id}` - Get section by ID
 - [ ] `DELETE /api/sections/{id}` - Delete section
 
 ### `LessonResource`
 - [ ] `POST /api/lessons` - Create new lesson
 - [ ] `PUT /api/lessons/{id}` - Update lesson
 - [ ] `PATCH /api/lessons/{id}` - Partially update lesson
-- [ ] `GET /api/lessons` - Get all lessons
-- [ ] `GET /api/lessons/{id}` - Get lesson by ID
+- [x] `GET /api/lessons` - Get all lessons (✅ Used with sectionId.equals filter)
+- [x] `GET /api/lessons/{id}` - Get lesson by ID
 - [ ] `DELETE /api/lessons/{id}` - Delete lesson
 
 ## User Progress

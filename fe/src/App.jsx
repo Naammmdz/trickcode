@@ -15,6 +15,7 @@ import Checkout from './pages/Checkout'
 import MyCourses from './pages/MyCourses'
 import Problems from './pages/Problems'
 import Signup from './pages/Signup'
+import ActivateAccount from './pages/ActivateAccount'
 import Profile from './pages/Profile'
 import TransactionHistory from './pages/TransactionHistory'
 import ProCheckout from './pages/ProCheckout'
@@ -30,6 +31,8 @@ function App() {
           <Route path="/" element={<MarketplaceHome />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/activate" element={<ActivateAccount />} />
+          <Route path="/account/activate" element={<ActivateAccount />} />
           <Route path="/learn" element={<Marketplace />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/learn/:id" element={<CourseDetail />} />

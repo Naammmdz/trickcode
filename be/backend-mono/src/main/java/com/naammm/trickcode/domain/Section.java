@@ -33,7 +33,7 @@ public class Section implements Serializable {
     @Column(name = "order_index")
     private Integer orderIndex;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "section")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "section", cascade = CascadeType.ALL, orphanRemoval = true)
     @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     @JsonIgnoreProperties(value = { "section" }, allowSetters = true)
     private Set<Lesson> lessons = new HashSet<>();

@@ -70,7 +70,7 @@ public class Course implements Serializable {
     @Column(name = "published_at")
     private Instant publishedAt;
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "course")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     @JsonIgnoreProperties(value = { "lessons", "course" }, allowSetters = true)
     private Set<Section> sections = new HashSet<>();

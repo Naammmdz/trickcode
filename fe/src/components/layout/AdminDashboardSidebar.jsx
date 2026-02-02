@@ -91,16 +91,6 @@ const AdminDashboardSidebar = ({ currentTab, onTabChange }) => {
             Roles
           </button>
           <button
-            onClick={() => onTabChange('permissions')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'permissions'
-                ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
-                : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-              }`}
-          >
-            <span className="material-symbols-outlined text-[18px]">verified_user</span>
-            Permissions
-          </button>
-          <button
             onClick={() => onTabChange('courses')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'courses'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'

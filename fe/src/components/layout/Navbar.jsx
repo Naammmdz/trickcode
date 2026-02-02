@@ -51,17 +51,48 @@ const Navbar = ({ simple = false }) => {
 
   const getUserInitials = () => {
     if (!user) return 'U';
-    if (user.name) {
-      const names = user.name.split(' ');
+    
+    // Try firstName + lastName first (JHipster format)
+    if (user.firstName && user.firstName.trim()) {
+      const firstInitial = user.firstName.trim()[0];
+      const lastInitial = user.lastName?.trim()?.[0] || '';
+      const initials = (firstInitial + lastInitial).toUpperCase();
+      return initials || 'U';
+    }
+    
+    // Try name field
+    if (user.name && user.name.trim()) {
+      const names = user.name.trim().split(/\s+/).filter(n => n);
       if (names.length >= 2) {
         return (names[0][0] + names[names.length - 1][0]).toUpperCase();
       }
-      return names[0][0].toUpperCase();
+      if (names.length === 1 && names[0].length > 0) {
+        return names[0][0].toUpperCase();
+      }
     }
-    if (user.email) {
-      return user.email[0].toUpperCase();
+    
+    // Try email
+    if (user.email && user.email.trim()) {
+      return user.email.trim()[0].toUpperCase();
     }
+    
+    // Try login
+    if (user.login && user.login.trim()) {
+      return user.login.trim()[0].toUpperCase();
+    }
+    
     return 'U';
+  };
+
+  const getUserDisplayName = () => {
+    if (!user) return 'User';
+    
+    const firstName = user.firstName?.trim();
+    const name = user.name?.trim();
+    const email = user.email?.trim();
+    const login = user.login?.trim();
+    
+    return firstName || name || email?.split('@')[0] || login || 'User';
   };
 
   return (
@@ -103,7 +134,7 @@ const Navbar = ({ simple = false }) => {
                       {getUserInitials()}
                     </div>
                     <span className="hidden sm:inline-block max-w-[100px] truncate">
-                      {user?.name || user?.email?.split('@')[0] || 'User'}
+                      {getUserDisplayName()}
                     </span>
                     <span className="material-icons-outlined text-sm group-hover:rotate-180 transition-transform">
                       {dropdownOpen ? 'expand_less' : 'expand_more'}
@@ -114,10 +145,12 @@ const Navbar = ({ simple = false }) => {
                     <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-lg shadow-xl overflow-hidden z-50">
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {user?.name || 'User'}
+                          {user?.firstName && user?.lastName 
+                            ? `${user.firstName} ${user.lastName}`.trim()
+                            : getUserDisplayName()}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-1">
-                          {user?.email || ''}
+                          {user?.email || user?.login || ''}
                         </p>
                       </div>
                       <div className="py-1">

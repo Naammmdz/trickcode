@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/api/authenticate',
     SIGNUP: '/api/register',
+    ACTIVATE: '/api/activate',
     PROFILE: '/api/account',
   },
 
@@ -21,6 +22,20 @@ export const API_ENDPOINTS = {
   COURSES: {
     LIST: '/api/courses',
     DETAIL: (id) => `/api/courses/${id}`,
+  },
+
+  // Sections (part of a course)
+  SECTIONS: {
+    LIST: '/api/sections',
+    DETAIL: (id) => `/api/sections/${id}`,
+    BY_COURSE: '/api/sections', // Use with query param: ?courseId.equals=X
+  },
+
+  // Lessons (part of a section)
+  LESSONS: {
+    LIST: '/api/lessons',
+    DETAIL: (id) => `/api/lessons/${id}`,
+    BY_SECTION: '/api/lessons', // Use with query param: ?sectionId.equals=X
   },
 
   // News

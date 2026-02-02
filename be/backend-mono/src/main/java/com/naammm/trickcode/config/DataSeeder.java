@@ -111,10 +111,6 @@ public class DataSeeder implements CommandLineRunner {
     }
 
     private void seedCourses() {
-        if (courseRepository.count() > 0) {
-            return;
-        }
-
         User instructor = userRepository.findOneByLogin("instructor").orElse(null);
 
         createCourse("Dynamic Programming Patterns", "Deep dive into DP patterns for interviews.", 
@@ -153,6 +149,7 @@ public class DataSeeder implements CommandLineRunner {
         c.setLevel(level);
         c.setStatus(CourseStatus.PUBLISHED);
         c.setCreatedAt(Instant.now());
+        c.setThumbnailUrl("https://picsum.photos/400/300?random=" + title.hashCode());
         if (instructor != null) c.setInstructor(instructor);
         
         Section s1 = new Section();

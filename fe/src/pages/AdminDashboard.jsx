@@ -8,7 +8,6 @@ import AdminDashboardSidebar from '../components/layout/AdminDashboardSidebar';
 import OverviewTab from '../components/admin/tabs/OverviewTab';
 import UsersTab from '../components/admin/tabs/UsersTab';
 import RolesTab from '../components/admin/tabs/RolesTab';
-import PermissionsTab from '../components/admin/tabs/PermissionsTab';
 import CoursesTab from '../components/admin/tabs/CoursesTab';
 import SettingsTab from '../components/admin/tabs/SettingsTab';
 import PlaceholderTab from '../components/admin/tabs/PlaceholderTab';
@@ -35,7 +34,6 @@ const AdminDashboard = () => {
     overview: <OverviewTab />,
     users: <UsersTab />,
     roles: <RolesTab />,
-    permissions: <PermissionsTab />,
     courses: <CoursesTab />,
     instructors: (
       <PlaceholderTab

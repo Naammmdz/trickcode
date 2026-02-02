@@ -32,6 +32,7 @@ const Marketplace = () => {
           students: 0, // Placeholder
           instructor: c.instructor ? (c.instructor.firstName ? `${c.instructor.firstName} ${c.instructor.lastName}` : c.instructor.login) : 'Unknown',
           price: c.price ? `$${c.price}` : 'Free',
+          thumbnailUrl: c.thumbnailUrl,
           symbol: c.title ? c.title.substring(0, 2).toUpperCase() : '??'
         }));
         setCourses(mapped);
@@ -70,9 +71,9 @@ const Marketplace = () => {
             </div>
             <span className="font-serif font-bold text-xl tracking-tight">Trickcode</span>
           </Link>
-          <div className="hidden md:flex items-center gap-8 text-xs font-sans text-neutral-500 dark:text-neutral-400">
-            <Link to="/" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Home</Link>
-            <Link to="/learn" className="text-primary transition-colors">Marketplace</Link>
+          <div className="hidden md:flex items-center gap-8 text-xs font-sans tracking-widest uppercase text-neutral-500 dark:text-neutral-400">
+            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+            <Link to="/marketplace" className="hover:text-primary transition-colors">Marketplace</Link>
           </div>
           <div className="flex items-center gap-4">
             <UserAvatar />
@@ -178,8 +179,18 @@ const Marketplace = () => {
                 className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full cursor-pointer rounded"
               >
                 <div className="h-40 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                  <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                  <span className="font-serif text-5xl text-neutral-200 dark:text-neutral-700 italic group-hover:scale-110 transition-transform duration-500">{course.symbol}</span>
+                  {course.thumbnailUrl ? (
+                    <img 
+                      src={course.thumbnailUrl} 
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
+                      <span className="font-serif text-5xl text-neutral-200 dark:text-neutral-700 italic group-hover:scale-110 transition-transform duration-500">{course.symbol}</span>
+                    </>
+                  )}
                 </div>
                 <div className="p-5 flex flex-col flex-1">
                   <div className="flex justify-between items-center mb-3">

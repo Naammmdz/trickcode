@@ -83,6 +83,18 @@ const CoursesTab = () => {
     navigate(`/my-courses/${course.id}`, { state: { reviewMode: true, courseId: course.id } });
   };
 
+  const handleDeleteCourse = async (courseId) => {
+    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      await courseService.deleteCourse(courseId);
+      fetchCourses(); // Refresh list
+    } catch (err) {
+      alert('Failed to delete course: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   const statusTone = (s) =>
     s === 'PUBLISHED' || s === 'APPROVED' ? 'green' :
       s === 'PENDING' ? 'blue' :
@@ -90,6 +102,23 @@ const CoursesTab = () => {
 
   const formatCurrency = (price) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+  };
+
+  const getInstructorName = (instructor) => {
+    if (!instructor) return 'Unknown';
+    if (instructor.firstName && instructor.lastName) {
+      return `${instructor.firstName} ${instructor.lastName}`;
+    }
+    if (instructor.firstName) return instructor.firstName;
+    if (instructor.login) return instructor.login;
+    return 'Unknown';
+  };
+
+  const getInstructorInitial = (instructor) => {
+    if (!instructor) return 'U';
+    if (instructor.firstName) return instructor.firstName.charAt(0).toUpperCase();
+    if (instructor.login) return instructor.login.charAt(0).toUpperCase();
+    return 'U';
   };
 
   return (
@@ -163,11 +192,11 @@ const CoursesTab = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-bold text-neutral-600 dark:text-zinc-300">
-                          {c.instructor.name.charAt(0)}
+                          {getInstructorInitial(c.instructor)}
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-xs font-medium text-neutral-700 dark:text-zinc-300">{c.instructor.name}</span>
-                          <span className="text-[10px] text-neutral-500 dark:text-zinc-500">{c.instructor.email}</span>
+                          <span className="text-xs font-medium text-neutral-700 dark:text-zinc-300">{getInstructorName(c.instructor)}</span>
+                          <span className="text-[10px] text-neutral-500 dark:text-zinc-500">{c.instructor?.email || 'N/A'}</span>
                         </div>
                       </div>
                     </td>
@@ -214,7 +243,7 @@ const CoursesTab = () => {
                             </button>
                             <div className="h-px bg-neutral-100 dark:bg-zinc-800 my-1"></div>
                             <button
-                              onClick={() => { setActiveDropdown(null); }}
+                              onClick={() => { setActiveDropdown(null); handleDeleteCourse(c.id); }}
                               className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                             >
                               Delete
