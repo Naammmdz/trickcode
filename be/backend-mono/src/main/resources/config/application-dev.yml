@@ -51,20 +51,10 @@ spring:
     # Remove 'faker' if you do not want the sample data to be loaded automatically
     contexts: dev
   mail:
-    host: smtp.gmail.com
-    port: 465
-    username: ${SPRING_MAIL_USERNAME:qhuyddbmt123@gmail.com}
-    password: ${SPRING_MAIL_PASSWORD:}
-    properties:
-      mail:
-        smtp:
-          ssl:
-            enable: true
-          auth: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-          ssl.trust: smtp.gmail.com
+    host: localhost
+    port: 25
+    username:
+    password:
   messages:
     cache-duration: PT1S # 1 second, see the ISO 8601 standard
   thymeleaf:
@@ -89,7 +79,7 @@ jhipster:
   # CORS is only enabled by default with the "dev" profile
   cors:
     # Allow Ionic for JHipster by default (* no longer allowed in Spring Boot 2.4+)
-    allowed-origins: 'http://localhost:8100,https://localhost:8100,http://localhost:9000,https://localhost:9000,http://localhost:9060,https://localhost:9060,http://localhost:5173'
+    allowed-origins: 'http://localhost:8100,https://localhost:8100,http://localhost:9000,https://localhost:9000,http://localhost:9060,https://localhost:9060,http://localhost:5173,https://localhost:5173'
     # Enable CORS when running in GitHub Codespaces
     allowed-origin-patterns: 'https://*.githubpreview.dev'
     allowed-methods: '*'
@@ -106,7 +96,7 @@ jhipster:
         token-validity-in-seconds: 86400
         token-validity-in-seconds-for-remember-me: 2592000
   mail: # specific JHipster mail property, for standard properties see MailProperties
-    base-url: http://localhost:5173
+    base-url: http://127.0.0.1:8080
   logging:
     use-json-format: false # By default, logs are not in Json format
     logstash: # Forward logs to logstash over a socket, used by LoggingConfiguration

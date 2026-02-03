@@ -36,6 +36,9 @@ function App() {
           <Route path="/learn" element={<Marketplace />} />
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/learn/:id" element={<CourseDetail />} />
+          <Route path="/courses/:id" element={<CourseDetail />} />
+          <Route path="/review-course/:courseId" element={<ActiveCourse />} />
+          <Route path="/admin/review/:courseId" element={<ActiveCourse />} />
           <Route path="/my-courses/:courseId" element={<ActiveCourse />} />
           <Route path="/my-courses/:courseId/lesson/:lessonId" element={<VideoWorkspace />} />
           <Route path="/my-courses/:courseId/quiz/:quizId" element={<QuizWorkspace />} />
@@ -48,8 +51,13 @@ function App() {
           <Route path="/checkout/pro" element={<ProCheckout />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/instructor" element={<InstructorDashboard />} />
-          <Route path="/learn/:courseId/lesson/:lessonId" element={<LessonDetail />} />
-          <Route path="/learn/:courseId/quiz/:quizId" element={<QuizDetail />} />
+          <Route path="/admin/review/:courseId/lesson/:lessonId" element={<VideoWorkspace />} />
+          <Route path="/my-courses/:courseId/lesson/:lessonId" element={<VideoWorkspace />} />
+          <Route path="/admin/review/:courseId/quiz/:quizId" element={<QuizWorkspace />} />
+          <Route path="/my-courses/:courseId/quiz/:quizId" element={<QuizWorkspace />} />
+          <Route path="/my-courses/:courseId/quiz/:quizId/result" element={<QuizResult />} />
+          <Route path="/admin/review/:courseId/code/:codeId" element={<CodeWorkspace />} />
+          <Route path="/my-courses/:courseId/code/:codeId" element={<CodeWorkspace />} />
           <Route path="/problems" element={<Problems />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

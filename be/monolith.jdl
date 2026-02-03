@@ -106,4 +106,4 @@ relationship ManyToOne {
 
 paginate Course, Section, Lesson, Enrollment, Order with pagination
 service all with serviceClass
-filter Course, Order, Enrollment
+filter Course, Section, Lesson, Order, Enrollment

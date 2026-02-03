@@ -14,6 +14,7 @@
       "fieldType": "Integer"
     }
   ],
+  "jpaMetamodelFiltering": true,
   "name": "Section",
   "pagination": "pagination",
   "relationships": [

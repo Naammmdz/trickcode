@@ -21,7 +21,14 @@ export const API_ENDPOINTS = {
   // Courses
   COURSES: {
     LIST: '/api/courses',
+    PUBLIC: '/api/courses/public',
+    MY_COURSES: '/api/courses/my-courses',
     DETAIL: (id) => `/api/courses/${id}`,
+    ACCESS: (id) => `/api/courses/${id}/access`,
+    APPROVE: (id) => `/api/courses/${id}/approve`,
+    REJECT: (id) => `/api/courses/${id}/reject`,
+    PUBLISH: (id) => `/api/courses/${id}/publish`,
+    UNPUBLISH: (id) => `/api/courses/${id}/unpublish`,
   },
 
   // Sections (part of a course)

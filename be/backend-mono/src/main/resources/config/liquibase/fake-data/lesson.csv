@@ -1,11 +1,11 @@
-id;title;type;order_index;duration_seconds;is_preview;video_url;caption_url;markdown_content;quiz_config;code_challenge_config;section_id
-1;What is Dynamic Programming?;VIDEO;1;720;true;https://example.com/video1.mp4;;Introduction to DP concepts...;;;1
-2;Understanding Memoization;VIDEO;2;900;false;https://example.com/video2.mp4;;Learn memoization patterns...;;;1
-3;Practice: Fibonacci Problem;CODE;3;0;false;;;Solve the Fibonacci problem using DP...;;;1
-4;Memoization Deep Dive;VIDEO;1;1200;false;https://example.com/video4.mp4;;Advanced memoization techniques...;;;2
-5;Top-Down Approach;VIDEO;2;800;false;https://example.com/video5.mp4;;Master the top-down DP approach...;;;2
-6;Memoization Quiz;QUIZ;3;0;false;;;Test your memoization knowledge...;{\"questions\": []};;2
-7;Tabulation Basics;VIDEO;1;1000;false;https://example.com/video7.mp4;;Introduction to tabulation...;;;3
-8;Bottom-Up Approach;VIDEO;2;950;false;https://example.com/video8.mp4;;Learn bottom-up DP...;;;3
-9;Space Optimization;VIDEO;3;720;false;https://example.com/video9.mp4;;Optimize space complexity...;;;3
-10;Advanced DP Problems;VIDEO;1;1500;false;https://example.com/video10.mp4;;Solve complex DP problems...;;;4
+id;title;type;order_index;duration_seconds;is_preview;video_url;caption_url;markdown_content;quiz_config;code_challenge_config
+1;noxious;QUIZ;30274;26283;true;institutionalize petticoat;shrill intently foolhardy;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+2;jaggedly;VIDEO;22906;16693;false;another;oxidize;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+3;yahoo psst whether;QUIZ;25464;29879;true;ack co-producer gadzooks;near t-shirt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+4;confound reflecting communicate;VIDEO;350;6068;false;elegantly amid;blindly especially;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+5;around ashamed;TEXT;14991;4910;false;emphasize;section yum gah;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+6;finally;VIDEO;12348;1986;false;watery powerful detain;that whose;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+7;ew;VIDEO;3630;13894;false;with following chatter;private into a;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+8;cantaloupe uh-huh mockingly;QUIZ;11116;8883;true;incidentally;observe revitalise;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+9;recovery long;QUIZ;30391;5982;false;paintwork;confused gee;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt
+10;gadzooks yowza;CODE;9405;20460;true;loyalty instead;able;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt;../fake-data/blob/hipster.txt

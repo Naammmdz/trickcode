@@ -2,7 +2,7 @@ import apiClient from './api';
 import { API_ENDPOINTS } from '../config/api';
 
 export const courseService = {
-    getCourses: async ({ page = 0, size = 10, sort = 'id,asc', q = '' }) => {
+    getCourses: async ({ page = 0, size = 10, sort = 'id,asc', q = '', status = null }) => {
         try {
             const params = {
                 page,
@@ -10,14 +10,15 @@ export const courseService = {
                 sort,
             };
 
-            // JHipster filtering (if filter enabled in JDL)
-            // e.g. title.contains=...
+            // JHipster filtering
             if (q) {
                 params['title.contains'] = q;
             }
 
-            // Note: apiClient is configured to return the full response object in api.js now (response) 
-            // instead of just response.data, so we can access headers.
+            if (status) {
+                params['status.equals'] = status;
+            }
+
             const response = await apiClient.get(API_ENDPOINTS.COURSES.LIST, { params });
 
             const content = response.data;
@@ -33,7 +34,84 @@ export const courseService = {
             };
         } catch (error) {
             console.error("Failed to fetch courses:", error);
-            // Fallback to empty list or throw
+            return {
+                content: [],
+                page,
+                size,
+                totalElements: 0,
+                totalPages: 0
+            };
+        }
+    },
+
+    getPublicCourses: async ({ page = 0, size = 10, sort = 'id,asc', q = '' }) => {
+        try {
+            const params = {
+                page,
+                size,
+                sort,
+            };
+
+            if (q) {
+                params['title.contains'] = q;
+            }
+
+            const response = await apiClient.get(API_ENDPOINTS.COURSES.PUBLIC, { params });
+
+            const content = response.data;
+            const totalElements = parseInt(response.headers['x-total-count'] || '0', 10);
+            const totalPages = Math.ceil(totalElements / size);
+
+            return {
+                content,
+                page,
+                size,
+                totalElements,
+                totalPages
+            };
+        } catch (error) {
+            console.error("Failed to fetch public courses:", error);
+            return {
+                content: [],
+                page,
+                size,
+                totalElements: 0,
+                totalPages: 0
+            };
+        }
+    },
+
+    getMyInstructorCourses: async ({ page = 0, size = 10, sort = 'id,asc', q = '', status = null }) => {
+        try {
+            const params = {
+                page,
+                size,
+                sort,
+            };
+
+            if (q) {
+                params['title.contains'] = q;
+            }
+
+            if (status) {
+                params['status.equals'] = status;
+            }
+
+            const response = await apiClient.get(API_ENDPOINTS.COURSES.MY_COURSES, { params });
+
+            const content = response.data;
+            const totalElements = parseInt(response.headers['x-total-count'] || '0', 10);
+            const totalPages = Math.ceil(totalElements / size);
+
+            return {
+                content,
+                page,
+                size,
+                totalElements,
+                totalPages
+            };
+        } catch (error) {
+            console.error("Failed to fetch my instructor courses:", error);
             return {
                 content: [],
                 page,
@@ -51,6 +129,22 @@ export const courseService = {
         } catch (error) {
             console.error(`Failed to fetch course ${id}:`, error);
             throw error;
+        }
+    },
+
+    checkCourseAccess: async (id) => {
+        try {
+            const response = await apiClient.get(API_ENDPOINTS.COURSES.ACCESS(id));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to check course access ${id}:`, error);
+            // Return default no access if error
+            return {
+                hasAccess: false,
+                isAdmin: false,
+                isEnrolled: false,
+                isInstructor: false
+            };
         }
     },
 
@@ -72,14 +166,44 @@ export const courseService = {
         }
     },
 
-    updateStatus: async (id, status, reason = null) => {
-        // Implement as PATCH/PUT
-        // Usually fetch, update, save
-        const course = await courseService.getCourse(id);
-        course.status = status;
-        if (reason) course.rejectionReason = reason;
+    approveCourse: async (id) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.COURSES.APPROVE(id));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to approve course ${id}:`, error);
+            throw error;
+        }
+    },
 
-        return await courseService.updateCourse(id, course);
+    rejectCourse: async (id, reason) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.COURSES.REJECT(id), { reason });
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to reject course ${id}:`, error);
+            throw error;
+        }
+    },
+
+    publishCourse: async (id) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.COURSES.PUBLISH(id));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to publish course ${id}:`, error);
+            throw error;
+        }
+    },
+
+    unpublishCourse: async (id) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.COURSES.UNPUBLISH(id));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to unpublish course ${id}:`, error);
+            throw error;
+        }
     },
 
     deleteCourse: async (id) => {
@@ -107,6 +231,33 @@ export const courseService = {
         }
     },
 
+    createSection: async (sectionData) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.SECTIONS.LIST, sectionData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    updateSection: async (id, sectionData) => {
+        try {
+            const response = await apiClient.put(API_ENDPOINTS.SECTIONS.DETAIL(id), sectionData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    deleteSection: async (id) => {
+        try {
+            await apiClient.delete(API_ENDPOINTS.SECTIONS.DETAIL(id));
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Get lessons for a section
     getSectionLessons: async (sectionId) => {
         try {
@@ -122,15 +273,53 @@ export const courseService = {
         }
     },
 
+    createLesson: async (lessonData) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.LESSONS.LIST, lessonData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    updateLesson: async (id, lessonData) => {
+        try {
+            const response = await apiClient.put(API_ENDPOINTS.LESSONS.DETAIL(id), lessonData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    deleteLesson: async (id) => {
+        try {
+            await apiClient.delete(API_ENDPOINTS.LESSONS.DETAIL(id));
+            return true;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Get individual lesson detail
+    getLesson: async (lessonId) => {
+        try {
+            const response = await apiClient.get(API_ENDPOINTS.LESSONS.DETAIL(lessonId));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to fetch lesson ${lessonId}:`, error);
+            throw error;
+        }
+    },
+
     // Get full course curriculum (course + sections + lessons)
     getCourseCurriculum: async (courseId) => {
         try {
             // Fetch course detail
             const course = await courseService.getCourse(courseId);
-            
+
             // Fetch all sections for this course
             const sections = await courseService.getCourseSections(courseId);
-            
+
             // Fetch lessons for each section
             const sectionsWithLessons = await Promise.all(
                 sections.map(async (section) => {
@@ -141,7 +330,7 @@ export const courseService = {
                     };
                 })
             );
-            
+
             return {
                 ...course,
                 sections: sectionsWithLessons

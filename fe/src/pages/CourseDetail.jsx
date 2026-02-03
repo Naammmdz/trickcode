@@ -1,14 +1,18 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseCurriculum from '../components/course/CourseCurriculum';
 import { courseService } from '../services/courseService';
+import { useAuth } from '../contexts/AuthContext';
 
 const CourseDetail = () => {
   const { id } = useParams();
+  const location = useLocation();
+  const { user } = useAuth();
   const [course, setCourse] = useState(null);
+  const [courseAccess, setCourseAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,6 +22,12 @@ const CourseDetail = () => {
         setLoading(true);
         const data = await courseService.getCourse(id);
         setCourse(data);
+        
+        // Check access if user is logged in
+        if (user) {
+          const accessData = await courseService.checkCourseAccess(id);
+          setCourseAccess(accessData);
+        }
       } catch (err) {
         console.error('Failed to fetch course:', err);
         setError('Failed to load course details');
@@ -29,7 +39,7 @@ const CourseDetail = () => {
     if (id) {
       fetchCourse();
     }
-  }, [id]);
+  }, [id, user]);
 
   if (loading) {
     return (
@@ -81,6 +91,17 @@ const CourseDetail = () => {
 
       <main className="relative z-10 pt-24 pb-12">
         <div className="max-w-7xl mx-auto px-6 mb-8">
+          {/* Admin Review Banner */}
+          {courseAccess?.isAdmin && location.state?.reviewMode && (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-3">
+              <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">visibility</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200">Admin Review Mode</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">You are viewing this course as an administrator. All content is accessible for review.</p>
+              </div>
+            </div>
+          )}
+
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-[10px] md:text-xs font-sans uppercase tracking-widest text-neutral-500 mb-8">
             <Link to="/marketplace" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Marketplace</Link>

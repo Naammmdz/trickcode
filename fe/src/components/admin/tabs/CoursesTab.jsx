@@ -80,7 +80,7 @@ const CoursesTab = () => {
   };
 
   const handleReviewClick = (course) => {
-    navigate(`/my-courses/${course.id}`, { state: { reviewMode: true, courseId: course.id } });
+    navigate(`/review-course/${course.id}`, { state: { reviewMode: true, courseId: course.id } });
   };
 
   const handleDeleteCourse = async (courseId) => {
@@ -94,6 +94,45 @@ const CoursesTab = () => {
       alert('Failed to delete course: ' + (err.message || 'Unknown error'));
     }
   };
+
+  const handleApproveCourse = async (course) => {
+    try {
+      await courseService.approveCourse(course.id);
+      fetchCourses();
+    } catch (err) {
+      alert('Failed to approve course: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handleRejectCourse = async (course) => {
+    const reason = prompt('Please enter rejection reason:');
+    if (!reason) return;
+    try {
+      await courseService.rejectCourse(course.id, reason);
+      fetchCourses();
+    } catch (err) {
+      alert('Failed to reject course: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handlePublishCourse = async (course) => {
+    try {
+      await courseService.publishCourse(course.id);
+      fetchCourses();
+    } catch (err) {
+      alert('Failed to publish course: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const handleUnpublishCourse = async (course) => {
+    try {
+      await courseService.unpublishCourse(course.id);
+      fetchCourses();
+    } catch (err) {
+      alert('Failed to unpublish course: ' + (err.message || 'Unknown error'));
+    }
+  };
+
 
   const statusTone = (s) =>
     s === 'PUBLISHED' || s === 'APPROVED' ? 'green' :
@@ -222,25 +261,58 @@ const CoursesTab = () => {
                         {activeDropdown === c.id && (
                           <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-zinc-800 rounded shadow-lg z-10 py-1 flex flex-col">
                             {c.status === 'PENDING' && (
-                              <button
-                                onClick={() => { setActiveDropdown(null); handleReviewClick(c); }}
-                                className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors"
-                              >
-                                Review Course
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => { setActiveDropdown(null); handleApproveCourse(c); }}
+                                  className="w-full text-left px-4 py-2 text-xs font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
+                                >
+                                  Approve & Publish
+                                </button>
+                                <button
+                                  onClick={() => { setActiveDropdown(null); handleRejectCourse(c); }}
+                                  className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                                >
+                                  Reject Course
+                                </button>
+                                <div className="h-px bg-neutral-100 dark:bg-zinc-800 my-1"></div>
+                              </>
+                            )}
+                            {c.status === 'PUBLISHED' && (
+                              <>
+                                <button
+                                  onClick={() => { setActiveDropdown(null); handleUnpublishCourse(c); }}
+                                  className="w-full text-left px-4 py-2 text-xs font-medium text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/10 transition-colors"
+                                >
+                                  Unpublish
+                                </button>
+                                <div className="h-px bg-neutral-100 dark:bg-zinc-800 my-1"></div>
+                              </>
+                            )}
+                            {(c.status === 'DRAFT' || c.status === 'REJECTED') && (
+                              <>
+                                <button
+                                  onClick={() => { setActiveDropdown(null); handlePublishCourse(c); }}
+                                  className="w-full text-left px-4 py-2 text-xs font-medium text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/10 transition-colors"
+                                >
+                                  Publish Course
+                                </button>
+                                <div className="h-px bg-neutral-100 dark:bg-zinc-800 my-1"></div>
+                              </>
                             )}
                             <button
-                              onClick={() => { setActiveDropdown(null); }}
+                              onClick={() => { setActiveDropdown(null); handleReviewClick(c); }}
                               className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors"
                             >
-                              Edit Details
+                              View Course
                             </button>
-                            <button
-                              onClick={() => { setActiveDropdown(null); }}
-                              className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors"
-                            >
-                              View History
-                            </button>
+                            {c.rejectionReason && (
+                              <button
+                                onClick={() => { setActiveDropdown(null); alert(`Rejection reason: ${c.rejectionReason}`); }}
+                                className="w-full text-left px-4 py-2 text-xs font-medium text-neutral-700 dark:text-zinc-300 hover:bg-neutral-50 dark:hover:bg-zinc-800 transition-colors"
+                              >
+                                View Rejection Reason
+                              </button>
+                            )}
                             <div className="h-px bg-neutral-100 dark:bg-zinc-800 my-1"></div>
                             <button
                               onClick={() => { setActiveDropdown(null); handleDeleteCourse(c.id); }}

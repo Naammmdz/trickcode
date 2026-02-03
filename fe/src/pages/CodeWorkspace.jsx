@@ -1,100 +1,48 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
+import { courseService } from '../services/courseService';
 
 const CodeWorkspace = () => {
   const { courseId, codeId } = useParams();
-  
-  // Language templates
-  const languageTemplates = {
-    python: `def fibonacci(n):
-    """
-    Calculate the nth Fibonacci number using memoization.
-    
-    Args:
-        n: The position in the Fibonacci sequence
-        
-    Returns:
-        The nth Fibonacci number
-    """
-    memo = {}
-    
-    def fib_helper(n):
-        if n in memo:
-            return memo[n]
-        if n <= 2:
-            return 1
-        memo[n] = fib_helper(n - 1) + fib_helper(n - 2)
-        return memo[n]
-    
-    return fib_helper(n)
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [lesson, setLesson] = useState(null);
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [codeData, setCodeData] = useState(null);
+  const isReviewMode = location.state?.isReviewMode || false;
 
-# Test your solution
-print(fibonacci(10))  # Should output 55`,
-    javascript: `function fibonacci(n) {
-    /**
-     * Calculate the nth Fibonacci number using memoization.
-     * 
-     * @param {number} n - The position in the Fibonacci sequence
-     * @returns {number} The nth Fibonacci number
-     */
-    const memo = {};
-    
-    function fibHelper(n) {
-        if (memo[n] !== undefined) {
-            return memo[n];
-        }
-        if (n <= 2) {
-            return 1;
-        }
-        memo[n] = fibHelper(n - 1) + fibHelper(n - 2);
-        return memo[n];
-    }
-    
-    return fibHelper(n);
-}
+  // Parse challenge config
+  useEffect(() => {
+    if (lesson?.codeChallengeConfig) {
+      try {
+        const config = JSON.parse(lesson.codeChallengeConfig);
+        setCodeData(config);
 
-// Test your solution
-console.log(fibonacci(10)); // Should output 55`,
-    java: `public class Solution {
-    /**
-     * Calculate the nth Fibonacci number using memoization.
-     * 
-     * @param n The position in the Fibonacci sequence
-     * @return The nth Fibonacci number
-     */
-    private static int[] memo = new int[1000];
-    
-    public static int fibonacci(int n) {
-        if (memo[n] != 0) {
-            return memo[n];
+        // Set initial code based on default language
+        if (config.initialCode) {
+          setCode(config.initialCode[language] || '');
         }
-        if (n <= 2) {
-            return 1;
-        }
-        memo[n] = fibonacci(n - 1) + fibonacci(n - 2);
-        return memo[n];
+      } catch (e) {
+        console.error('Failed to parse challenge config:', e);
+      }
     }
-    
-    public static void main(String[] args) {
-        // Test your solution
-        System.out.println(fibonacci(10)); // Should output 55
-    }
-}`
-  };
+  }, [lesson]);
 
   const [language, setLanguage] = useState('python');
-  const [code, setCode] = useState(languageTemplates.python);
+  const [code, setCode] = useState('');
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [testResults, setTestResults] = useState(null);
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const editorRef = useRef(null);
-  
+
   // Resize states
   const [problemWidth, setProblemWidth] = useState(33.33); // 1/3 of width
   const [testResultsHeight, setTestResultsHeight] = useState(256); // h-64 = 256px
@@ -105,17 +53,17 @@ console.log(fibonacci(10)); // Should output 55`,
   useEffect(() => {
     const isDark = document.documentElement.classList.contains('dark');
     setEditorTheme(isDark ? 'vs-dark' : 'light');
-    
+
     const observer = new MutationObserver(() => {
       const isDark = document.documentElement.classList.contains('dark');
       setEditorTheme(isDark ? 'vs-dark' : 'light');
     });
-    
+
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class']
     });
-    
+
     return () => observer.disconnect();
   }, []);
 
@@ -123,12 +71,12 @@ console.log(fibonacci(10)); // Should output 55`,
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing) return;
-      
+
       const container = resizeRef.current;
       if (!container) return;
-      
+
       const containerRect = container.getBoundingClientRect();
-      
+
       if (isResizing === 'vertical') {
         // Resize problem width (vertical divider)
         const newWidthPercent = ((e.clientX - containerRect.left) / containerRect.width) * 100;
@@ -165,7 +113,7 @@ console.log(fibonacci(10)); // Should output 55`,
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
-    
+
     // Configure editor options
     editor.updateOptions({
       fontSize: 14,
@@ -191,24 +139,33 @@ console.log(fibonacci(10)); // Should output 55`,
   };
 
   const handleSubmit = () => {
+    if (!codeData || !codeData.testCases) return;
+
     setIsRunning(true);
     // Simulate test cases
     setTimeout(() => {
+      // randomly pass/fail for demo purposes since we don't have a backend runner yet
+      // In a real implementation, we would send 'code' and 'language' to the backend
+
+      const results = codeData.testCases.map(testCase => ({
+        input: testCase.input,
+        expected: testCase.expected,
+        actual: testCase.expected, // Mock success
+        passed: true
+      }));
+
+      // Mock failure for last case if there are many cases, just to show UI
+      if (results.length > 2) {
+        // results[results.length - 1].passed = false;
+        // results[results.length - 1].actual = 'Error: Timeout';
+      }
+
+      const passedCount = results.filter(r => r.passed).length;
+
       setTestResults({
-        passed: 8,
-        total: 10,
-        tests: [
-          { input: 'fibonacci(1)', expected: '1', actual: '1', passed: true },
-          { input: 'fibonacci(2)', expected: '1', actual: '1', passed: true },
-          { input: 'fibonacci(5)', expected: '5', actual: '5', passed: true },
-          { input: 'fibonacci(10)', expected: '55', actual: '55', passed: true },
-          { input: 'fibonacci(20)', expected: '6765', actual: '6765', passed: true },
-          { input: 'fibonacci(30)', expected: '832040', actual: '832040', passed: true },
-          { input: 'fibonacci(40)', expected: '102334155', actual: '102334155', passed: true },
-          { input: 'fibonacci(50)', expected: '12586269025', actual: '12586269025', passed: true },
-          { input: 'fibonacci(100)', expected: '354224848179261915075', actual: '354224848179261915075', passed: false },
-          { input: 'fibonacci(200)', expected: '280571172992510140037611932413038677189525', actual: 'Error: Recursion depth exceeded', passed: false }
-        ]
+        passed: passedCount,
+        total: results.length,
+        tests: results
       });
       setIsRunning(false);
     }, 1500);
@@ -216,13 +173,17 @@ console.log(fibonacci(10)); // Should output 55`,
 
   const handleLanguageChange = (newLanguage) => {
     setLanguage(newLanguage);
-    setCode(languageTemplates[newLanguage]);
+    if (codeData?.initialCode) {
+      setCode(codeData.initialCode[newLanguage] || '');
+    }
     setOutput('');
     setTestResults(null);
   };
 
   const handleReset = () => {
-    setCode(languageTemplates[language]);
+    if (codeData?.initialCode) {
+      setCode(codeData.initialCode[language] || '');
+    }
     setOutput('');
     setTestResults(null);
   };
@@ -286,7 +247,7 @@ console.log(fibonacci(10)); // Should output 55`,
           <div className="flex-1 overflow-hidden flex" ref={resizeRef}>
             <div className="flex-1 flex gap-0">
               {/* Left: Problem Description */}
-              <div 
+              <div
                 className="flex flex-col border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950"
                 style={{ width: `${problemWidth}%`, minWidth: '200px', maxWidth: '50%' }}
               >
@@ -297,27 +258,17 @@ console.log(fibonacci(10)); // Should output 55`,
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
-                  <h2 className="text-lg font-serif font-medium text-neutral-900 dark:text-white mb-4">Climbing Stairs</h2>
+                  <h2 className="text-lg font-serif font-medium text-neutral-900 dark:text-white mb-4">{lesson?.title}</h2>
                   <div className="prose dark:prose-invert prose-sm max-w-none">
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                      You are climbing a staircase. It takes <code className="text-primary">n</code> steps to reach the top.
-                    </p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                      Each time you can either climb <code className="text-primary">1</code> or <code className="text-primary">2</code> steps. In how many distinct ways can you climb to the top?
-                    </p>
-                    <div className="bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800 mb-4">
-                      <h3 className="text-sm font-serif font-medium text-neutral-900 dark:text-white mb-2">Example 1:</h3>
-                      <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-1"><strong>Input:</strong> n = 2</p>
-                      <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-1"><strong>Output:</strong> 2</p>
-                      <p className="text-xs text-neutral-600 dark:text-neutral-400"><strong>Explanation:</strong> There are two ways to climb to the top. 1. 1 step + 1 step 2. 2 steps</p>
-                    </div>
-                    <div className="bg-neutral-50 dark:bg-neutral-900 p-3 rounded border border-neutral-200 dark:border-neutral-800">
-                      <h3 className="text-sm font-serif font-medium text-neutral-900 dark:text-white mb-2">Constraints:</h3>
-                      <ul className="text-xs text-neutral-600 dark:text-neutral-400 list-disc list-inside space-y-1">
-                        <li>1 ≤ n ≤ 45</li>
-                        <li>Your solution should use memoization or tabulation</li>
-                      </ul>
-                    </div>
+                    {codeData?.problemDescription ? (
+                      <div className="whitespace-pre-line text-neutral-600 dark:text-neutral-400">
+                        {codeData.problemDescription}
+                      </div>
+                    ) : (
+                      <div className="text-neutral-500 italic">No problem description available.</div>
+                    )}
+
+                    {/* Show example test cases if available in description or parse them */}
                   </div>
                 </div>
               </div>
@@ -357,14 +308,14 @@ console.log(fibonacci(10)); // Should output 55`,
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
+                      <button
                         onClick={handleReset}
                         className="p-1.5 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
                         title="Reset Code"
                       >
                         <span className="material-symbols-outlined text-sm">refresh</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           navigator.clipboard.writeText(code);
                         }}
@@ -375,7 +326,7 @@ console.log(fibonacci(10)); // Should output 55`,
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Code Editor */}
                   <div className="flex-1 overflow-hidden bg-neutral-50 dark:bg-black">
                     <Editor
@@ -451,7 +402,7 @@ console.log(fibonacci(10)); // Should output 55`,
                 </div>
 
                 {/* Test Results - Bottom Section */}
-                <div 
+                <div
                   className="flex flex-col border-t border-neutral-200 dark:border-neutral-800"
                   style={{ height: `${testResultsHeight}px`, minHeight: '150px', maxHeight: '70%' }}
                 >
@@ -461,7 +412,7 @@ console.log(fibonacci(10)); // Should output 55`,
                       <span className="material-symbols-outlined text-neutral-500 text-sm">terminal</span>
                       <span className="text-xs font-sans uppercase tracking-widest text-neutral-500">Output & Test Results</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         setOutput('');
                         setTestResults(null);
@@ -493,11 +444,10 @@ console.log(fibonacci(10)); // Should output 55`,
                     {testResults && (
                       <div>
                         <div className="flex items-center gap-2 mb-3">
-                          <span className={`material-symbols-outlined text-sm ${
-                            testResults.passed === testResults.total 
-                              ? 'text-green-500' 
+                          <span className={`material-symbols-outlined text-sm ${testResults.passed === testResults.total
+                              ? 'text-green-500'
                               : 'text-yellow-500'
-                          }`}>
+                            }`}>
                             {testResults.passed === testResults.total ? 'check_circle' : 'warning'}
                           </span>
                           <span className="text-xs font-sans uppercase tracking-widest text-neutral-500">
@@ -508,16 +458,14 @@ console.log(fibonacci(10)); // Should output 55`,
                           {testResults.tests.map((test, idx) => (
                             <div
                               key={idx}
-                              className={`p-3 rounded border text-xs ${
-                                test.passed
+                              className={`p-3 rounded border text-xs ${test.passed
                                   ? 'border-green-200 dark:border-green-900/30 bg-green-50/50 dark:bg-green-900/10'
                                   : 'border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10'
-                              }`}
+                                }`}
                             >
                               <div className="flex items-start gap-2">
-                                <span className={`material-symbols-outlined text-sm shrink-0 ${
-                                  test.passed ? 'text-green-500' : 'text-red-500'
-                                }`}>
+                                <span className={`material-symbols-outlined text-sm shrink-0 ${test.passed ? 'text-green-500' : 'text-red-500'
+                                  }`}>
                                   {test.passed ? 'check_circle' : 'cancel'}
                                 </span>
                                 <div className="flex-1 min-w-0">

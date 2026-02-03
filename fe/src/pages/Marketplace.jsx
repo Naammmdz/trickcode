@@ -17,8 +17,13 @@ const Marketplace = () => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        // Note: 'q' filter is passed to courseService. Backend should handle filtering.
-        const data = await courseService.getCourses({ page, size: 9, q: searchQuery, sort: 'id,desc' });
+        // Use public API endpoint for marketplace
+        const data = await courseService.getPublicCourses({ 
+          page, 
+          size: 9, 
+          q: searchQuery, 
+          sort: 'id,desc'
+        });
         setTotalPages(data.totalPages);
         setTotalElements(data.totalElements);
 

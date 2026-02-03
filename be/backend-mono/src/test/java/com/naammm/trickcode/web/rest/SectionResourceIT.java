@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.naammm.trickcode.IntegrationTest;
+import com.naammm.trickcode.domain.Course;
 import com.naammm.trickcode.domain.Section;
 import com.naammm.trickcode.repository.SectionRepository;
 import jakarta.persistence.EntityManager;
@@ -37,6 +38,7 @@ class SectionResourceIT {
 
     private static final Integer DEFAULT_ORDER_INDEX = 1;
     private static final Integer UPDATED_ORDER_INDEX = 2;
+    private static final Integer SMALLER_ORDER_INDEX = 1 - 1;
 
     private static final String ENTITY_API_URL = "/api/sections";
     private static final String ENTITY_API_URL_ID = ENTITY_API_URL + "/{id}";
@@ -178,6 +180,210 @@ class SectionResourceIT {
             .andExpect(jsonPath("$.id").value(section.getId().intValue()))
             .andExpect(jsonPath("$.title").value(DEFAULT_TITLE))
             .andExpect(jsonPath("$.orderIndex").value(DEFAULT_ORDER_INDEX));
+    }
+
+    @Test
+    @Transactional
+    void getSectionsByIdFiltering() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        Long id = section.getId();
+
+        defaultSectionFiltering("id.equals=" + id, "id.notEquals=" + id);
+
+        defaultSectionFiltering("id.greaterThanOrEqual=" + id, "id.greaterThan=" + id);
+
+        defaultSectionFiltering("id.lessThanOrEqual=" + id, "id.lessThan=" + id);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByTitleIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where title equals to
+        defaultSectionFiltering("title.equals=" + DEFAULT_TITLE, "title.equals=" + UPDATED_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByTitleIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where title in
+        defaultSectionFiltering("title.in=" + DEFAULT_TITLE + "," + UPDATED_TITLE, "title.in=" + UPDATED_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByTitleIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where title is not null
+        defaultSectionFiltering("title.specified=true", "title.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByTitleContainsSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where title contains
+        defaultSectionFiltering("title.contains=" + DEFAULT_TITLE, "title.contains=" + UPDATED_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByTitleNotContainsSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where title does not contain
+        defaultSectionFiltering("title.doesNotContain=" + UPDATED_TITLE, "title.doesNotContain=" + DEFAULT_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByOrderIndexIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where orderIndex equals to
+        defaultSectionFiltering("orderIndex.equals=" + DEFAULT_ORDER_INDEX, "orderIndex.equals=" + UPDATED_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByOrderIndexIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where orderIndex in
+        defaultSectionFiltering("orderIndex.in=" + DEFAULT_ORDER_INDEX + "," + UPDATED_ORDER_INDEX, "orderIndex.in=" + UPDATED_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByOrderIndexIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where orderIndex is not null
+        defaultSectionFiltering("orderIndex.specified=true", "orderIndex.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByOrderIndexIsGreaterThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where orderIndex is greater than or equal to
+        defaultSectionFiltering(
+            "orderIndex.greaterThanOrEqual=" + DEFAULT_ORDER_INDEX,
+            "orderIndex.greaterThanOrEqual=" + UPDATED_ORDER_INDEX
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByOrderIndexIsLessThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where orderIndex is less than or equal to
+        defaultSectionFiltering("orderIndex.lessThanOrEqual=" + DEFAULT_ORDER_INDEX, "orderIndex.lessThanOrEqual=" + SMALLER_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByOrderIndexIsLessThanSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where orderIndex is less than
+        defaultSectionFiltering("orderIndex.lessThan=" + UPDATED_ORDER_INDEX, "orderIndex.lessThan=" + DEFAULT_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByOrderIndexIsGreaterThanSomething() throws Exception {
+        // Initialize the database
+        insertedSection = sectionRepository.saveAndFlush(section);
+
+        // Get all the sectionList where orderIndex is greater than
+        defaultSectionFiltering("orderIndex.greaterThan=" + SMALLER_ORDER_INDEX, "orderIndex.greaterThan=" + DEFAULT_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllSectionsByCourseIsEqualToSomething() throws Exception {
+        Course course;
+        if (TestUtil.findAll(em, Course.class).isEmpty()) {
+            sectionRepository.saveAndFlush(section);
+            course = CourseResourceIT.createEntity();
+        } else {
+            course = TestUtil.findAll(em, Course.class).get(0);
+        }
+        em.persist(course);
+        em.flush();
+        section.setCourse(course);
+        sectionRepository.saveAndFlush(section);
+        Long courseId = course.getId();
+        // Get all the sectionList where course equals to courseId
+        defaultSectionShouldBeFound("courseId.equals=" + courseId);
+
+        // Get all the sectionList where course equals to (courseId + 1)
+        defaultSectionShouldNotBeFound("courseId.equals=" + (courseId + 1));
+    }
+
+    private void defaultSectionFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
+        defaultSectionShouldBeFound(shouldBeFound);
+        defaultSectionShouldNotBeFound(shouldNotBeFound);
+    }
+
+    /**
+     * Executes the search, and checks that the default entity is returned.
+     */
+    private void defaultSectionShouldBeFound(String filter) throws Exception {
+        restSectionMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(section.getId().intValue())))
+            .andExpect(jsonPath("$.[*].title").value(hasItem(DEFAULT_TITLE)))
+            .andExpect(jsonPath("$.[*].orderIndex").value(hasItem(DEFAULT_ORDER_INDEX)));
+
+        // Check, that the count call also returns 1
+        restSectionMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(content().string("1"));
+    }
+
+    /**
+     * Executes the search, and checks that the default entity is not returned.
+     */
+    private void defaultSectionShouldNotBeFound(String filter) throws Exception {
+        restSectionMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$").isEmpty());
+
+        // Check, that the count call also returns 0
+        restSectionMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(content().string("0"));
     }
 
     @Test

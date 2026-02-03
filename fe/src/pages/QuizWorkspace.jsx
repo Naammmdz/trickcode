@@ -1,14 +1,51 @@
-import { useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
+import { courseService } from '../services/courseService';
 
 const QuizWorkspace = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [lesson, setLesson] = useState(null);
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [quizData, setQuizData] = useState(null);
+  const isReviewMode = location.state?.isReviewMode || false;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [lessonData, courseData] = await Promise.all([
+          courseService.getLesson(quizId),
+          courseService.getCourse(courseId)
+        ]);
+        setLesson(lessonData);
+        setCourse(courseData);
+
+        // Parse quiz config if available
+        if (lessonData.quizConfig) {
+          try {
+            const parsedQuiz = JSON.parse(lessonData.quizConfig);
+            setQuizData(parsedQuiz);
+          } catch (e) {
+            console.error('Failed to parse quiz config:', e);
+          }
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [courseId, quizId]);
 
   const handleAnswerSelect = (questionId, answerId) => {
     setSelectedAnswers(prev => ({
@@ -18,61 +55,18 @@ const QuizWorkspace = () => {
   };
 
   const handleSubmit = () => {
-    // Calculate results
-    const questions = [
-      { id: 'q1', correctAnswer: 1 },
-      { id: 'q2', correctAnswer: 0 },
-      { id: 'q3', correctAnswer: 1 },
-      { id: 'q4', correctAnswer: 0 },
-      { id: 'q5', correctAnswer: 0 }
-    ];
+    if (!quizData || !quizData.questions) return;
 
-    const questionData = [
-      {
-        id: 'q1',
-        question: 'What is the space complexity of the memoized Fibonacci solution?',
-        options: ['O(1)', 'O(n)', 'O(2^n)', 'O(n log n)'],
-        correctAnswer: 1,
-        explanation: 'Memoization stores at most n values in the hash map, so space complexity is O(n).'
-      },
-      {
-        id: 'q2',
-        question: 'Which approach uses more stack space?',
-        options: ['Top-Down (Memoization)', 'Bottom-Up (Tabulation)', 'Both use the same amount', 'Neither uses stack space'],
-        correctAnswer: 0,
-        explanation: 'Top-down memoization uses recursion, which requires stack space for the call stack.'
-      },
-      {
-        id: 'q3',
-        question: 'What is the space complexity of bottom-up tabulation for Fibonacci?',
-        options: ['O(1)', 'O(n)', 'O(2^n)', 'O(n²)'],
-        correctAnswer: 1,
-        explanation: 'Tabulation uses an array of size n to store intermediate results.'
-      },
-      {
-        id: 'q4',
-        question: 'Can we optimize the space complexity of Fibonacci tabulation further?',
-        options: ['Yes, to O(1) using only two variables', 'No, we need O(n) space', 'Yes, to O(log n)', 'No, space complexity cannot be optimized'],
-        correctAnswer: 0,
-        explanation: 'We only need the last two values to compute the next Fibonacci number, so we can use just two variables.'
-      },
-      {
-        id: 'q5',
-        question: 'What is the main trade-off between memoization and tabulation?',
-        options: ['Memoization uses more stack space, tabulation uses more heap space', 'Tabulation is always faster', 'Memoization is easier to implement', 'There is no trade-off'],
-        correctAnswer: 0,
-        explanation: 'Memoization uses recursion (stack space) while tabulation uses an array (heap space).'
-      }
-    ];
+    const questions = quizData.questions;
 
     let correctAnswers = 0;
     const results = questions.map((q, idx) => {
       const userAnswer = selectedAnswers[q.id];
       const isCorrect = userAnswer === q.correctAnswer;
       if (isCorrect) correctAnswers++;
-      
+
       return {
-        ...questionData[idx],
+        ...q,
         userAnswer: userAnswer !== undefined ? userAnswer : -1,
         correctAnswer: q.correctAnswer,
         isCorrect
@@ -160,197 +154,58 @@ const QuizWorkspace = () => {
               {/* Quiz Questions */}
               <div className="space-y-8">
                 <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 md:p-8">
-                  {/* Question 1 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">1.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">What is the space complexity of the memoized Fibonacci solution?</p>
-                        <div className="space-y-3">
-                          {['O(1)', 'O(n)', 'O(2^n)', 'O(n log n)'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q1', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q1'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q1" 
-                                checked={selectedAnswers['q1'] === idx}
-                                onChange={() => handleAnswerSelect('q1', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q1'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
+                  {!quizData ? (
+                    <div className="text-center py-10 text-neutral-500">
+                      No quiz configuration found.
+                    </div>
+                  ) : (
+                    quizData.questions?.map((question, qIdx) => (
+                      <div key={question.id} className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800 last:border-0 last:mb-0 last:pb-0">
+                        <div className="flex items-start gap-3 mb-4">
+                          <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">{qIdx + 1}.</span>
+                          <div className="flex-1">
+                            <p className="text-base text-neutral-900 dark:text-white mb-4">{question.question}</p>
+                            <div className="space-y-3">
+                              {question.options.map((option, oIdx) => (
+                                <label
+                                  key={oIdx}
+                                  onClick={() => handleAnswerSelect(question.id, oIdx)}
+                                  className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${selectedAnswers[question.id] === oIdx
+                                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                                      : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
+                                    }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={question.id}
+                                    checked={selectedAnswers[question.id] === oIdx}
+                                    onChange={() => handleAnswerSelect(question.id, oIdx)}
+                                    className="mt-1"
+                                  />
+                                  <span className={`text-sm ${selectedAnswers[question.id] === oIdx
+                                      ? 'text-neutral-900 dark:text-white font-medium'
+                                      : 'text-neutral-600 dark:text-neutral-400'
+                                    }`}>{option}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Question 2 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">2.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">Which approach uses more stack space?</p>
-                        <div className="space-y-3">
-                          {['Top-Down (Memoization)', 'Bottom-Up (Tabulation)', 'Both use the same amount', 'Neither uses stack space'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q2', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q2'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q2" 
-                                checked={selectedAnswers['q2'] === idx}
-                                onChange={() => handleAnswerSelect('q2', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q2'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Question 3 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">3.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">What is the space complexity of bottom-up tabulation for Fibonacci?</p>
-                        <div className="space-y-3">
-                          {['O(1)', 'O(n)', 'O(2^n)', 'O(n²)'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q3', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q3'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q3" 
-                                checked={selectedAnswers['q3'] === idx}
-                                onChange={() => handleAnswerSelect('q3', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q3'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Question 4 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">4.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">Can we optimize the space complexity of Fibonacci tabulation further?</p>
-                        <div className="space-y-3">
-                          {['Yes, to O(1) using only two variables', 'No, we need O(n) space', 'Yes, to O(log n)', 'No, space complexity cannot be optimized'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q4', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q4'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q4" 
-                                checked={selectedAnswers['q4'] === idx}
-                                onChange={() => handleAnswerSelect('q4', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q4'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Question 5 */}
-                  <div className="mb-8">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">5.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">What is the main trade-off between memoization and tabulation?</p>
-                        <div className="space-y-3">
-                          {['Memoization uses more stack space, tabulation uses more heap space', 'Tabulation is always faster', 'Memoization is easier to implement', 'There is no trade-off'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q5', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q5'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q5" 
-                                checked={selectedAnswers['q5'] === idx}
-                                onChange={() => handleAnswerSelect('q5', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q5'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    ))
+                  )}
 
                   {/* Submit Button */}
                   <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800">
-                    <button 
+                    <button
                       onClick={handleReset}
                       className="px-6 py-3 border border-neutral-200 dark:border-neutral-700 text-sm font-sans uppercase tracking-widest text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors rounded"
                     >
                       Reset
                     </button>
-                    <button 
+                    <button
                       onClick={handleSubmit}
-                      disabled={Object.keys(selectedAnswers).length < 5}
+                      disabled={!quizData || !quizData.questions || Object.keys(selectedAnswers).length < quizData.questions.length}
                       className="px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-sans uppercase tracking-widest hover:opacity-90 transition-opacity rounded disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Submit Answers

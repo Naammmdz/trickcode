@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.naammm.trickcode.IntegrationTest;
 import com.naammm.trickcode.domain.Lesson;
+import com.naammm.trickcode.domain.Section;
 import com.naammm.trickcode.domain.enumeration.LessonType;
 import com.naammm.trickcode.repository.LessonRepository;
 import jakarta.persistence.EntityManager;
@@ -41,9 +42,11 @@ class LessonResourceIT {
 
     private static final Integer DEFAULT_ORDER_INDEX = 1;
     private static final Integer UPDATED_ORDER_INDEX = 2;
+    private static final Integer SMALLER_ORDER_INDEX = 1 - 1;
 
     private static final Integer DEFAULT_DURATION_SECONDS = 1;
     private static final Integer UPDATED_DURATION_SECONDS = 2;
+    private static final Integer SMALLER_DURATION_SECONDS = 1 - 1;
 
     private static final Boolean DEFAULT_IS_PREVIEW = false;
     private static final Boolean UPDATED_IS_PREVIEW = true;
@@ -239,6 +242,463 @@ class LessonResourceIT {
             .andExpect(jsonPath("$.markdownContent").value(DEFAULT_MARKDOWN_CONTENT))
             .andExpect(jsonPath("$.quizConfig").value(DEFAULT_QUIZ_CONFIG))
             .andExpect(jsonPath("$.codeChallengeConfig").value(DEFAULT_CODE_CHALLENGE_CONFIG));
+    }
+
+    @Test
+    @Transactional
+    void getLessonsByIdFiltering() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        Long id = lesson.getId();
+
+        defaultLessonFiltering("id.equals=" + id, "id.notEquals=" + id);
+
+        defaultLessonFiltering("id.greaterThanOrEqual=" + id, "id.greaterThan=" + id);
+
+        defaultLessonFiltering("id.lessThanOrEqual=" + id, "id.lessThan=" + id);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTitleIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where title equals to
+        defaultLessonFiltering("title.equals=" + DEFAULT_TITLE, "title.equals=" + UPDATED_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTitleIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where title in
+        defaultLessonFiltering("title.in=" + DEFAULT_TITLE + "," + UPDATED_TITLE, "title.in=" + UPDATED_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTitleIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where title is not null
+        defaultLessonFiltering("title.specified=true", "title.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTitleContainsSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where title contains
+        defaultLessonFiltering("title.contains=" + DEFAULT_TITLE, "title.contains=" + UPDATED_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTitleNotContainsSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where title does not contain
+        defaultLessonFiltering("title.doesNotContain=" + UPDATED_TITLE, "title.doesNotContain=" + DEFAULT_TITLE);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTypeIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where type equals to
+        defaultLessonFiltering("type.equals=" + DEFAULT_TYPE, "type.equals=" + UPDATED_TYPE);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTypeIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where type in
+        defaultLessonFiltering("type.in=" + DEFAULT_TYPE + "," + UPDATED_TYPE, "type.in=" + UPDATED_TYPE);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByTypeIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where type is not null
+        defaultLessonFiltering("type.specified=true", "type.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByOrderIndexIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where orderIndex equals to
+        defaultLessonFiltering("orderIndex.equals=" + DEFAULT_ORDER_INDEX, "orderIndex.equals=" + UPDATED_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByOrderIndexIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where orderIndex in
+        defaultLessonFiltering("orderIndex.in=" + DEFAULT_ORDER_INDEX + "," + UPDATED_ORDER_INDEX, "orderIndex.in=" + UPDATED_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByOrderIndexIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where orderIndex is not null
+        defaultLessonFiltering("orderIndex.specified=true", "orderIndex.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByOrderIndexIsGreaterThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where orderIndex is greater than or equal to
+        defaultLessonFiltering(
+            "orderIndex.greaterThanOrEqual=" + DEFAULT_ORDER_INDEX,
+            "orderIndex.greaterThanOrEqual=" + UPDATED_ORDER_INDEX
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByOrderIndexIsLessThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where orderIndex is less than or equal to
+        defaultLessonFiltering("orderIndex.lessThanOrEqual=" + DEFAULT_ORDER_INDEX, "orderIndex.lessThanOrEqual=" + SMALLER_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByOrderIndexIsLessThanSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where orderIndex is less than
+        defaultLessonFiltering("orderIndex.lessThan=" + UPDATED_ORDER_INDEX, "orderIndex.lessThan=" + DEFAULT_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByOrderIndexIsGreaterThanSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where orderIndex is greater than
+        defaultLessonFiltering("orderIndex.greaterThan=" + SMALLER_ORDER_INDEX, "orderIndex.greaterThan=" + DEFAULT_ORDER_INDEX);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByDurationSecondsIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where durationSeconds equals to
+        defaultLessonFiltering("durationSeconds.equals=" + DEFAULT_DURATION_SECONDS, "durationSeconds.equals=" + UPDATED_DURATION_SECONDS);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByDurationSecondsIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where durationSeconds in
+        defaultLessonFiltering(
+            "durationSeconds.in=" + DEFAULT_DURATION_SECONDS + "," + UPDATED_DURATION_SECONDS,
+            "durationSeconds.in=" + UPDATED_DURATION_SECONDS
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByDurationSecondsIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where durationSeconds is not null
+        defaultLessonFiltering("durationSeconds.specified=true", "durationSeconds.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByDurationSecondsIsGreaterThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where durationSeconds is greater than or equal to
+        defaultLessonFiltering(
+            "durationSeconds.greaterThanOrEqual=" + DEFAULT_DURATION_SECONDS,
+            "durationSeconds.greaterThanOrEqual=" + UPDATED_DURATION_SECONDS
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByDurationSecondsIsLessThanOrEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where durationSeconds is less than or equal to
+        defaultLessonFiltering(
+            "durationSeconds.lessThanOrEqual=" + DEFAULT_DURATION_SECONDS,
+            "durationSeconds.lessThanOrEqual=" + SMALLER_DURATION_SECONDS
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByDurationSecondsIsLessThanSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where durationSeconds is less than
+        defaultLessonFiltering(
+            "durationSeconds.lessThan=" + UPDATED_DURATION_SECONDS,
+            "durationSeconds.lessThan=" + DEFAULT_DURATION_SECONDS
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByDurationSecondsIsGreaterThanSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where durationSeconds is greater than
+        defaultLessonFiltering(
+            "durationSeconds.greaterThan=" + SMALLER_DURATION_SECONDS,
+            "durationSeconds.greaterThan=" + DEFAULT_DURATION_SECONDS
+        );
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByIsPreviewIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where isPreview equals to
+        defaultLessonFiltering("isPreview.equals=" + DEFAULT_IS_PREVIEW, "isPreview.equals=" + UPDATED_IS_PREVIEW);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByIsPreviewIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where isPreview in
+        defaultLessonFiltering("isPreview.in=" + DEFAULT_IS_PREVIEW + "," + UPDATED_IS_PREVIEW, "isPreview.in=" + UPDATED_IS_PREVIEW);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByIsPreviewIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where isPreview is not null
+        defaultLessonFiltering("isPreview.specified=true", "isPreview.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByVideoUrlIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where videoUrl equals to
+        defaultLessonFiltering("videoUrl.equals=" + DEFAULT_VIDEO_URL, "videoUrl.equals=" + UPDATED_VIDEO_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByVideoUrlIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where videoUrl in
+        defaultLessonFiltering("videoUrl.in=" + DEFAULT_VIDEO_URL + "," + UPDATED_VIDEO_URL, "videoUrl.in=" + UPDATED_VIDEO_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByVideoUrlIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where videoUrl is not null
+        defaultLessonFiltering("videoUrl.specified=true", "videoUrl.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByVideoUrlContainsSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where videoUrl contains
+        defaultLessonFiltering("videoUrl.contains=" + DEFAULT_VIDEO_URL, "videoUrl.contains=" + UPDATED_VIDEO_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByVideoUrlNotContainsSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where videoUrl does not contain
+        defaultLessonFiltering("videoUrl.doesNotContain=" + UPDATED_VIDEO_URL, "videoUrl.doesNotContain=" + DEFAULT_VIDEO_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByCaptionUrlIsEqualToSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where captionUrl equals to
+        defaultLessonFiltering("captionUrl.equals=" + DEFAULT_CAPTION_URL, "captionUrl.equals=" + UPDATED_CAPTION_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByCaptionUrlIsInShouldWork() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where captionUrl in
+        defaultLessonFiltering("captionUrl.in=" + DEFAULT_CAPTION_URL + "," + UPDATED_CAPTION_URL, "captionUrl.in=" + UPDATED_CAPTION_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByCaptionUrlIsNullOrNotNull() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where captionUrl is not null
+        defaultLessonFiltering("captionUrl.specified=true", "captionUrl.specified=false");
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByCaptionUrlContainsSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where captionUrl contains
+        defaultLessonFiltering("captionUrl.contains=" + DEFAULT_CAPTION_URL, "captionUrl.contains=" + UPDATED_CAPTION_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsByCaptionUrlNotContainsSomething() throws Exception {
+        // Initialize the database
+        insertedLesson = lessonRepository.saveAndFlush(lesson);
+
+        // Get all the lessonList where captionUrl does not contain
+        defaultLessonFiltering("captionUrl.doesNotContain=" + UPDATED_CAPTION_URL, "captionUrl.doesNotContain=" + DEFAULT_CAPTION_URL);
+    }
+
+    @Test
+    @Transactional
+    void getAllLessonsBySectionIsEqualToSomething() throws Exception {
+        Section section;
+        if (TestUtil.findAll(em, Section.class).isEmpty()) {
+            lessonRepository.saveAndFlush(lesson);
+            section = SectionResourceIT.createEntity();
+        } else {
+            section = TestUtil.findAll(em, Section.class).get(0);
+        }
+        em.persist(section);
+        em.flush();
+        lesson.setSection(section);
+        lessonRepository.saveAndFlush(lesson);
+        Long sectionId = section.getId();
+        // Get all the lessonList where section equals to sectionId
+        defaultLessonShouldBeFound("sectionId.equals=" + sectionId);
+
+        // Get all the lessonList where section equals to (sectionId + 1)
+        defaultLessonShouldNotBeFound("sectionId.equals=" + (sectionId + 1));
+    }
+
+    private void defaultLessonFiltering(String shouldBeFound, String shouldNotBeFound) throws Exception {
+        defaultLessonShouldBeFound(shouldBeFound);
+        defaultLessonShouldNotBeFound(shouldNotBeFound);
+    }
+
+    /**
+     * Executes the search, and checks that the default entity is returned.
+     */
+    private void defaultLessonShouldBeFound(String filter) throws Exception {
+        restLessonMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.[*].id").value(hasItem(lesson.getId().intValue())))
+            .andExpect(jsonPath("$.[*].title").value(hasItem(DEFAULT_TITLE)))
+            .andExpect(jsonPath("$.[*].type").value(hasItem(DEFAULT_TYPE.toString())))
+            .andExpect(jsonPath("$.[*].orderIndex").value(hasItem(DEFAULT_ORDER_INDEX)))
+            .andExpect(jsonPath("$.[*].durationSeconds").value(hasItem(DEFAULT_DURATION_SECONDS)))
+            .andExpect(jsonPath("$.[*].isPreview").value(hasItem(DEFAULT_IS_PREVIEW)))
+            .andExpect(jsonPath("$.[*].videoUrl").value(hasItem(DEFAULT_VIDEO_URL)))
+            .andExpect(jsonPath("$.[*].captionUrl").value(hasItem(DEFAULT_CAPTION_URL)))
+            .andExpect(jsonPath("$.[*].markdownContent").value(hasItem(DEFAULT_MARKDOWN_CONTENT)))
+            .andExpect(jsonPath("$.[*].quizConfig").value(hasItem(DEFAULT_QUIZ_CONFIG)))
+            .andExpect(jsonPath("$.[*].codeChallengeConfig").value(hasItem(DEFAULT_CODE_CHALLENGE_CONFIG)));
+
+        // Check, that the count call also returns 1
+        restLessonMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(content().string("1"));
+    }
+
+    /**
+     * Executes the search, and checks that the default entity is not returned.
+     */
+    private void defaultLessonShouldNotBeFound(String filter) throws Exception {
+        restLessonMockMvc
+            .perform(get(ENTITY_API_URL + "?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$").isEmpty());
+
+        // Check, that the count call also returns 0
+        restLessonMockMvc
+            .perform(get(ENTITY_API_URL + "/count?sort=id,desc&" + filter))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(content().string("0"));
     }
 
     @Test

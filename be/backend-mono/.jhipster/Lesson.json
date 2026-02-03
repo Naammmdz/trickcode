@@ -47,6 +47,7 @@
       "fieldType": "TextBlob"
     }
   ],
+  "jpaMetamodelFiltering": true,
   "name": "Lesson",
   "pagination": "pagination",
   "relationships": [],

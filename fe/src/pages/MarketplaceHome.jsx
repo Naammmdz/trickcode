@@ -1,9 +1,42 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { courseService } from '../services/courseService';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 
 const MarketplaceHome = () => {
+  const [featuredCourses, setFeaturedCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedCourses = async () => {
+      try {
+        setLoading(true);
+        const data = await courseService.getPublicCourses({ 
+          page: 0, 
+          size: 3, 
+          sort: 'id,desc'
+        });
+        setFeaturedCourses(data.content || []);
+      } catch (err) {
+        console.error('Failed to fetch featured courses:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeaturedCourses();
+  }, []);
+
+  const getInstructorName = (instructor) => {
+    if (!instructor) return 'Unknown';
+    if (instructor.firstName && instructor.lastName) {
+      return `${instructor.firstName} ${instructor.lastName}`;
+    }
+    if (instructor.firstName) return instructor.firstName;
+    if (instructor.login) return instructor.login;
+    return 'Unknown';
+  };
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
@@ -76,88 +109,71 @@ const MarketplaceHome = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-end mb-16">
             <div>
-              <h2 className="text-xs font-mono uppercase tracking-widest text-primary mb-2">Editor's Choice</h2>
-              <h3 className="text-4xl font-serif text-neutral-900 dark:text-white">Featured Courses</h3>
+              <h2 className="text-xs font-mono uppercase tracking-widest text-primary mb-2">Top Courses</h2>
+              <h3 className="text-4xl font-serif text-neutral-900 dark:text-white">Latest Published</h3>
             </div>
             <Link to="/marketplace" className="hidden md:flex items-center gap-2 text-xs font-sans hover:text-neutral-900 dark:hover:text-white transition-colors">
               View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Course Card 1 */}
-            <div className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded">
-              <div className="h-48 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                <span className="font-serif text-6xl text-neutral-200 dark:text-neutral-800 italic group-hover:scale-110 transition-transform duration-500">O(log n)</span>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="inline-block px-2 py-1 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-mono uppercase tracking-widest rounded">Algorithms</span>
-                  <div className="flex items-center gap-1 text-yellow-500 text-xs font-mono">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.9
+            {loading ? (
+              // Loading skeleton
+              Array(3).fill(0).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex flex-col h-full rounded animate-pulse">
+                  <div className="h-48 bg-gray-200 dark:bg-neutral-800 rounded-t"></div>
+                  <div className="p-6 flex flex-col flex-1 space-y-4">
+                    <div className="h-4 bg-gray-200 dark:bg-neutral-800 rounded w-1/3"></div>
+                    <div className="h-6 bg-gray-200 dark:bg-neutral-800 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-neutral-800 rounded w-full"></div>
                   </div>
                 </div>
-                <h4 className="text-xl font-serif mb-2 group-hover:underline decoration-1 underline-offset-4">Binary Search Deep Dive</h4>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2">Master the art of divide and conquer. From basic implementation to rotated arrays and answer space search.</p>
-                <div className="mt-auto pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700"></div>
-                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">Dr. A. Chen</span>
+              ))
+            ) : featuredCourses.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-neutral-500">No featured courses available</div>
+            ) : (
+              featuredCourses.map((course) => (
+                <Link 
+                  key={course.id} 
+                  to={`/courses/${course.id}`}
+                  className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded"
+                >
+                  <div className="h-48 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
+                    {course.thumbnailUrl ? (
+                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
+                        <span className="font-serif text-6xl text-neutral-200 dark:text-neutral-800 italic group-hover:scale-110 transition-transform duration-500">
+                          {course.title.substring(0, 2).toUpperCase()}
+                        </span>
+                      </>
+                    )}
                   </div>
-                  <span className="font-serif text-lg">$24.99</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Course Card 2 */}
-            <div className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded">
-              <div className="h-48 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                <span className="font-serif text-6xl text-neutral-200 dark:text-neutral-800 italic group-hover:scale-110 transition-transform duration-500">DP[]</span>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="inline-block px-2 py-1 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-mono uppercase tracking-widest rounded">Advanced</span>
-                  <div className="flex items-center gap-1 text-yellow-500 text-xs font-mono">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="inline-block px-2 py-1 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-mono uppercase tracking-widest rounded">
+                        {course.level || 'Beginner'}
+                      </span>
+                      <div className="flex items-center gap-1 text-yellow-500 text-xs font-mono">
+                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 5.0
+                      </div>
+                    </div>
+                    <h4 className="text-xl font-serif mb-2 group-hover:underline decoration-1 underline-offset-4">{course.title}</h4>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2">{course.description || 'No description available'}</p>
+                    <div className="mt-auto pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-xs font-bold">
+                          {getInstructorName(course.instructor).charAt(0)}
+                        </div>
+                        <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">{getInstructorName(course.instructor)}</span>
+                      </div>
+                      <span className="font-serif text-lg">{course.price === 0 ? 'Free' : `$${course.price}`}</span>
+                    </div>
                   </div>
-                </div>
-                <h4 className="text-xl font-serif mb-2 group-hover:underline decoration-1 underline-offset-4">Dynamic Programming Patterns</h4>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2">Stop guessing. Learn the 5 underlying patterns that solve 90% of DP problems in interviews.</p>
-                <div className="mt-auto pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700"></div>
-                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">Sarah J.</span>
-                  </div>
-                  <span className="font-serif text-lg">$39.99</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Course Card 3 */}
-            <div className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded">
-              <div className="h-48 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                <span className="font-serif text-6xl text-neutral-200 dark:text-neutral-800 italic group-hover:scale-110 transition-transform duration-500">G(V,E)</span>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="inline-block px-2 py-1 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-mono uppercase tracking-widest rounded">Graph Theory</span>
-                  <div className="flex items-center gap-1 text-yellow-500 text-xs font-mono">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 5.0
-                  </div>
-                </div>
-                <h4 className="text-xl font-serif mb-2 group-hover:underline decoration-1 underline-offset-4">Graph Algorithms for Production</h4>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2">Beyond BFS/DFS. Network flow, topological sorting, and real-world routing engine architecture.</p>
-                <div className="mt-auto pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700"></div>
-                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">M. Roberts</span>
-                  </div>
-                  <span className="font-serif text-lg">$34.50</span>
-                </div>
-              </div>
-            </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>

@@ -2,7 +2,9 @@ package com.naammm.trickcode.web.rest;
 
 import com.naammm.trickcode.domain.Lesson;
 import com.naammm.trickcode.repository.LessonRepository;
+import com.naammm.trickcode.service.LessonQueryService;
 import com.naammm.trickcode.service.LessonService;
+import com.naammm.trickcode.service.criteria.LessonCriteria;
 import com.naammm.trickcode.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -42,9 +44,12 @@ public class LessonResource {
 
     private final LessonRepository lessonRepository;
 
-    public LessonResource(LessonService lessonService, LessonRepository lessonRepository) {
+    private final LessonQueryService lessonQueryService;
+
+    public LessonResource(LessonService lessonService, LessonRepository lessonRepository, LessonQueryService lessonQueryService) {
         this.lessonService = lessonService;
         this.lessonRepository = lessonRepository;
+        this.lessonQueryService = lessonQueryService;
     }
 
     /**
@@ -139,14 +144,31 @@ public class LessonResource {
      * {@code GET  /lessons} : get all the lessons.
      *
      * @param pageable the pagination information.
+     * @param criteria the criteria which the requested entities should match.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of lessons in body.
      */
     @GetMapping("")
-    public ResponseEntity<List<Lesson>> getAllLessons(@org.springdoc.core.annotations.ParameterObject Pageable pageable) {
-        LOG.debug("REST request to get a page of Lessons");
-        Page<Lesson> page = lessonService.findAll(pageable);
+    public ResponseEntity<List<Lesson>> getAllLessons(
+        LessonCriteria criteria,
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable
+    ) {
+        LOG.debug("REST request to get Lessons by criteria: {}", criteria);
+
+        Page<Lesson> page = lessonQueryService.findByCriteria(criteria, pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
+    }
+
+    /**
+     * {@code GET  /lessons/count} : count all the lessons.
+     *
+     * @param criteria the criteria which the requested entities should match.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count in body.
+     */
+    @GetMapping("/count")
+    public ResponseEntity<Long> countLessons(LessonCriteria criteria) {
+        LOG.debug("REST request to count Lessons by criteria: {}", criteria);
+        return ResponseEntity.ok().body(lessonQueryService.countByCriteria(criteria));
     }
 
     /**

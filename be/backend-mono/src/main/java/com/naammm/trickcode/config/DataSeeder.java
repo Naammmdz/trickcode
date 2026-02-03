@@ -113,41 +113,56 @@ public class DataSeeder implements CommandLineRunner {
     private void seedCourses() {
         User instructor = userRepository.findOneByLogin("instructor").orElse(null);
 
+        // Published courses
         createCourse("Dynamic Programming Patterns", "Deep dive into DP patterns for interviews.", 
-            new BigDecimal("39.99"), CourseLevel.ADVANCED, instructor);
+            new BigDecimal("39.99"), CourseLevel.ADVANCED, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Binary Search Deep Dive", "Master binary search variants.", 
-            new BigDecimal("24.99"), CourseLevel.INTERMEDIATE, instructor);
+            new BigDecimal("24.99"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Recursion for Beginners", "Understand the base case and recursive step.", 
-            BigDecimal.ZERO, CourseLevel.BEGINNER, instructor);
+            BigDecimal.ZERO, CourseLevel.BEGINNER, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Advanced 2D DP Grids", "Solving complex grid problems.", 
-            new BigDecimal("29.99"), CourseLevel.ADVANCED, instructor);
+            new BigDecimal("29.99"), CourseLevel.ADVANCED, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Knapsack Problems", "0/1 Knapsack, Unbounded Knapsack, and more.", 
-            new BigDecimal("19.99"), CourseLevel.INTERMEDIATE, instructor);
+            new BigDecimal("19.99"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Greedy Algorithms 101", "When to be greedy and when not to be.", 
-            new BigDecimal("14.50"), CourseLevel.BEGINNER, instructor);
+            new BigDecimal("14.50"), CourseLevel.BEGINNER, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Trees & Graphs Masterclass", "BFS, DFS, Dijkstra, and beyond.", 
-            new BigDecimal("34.99"), CourseLevel.INTERMEDIATE, instructor);
+            new BigDecimal("34.99"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Bit Manipulation Secrets", "Bitwise operations for optimization.", 
-            new BigDecimal("22.00"), CourseLevel.ADVANCED, instructor);
+            new BigDecimal("22.00"), CourseLevel.ADVANCED, CourseStatus.PUBLISHED, instructor);
 
         createCourse("Backtracking Visualized", "Visualize the state space tree.", 
-            new BigDecimal("27.50"), CourseLevel.INTERMEDIATE, instructor);
+            new BigDecimal("27.50"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED, instructor);
+
+        // Pending courses for admin review
+        createCourse("Segment Trees Explained", "Advanced data structure for range queries and updates. Learn fenwick trees and lazy propagation.", 
+            new BigDecimal("45.00"), CourseLevel.ADVANCED, CourseStatus.PENDING, instructor);
+
+        createCourse("System Design Basics", "Design scalable systems from scratch. Cover load balancing, caching, database sharding, and microservices architecture.", 
+            new BigDecimal("59.99"), CourseLevel.INTERMEDIATE, CourseStatus.PENDING, instructor);
+
+        createCourse("Trie & String Algorithms", "Master prefix trees, suffix arrays, and KMP algorithm for string matching problems.", 
+            new BigDecimal("32.50"), CourseLevel.ADVANCED, CourseStatus.PENDING, instructor);
+
+        // Draft course
+        createCourse("Mock Interview Preparation", "Practice real interview questions with detailed solutions and time complexity analysis.", 
+            new BigDecimal("49.99"), CourseLevel.INTERMEDIATE, CourseStatus.DRAFT, instructor);
     }
 
-    private void createCourse(String title, String description, BigDecimal price, CourseLevel level, User instructor) {
+    private void createCourse(String title, String description, BigDecimal price, CourseLevel level, CourseStatus status, User instructor) {
         Course c = new Course();
         c.setTitle(title);
         c.setDescription(description);
         c.setPrice(price);
         c.setLevel(level);
-        c.setStatus(CourseStatus.PUBLISHED);
+        c.setStatus(status);
         c.setCreatedAt(Instant.now());
         c.setThumbnailUrl("https://picsum.photos/400/300?random=" + title.hashCode());
         if (instructor != null) c.setInstructor(instructor);

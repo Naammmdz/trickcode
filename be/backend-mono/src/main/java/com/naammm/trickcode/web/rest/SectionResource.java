@@ -2,7 +2,9 @@ package com.naammm.trickcode.web.rest;
 
 import com.naammm.trickcode.domain.Section;
 import com.naammm.trickcode.repository.SectionRepository;
+import com.naammm.trickcode.service.SectionQueryService;
 import com.naammm.trickcode.service.SectionService;
+import com.naammm.trickcode.service.criteria.SectionCriteria;
 import com.naammm.trickcode.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -42,9 +44,12 @@ public class SectionResource {
 
     private final SectionRepository sectionRepository;
 
-    public SectionResource(SectionService sectionService, SectionRepository sectionRepository) {
+    private final SectionQueryService sectionQueryService;
+
+    public SectionResource(SectionService sectionService, SectionRepository sectionRepository, SectionQueryService sectionQueryService) {
         this.sectionService = sectionService;
         this.sectionRepository = sectionRepository;
+        this.sectionQueryService = sectionQueryService;
     }
 
     /**
@@ -139,14 +144,31 @@ public class SectionResource {
      * {@code GET  /sections} : get all the sections.
      *
      * @param pageable the pagination information.
+     * @param criteria the criteria which the requested entities should match.
      * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of sections in body.
      */
     @GetMapping("")
-    public ResponseEntity<List<Section>> getAllSections(@org.springdoc.core.annotations.ParameterObject Pageable pageable) {
-        LOG.debug("REST request to get a page of Sections");
-        Page<Section> page = sectionService.findAll(pageable);
+    public ResponseEntity<List<Section>> getAllSections(
+        SectionCriteria criteria,
+        @org.springdoc.core.annotations.ParameterObject Pageable pageable
+    ) {
+        LOG.debug("REST request to get Sections by criteria: {}", criteria);
+
+        Page<Section> page = sectionQueryService.findByCriteria(criteria, pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
+    }
+
+    /**
+     * {@code GET  /sections/count} : count all the sections.
+     *
+     * @param criteria the criteria which the requested entities should match.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the count in body.
+     */
+    @GetMapping("/count")
+    public ResponseEntity<Long> countSections(SectionCriteria criteria) {
+        LOG.debug("REST request to count Sections by criteria: {}", criteria);
+        return ResponseEntity.ok().body(sectionQueryService.countByCriteria(criteria));
     }
 
     /**

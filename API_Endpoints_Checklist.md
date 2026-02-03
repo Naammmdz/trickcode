@@ -33,13 +33,20 @@
 ## Course Management
 
 ### `CourseResource`
-- [ ] `POST /api/courses` - Create new course
-- [ ] `PUT /api/courses/{id}` - Update course
-- [ ] `PATCH /api/courses/{id}` - Partially update course
-- [x] `GET /api/courses` - Get all courses (✅ Used in Marketplace)
-- [ ] `GET /api/courses/count` - Get course count
-- [x] `GET /api/courses/{id}` - Get course by ID (✅ Used in CourseDetail)
-- [ ] `DELETE /api/courses/{id}` - Delete course
+- [x] `POST /api/courses` - Create new course (✅ Admin/Staff only)
+- [x] `PUT /api/courses/{id}` - Update course (✅ Used in course approval workflow)
+- [x] `PATCH /api/courses/{id}` - Partially update course (✅ JHipster generated)
+- [x] `GET /api/courses` - Get all courses (✅ Admin/Staff - Used in admin dashboard)
+- [x] `GET /api/courses/public` - Get published courses (✅ Public - Used in Marketplace)
+- [x] `GET /api/courses/my-courses` - Get instructor courses (✅ Authenticated - instructor dashboard)
+- [x] `GET /api/courses/count` - Get course count (✅ JHipster generated)
+- [x] `GET /api/courses/{id}` - Get course by ID (✅ Public - Used in CourseDetail)
+- [x] `GET /api/courses/{id}/access` - Check course access (✅ Authenticated - returns hasAccess, isAdmin, isEnrolled, isInstructor)
+- [x] `POST /api/courses/{id}/approve` - Approve & publish course (✅ Admin/Staff - Sets PUBLISHED status and publishedAt timestamp)
+- [x] `POST /api/courses/{id}/reject` - Reject course with reason (✅ Admin/Staff - Sets REJECTED status)
+- [x] `POST /api/courses/{id}/publish` - Publish course (✅ Admin/Staff - Sets PUBLISHED status)
+- [x] `POST /api/courses/{id}/unpublish` - Unpublish course to draft (✅ Admin/Staff - Sets DRAFT status)
+- [x] `DELETE /api/courses/{id}` - Delete course (✅ Admin/Staff only)
 
 ### `SectionResource`
 - [ ] `POST /api/sections` - Create new section
@@ -60,12 +67,12 @@
 ## User Progress
 
 ### `EnrollmentResource`
-- [ ] `POST /api/enrollments` - Enroll in a course
+- [ ] `POST /api/enrollments` - Enroll in a course (To be integrated with payment)
 - [ ] `PUT /api/enrollments/{id}` - Update enrollment
 - [ ] `PATCH /api/enrollments/{id}` - Partially update enrollment
-- [ ] `GET /api/enrollments` - Get all enrollments
-- [ ] `GET /api/enrollments/count` - Get enrollment count
-- [ ] `GET /api/enrollments/{id}` - Get enrollment by ID
+- [x] `GET /api/enrollments` - Get all enrollments (✅ Admin/Staff access)
+- [x] `GET /api/enrollments/count` - Get enrollment count (✅ JHipster generated)
+- [x] `GET /api/enrollments/{id}` - Get enrollment by ID (✅ JHipster generated)
 - [ ] `DELETE /api/enrollments/{id}` - Delete enrollment
 
 ### `LessonProgressResource`
