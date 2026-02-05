@@ -1,0 +1,9 @@
+version: "2"
+authtoken: 27nAhwLVgSaWkPvDZGttsNrKaaR_6hXfqCq47KE3LjCmVKMKK
+tunnels:
+  backend:
+    proto: http
+    addr: host.docker.internal:8080
+  frontend:
+    proto: http
+    addr: host.docker.internal:5173

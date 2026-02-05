@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <changeSet id="20260203180000-1" author="trickcode">
+        <addColumn tableName="jhi_order">
+            <column name="payment_provider" type="varchar(50)"/>
+            <column name="payment_txn_ref" type="varchar(100)"/>
+            <column name="vnpay_response_code" type="varchar(10)"/>
+            <column name="vnpay_transaction_no" type="varchar(50)"/>
+            <column name="paid_at" type="${datetimeType}"/>
+        </addColumn>
+        <addUniqueConstraint tableName="jhi_order" columnNames="payment_txn_ref" constraintName="ux_jhi_order_payment_txn_ref"/>
+        <dropDefaultValue tableName="jhi_order" columnName="paid_at" columnDataType="${datetimeType}"/>
+    </changeSet>
+</databaseChangeLog>

@@ -1,7 +1,26 @@
 // API Configuration
+const DEFAULT_LOCAL_API = 'http://localhost:8080';
+
+// When FE is opened via ngrok, browsers block XHR/fetch to loopback (localhost/127.0.0.1).
+// In that case, call the backend through its ngrok HTTPS URL.
+const resolveBaseUrl = () => {
+  const envBase = import.meta.env.VITE_API_BASE_URL;
+  if (envBase) return envBase;
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || '';
+    if (host.endsWith('.ngrok-free.app') || host.endsWith('.ngrok.app')) {
+      // Backend ngrok URL (update when your backend ngrok URL changes)
+      return 'https://47d5-103-199-40-35.ngrok-free.app';
+    }
+  }
+
+  return DEFAULT_LOCAL_API;
+};
+
 export const API_CONFIG = {
   // For local dev, hit JHipster Monolith directly
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: resolveBaseUrl(),
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '10000'),
   headers: {
     'Content-Type': 'application/json',
@@ -81,6 +100,15 @@ export const API_ENDPOINTS = {
     MODULES: '/learn/modules',
     LESSONS: (moduleId) => `/learn/modules/${moduleId}/lessons`,
     PROGRESS: '/learn/progress',
+  },
+
+  // Payment Endpoints
+  PAYMENT: {
+    VNPAY: {
+      CREATE: '/api/payments/vnpay/create',
+      RETURN: '/api/payments/vnpay/return',
+      IPN: '/api/payments/vnpay/ipn',
+    },
   },
 
   // Admin Endpoints (Mapped to JHipster API)

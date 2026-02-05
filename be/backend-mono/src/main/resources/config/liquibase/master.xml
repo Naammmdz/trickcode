@@ -25,6 +25,7 @@
     <include file="config/liquibase/changelog/20260202165851_added_entity_Enrollment.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260202165951_added_entity_LessonProgress.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260202170051_added_entity_Order.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260203180000_add_vnpay_fields_to_order.xml" relativeToChangelogFile="false"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="config/liquibase/changelog/20260202165551_added_entity_constraints_Course.xml" relativeToChangelogFile="false"/>
     <include file="config/liquibase/changelog/20260202165651_added_entity_constraints_Section.xml" relativeToChangelogFile="false"/>

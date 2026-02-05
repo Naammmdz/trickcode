@@ -122,6 +122,45 @@ export const courseService = {
         }
     },
 
+    getMyEnrolledCourses: async ({ page = 0, size = 50, sort = 'id,desc' } = {}) => {
+        try {
+            // Use enrollments endpoint because /api/courses/my-courses is for instructors
+            const params = {
+                page,
+                size,
+                sort,
+            };
+
+            const response = await apiClient.get('/api/enrollments/my', { params });
+
+            const content = response.data;
+            const totalElements = parseInt(response.headers['x-total-count'] || '0', 10);
+            const totalPages = Math.ceil(totalElements / size);
+
+            // Map enrollments -> courses
+            const courses = (content || [])
+                .map(e => e.course)
+                .filter(Boolean);
+
+            return {
+                content: courses,
+                page,
+                size,
+                totalElements,
+                totalPages,
+            };
+        } catch (error) {
+            console.error('Failed to fetch enrolled courses:', error);
+            return {
+                content: [],
+                page: 0,
+                size: 0,
+                totalElements: 0,
+                totalPages: 0,
+            };
+        }
+    },
+
     getCourse: async (id) => {
         try {
             const response = await apiClient.get(API_ENDPOINTS.COURSES.DETAIL(id));

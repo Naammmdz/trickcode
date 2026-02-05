@@ -4,6 +4,7 @@ import { courseService } from '../services/courseService';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
+import HeroGLBackground from '../components/ui/HeroGLBackground';
 
 const MarketplaceHome = () => {
   const [featuredCourses, setFeaturedCourses] = useState([]);
@@ -13,9 +14,9 @@ const MarketplaceHome = () => {
     const fetchFeaturedCourses = async () => {
       try {
         setLoading(true);
-        const data = await courseService.getPublicCourses({ 
-          page: 0, 
-          size: 3, 
+        const data = await courseService.getPublicCourses({
+          page: 0,
+          size: 3,
           sort: 'id,desc'
         });
         setFeaturedCourses(data.content || []);
@@ -72,7 +73,7 @@ const MarketplaceHome = () => {
             <span className="text-[10px] font-sans text-primary">400+ New Courses Available</span>
           </div>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif leading-[1.1] mb-8 text-neutral-900 dark:text-white">
-            Master <span className="italic font-light text-neutral-600 dark:text-neutral-400">Data Structures</span><br/>
+            Master <span className="italic font-light text-neutral-600 dark:text-neutral-400">Data Structures</span><br />
             and <span className="italic font-light text-neutral-600 dark:text-neutral-400">Algorithms</span>
           </h1>
           <p className="text-lg md:text-xl text-neutral-500 dark:text-neutral-400 max-w-2xl mx-auto mb-10 font-light leading-relaxed">
@@ -82,9 +83,9 @@ const MarketplaceHome = () => {
             <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none z-10">
               <span className="material-symbols-outlined text-neutral-400 group-focus-within:text-primary transition-colors">search</span>
             </div>
-            <input 
-              className="block w-full p-4 pl-12 pr-24 text-sm font-sans text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white focus:border-neutral-900 dark:focus:border-white placeholder-neutral-400 shadow-sm rounded" 
-              placeholder="Search courses (e.g. 'Dynamic Programming', 'Binary Search')..." 
+            <input
+              className="block w-full p-4 pl-12 pr-24 text-sm font-sans text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white focus:border-neutral-900 dark:focus:border-white placeholder-neutral-400 shadow-sm rounded"
+              placeholder="Search courses (e.g. 'Dynamic Programming', 'Binary Search')..."
               type="text"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-2 z-10">
@@ -102,6 +103,7 @@ const MarketplaceHome = () => {
             <span className="text-xs font-sans text-neutral-500 dark:text-neutral-400">Joined by 10,000+ Students</span>
           </div>
         </div>
+        <HeroGLBackground />
       </header>
 
       {/* Featured Protocols */}
@@ -133,8 +135,8 @@ const MarketplaceHome = () => {
               <div className="col-span-full text-center py-12 text-neutral-500">No featured courses available</div>
             ) : (
               featuredCourses.map((course) => (
-                <Link 
-                  key={course.id} 
+                <Link
+                  key={course.id}
                   to={`/courses/${course.id}`}
                   className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded"
                 >
@@ -377,7 +379,7 @@ const MarketplaceHome = () => {
               />
               <span className="font-serif font-bold text-lg">Trickcode</span>
             </div>
-              <p className="max-w-xs leading-relaxed">
+            <p className="max-w-xs leading-relaxed">
               The premier platform for learning data structures and algorithms. Master DSA and ace your technical interviews.
             </p>
           </div>

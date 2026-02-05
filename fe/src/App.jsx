@@ -12,6 +12,7 @@ import QuizDetail from './pages/QuizDetail'
 import MarketplaceHome from './pages/MarketplaceHome'
 import Marketplace from './pages/Marketplace'
 import Checkout from './pages/Checkout'
+import PaymentReturn from './pages/PaymentReturn'
 import MyCourses from './pages/MyCourses'
 import Problems from './pages/Problems'
 import Signup from './pages/Signup'
@@ -45,6 +46,7 @@ function App() {
           <Route path="/my-courses/:courseId/quiz/:quizId/result" element={<QuizResult />} />
           <Route path="/my-courses/:courseId/code/:codeId" element={<CodeWorkspace />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/payment/return" element={<PaymentReturn />} />
           <Route path="/my-courses" element={<MyCourses />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/transactions" element={<TransactionHistory />} />

@@ -2,6 +2,7 @@ package com.naammm.trickcode;
 
 import com.naammm.trickcode.config.ApplicationProperties;
 import com.naammm.trickcode.config.CRLFLogConverter;
+import com.naammm.trickcode.config.VnPayProperties;
 import jakarta.annotation.PostConstruct;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -21,7 +22,7 @@ import tech.jhipster.config.DefaultProfileUtil;
 import tech.jhipster.config.JHipsterConstants;
 
 @SpringBootApplication(exclude = { H2ConsoleAutoConfiguration.class })
-@EnableConfigurationProperties({ LiquibaseProperties.class, ApplicationProperties.class })
+@EnableConfigurationProperties({ LiquibaseProperties.class, ApplicationProperties.class, VnPayProperties.class, com.naammm.trickcode.config.PaymentProperties.class })
 public class TrickcodeApp {
 
     private static final Logger LOG = LoggerFactory.getLogger(TrickcodeApp.class);

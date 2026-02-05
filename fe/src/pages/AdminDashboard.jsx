@@ -11,6 +11,7 @@ import RolesTab from '../components/admin/tabs/RolesTab';
 import CoursesTab from '../components/admin/tabs/CoursesTab';
 import SettingsTab from '../components/admin/tabs/SettingsTab';
 import PlaceholderTab from '../components/admin/tabs/PlaceholderTab';
+import PaymentsTab from '../components/admin/tabs/PaymentsTab';
 
 const AdminDashboard = () => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
@@ -46,17 +47,7 @@ const AdminDashboard = () => {
         ]}
       />
     ),
-    payments: (
-      <PlaceholderTab
-        title="Payments"
-        subtitle="Subscriptions and receipts (demo)"
-        columns={['Order', 'User', 'Amount', 'Status']}
-        rows={[
-          ['INV-1001', 'tagiangnamttg@gmail.com', '$49', 'PAID'],
-          ['INV-1002', 'student@trickcode.local', '$49', 'FAILED'],
-        ]}
-      />
-    ),
+    payments: <PaymentsTab />,
     settings: <SettingsTab />,
   };
 

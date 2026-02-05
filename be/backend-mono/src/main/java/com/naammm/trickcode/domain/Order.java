@@ -44,6 +44,21 @@ public class Order implements Serializable {
     @Column(name = "transaction_id")
     private String transactionId;
 
+    @Column(name = "payment_provider")
+    private String paymentProvider;
+
+    @Column(name = "payment_txn_ref")
+    private String paymentTxnRef;
+
+    @Column(name = "vnpay_response_code")
+    private String vnpayResponseCode;
+
+    @Column(name = "vnpay_transaction_no")
+    private String vnpayTransactionNo;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
@@ -131,6 +146,70 @@ public class Order implements Serializable {
         this.transactionId = transactionId;
     }
 
+    public String getPaymentProvider() {
+        return paymentProvider;
+    }
+
+    public Order paymentProvider(String paymentProvider) {
+        this.setPaymentProvider(paymentProvider);
+        return this;
+    }
+
+    public void setPaymentProvider(String paymentProvider) {
+        this.paymentProvider = paymentProvider;
+    }
+
+    public String getPaymentTxnRef() {
+        return paymentTxnRef;
+    }
+
+    public Order paymentTxnRef(String paymentTxnRef) {
+        this.setPaymentTxnRef(paymentTxnRef);
+        return this;
+    }
+
+    public void setPaymentTxnRef(String paymentTxnRef) {
+        this.paymentTxnRef = paymentTxnRef;
+    }
+
+    public String getVnpayResponseCode() {
+        return vnpayResponseCode;
+    }
+
+    public Order vnpayResponseCode(String vnpayResponseCode) {
+        this.setVnpayResponseCode(vnpayResponseCode);
+        return this;
+    }
+
+    public void setVnpayResponseCode(String vnpayResponseCode) {
+        this.vnpayResponseCode = vnpayResponseCode;
+    }
+
+    public String getVnpayTransactionNo() {
+        return vnpayTransactionNo;
+    }
+
+    public Order vnpayTransactionNo(String vnpayTransactionNo) {
+        this.setVnpayTransactionNo(vnpayTransactionNo);
+        return this;
+    }
+
+    public void setVnpayTransactionNo(String vnpayTransactionNo) {
+        this.vnpayTransactionNo = vnpayTransactionNo;
+    }
+
+    public Instant getPaidAt() {
+        return paidAt;
+    }
+
+    public Order paidAt(Instant paidAt) {
+        this.setPaidAt(paidAt);
+        return this;
+    }
+
+    public void setPaidAt(Instant paidAt) {
+        this.paidAt = paidAt;
+    }
     public User getUser() {
         return this.user;
     }
@@ -186,6 +265,11 @@ public class Order implements Serializable {
             ", createdAt='" + getCreatedAt() + "'" +
             ", paymentMethod='" + getPaymentMethod() + "'" +
             ", transactionId='" + getTransactionId() + "'" +
+            ", paymentProvider='" + getPaymentProvider() + "'" +
+            ", paymentTxnRef='" + getPaymentTxnRef() + "'" +
+            ", vnpayResponseCode='" + getVnpayResponseCode() + "'" +
+            ", vnpayTransactionNo='" + getVnpayTransactionNo() + "'" +
+            ", paidAt='" + getPaidAt() + "'" +
             "}";
     }
 }

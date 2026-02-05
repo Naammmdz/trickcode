@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -40,4 +41,6 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
 
     @Query("select course from Course course left join fetch course.instructor where course.id =:id")
     Optional<Course> findOneWithToOneRelationships(@Param("id") Long id);
+
+    long countByStatus(CourseStatus status);
 }

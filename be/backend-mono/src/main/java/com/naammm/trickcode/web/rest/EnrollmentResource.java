@@ -164,6 +164,19 @@ public class EnrollmentResource {
     }
 
     /**
+     * {@code GET /enrollments/my} : get enrollments of current user (eager load course).
+     */
+    @GetMapping("/my")
+    public ResponseEntity<List<Enrollment>> getMyEnrollments(@org.springdoc.core.annotations.ParameterObject Pageable pageable) {
+        LOG.debug("REST request to get my Enrollments");
+        Page<Enrollment> page = enrollmentRepository.findAllWithEagerRelationships(pageable);
+        List<Enrollment> mine = page.getContent().stream().filter(e -> e.getUser() != null && e.getUser().getLogin() != null)
+            .filter(e -> e.getUser().getLogin().equals(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName()))
+            .toList();
+        return ResponseEntity.ok().body(mine);
+    }
+
+    /**
      * {@code GET  /enrollments/count} : count all the enrollments.
      *
      * @param criteria the criteria which the requested entities should match.

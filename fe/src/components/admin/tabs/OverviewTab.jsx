@@ -1,62 +1,112 @@
-import StatCard from '../common/StatCard';
+import { useEffect, useState } from 'react';
+import { adminDashboardService } from '../../../services/adminDashboardService';
+import StatCard from '../dashboard/StatCard';
+import ActivityFeed from '../dashboard/ActivityFeed';
+import DashboardChart from '../dashboard/DashboardChart';
+import DashboardPieChart from '../dashboard/DashboardPieChart';
 
 const OverviewTab = () => {
-  const overviewStats = [
-    { title: 'Active Users', value: '1,284', hint: '+12% vs last week', icon: 'group' },
-    { title: 'Courses', value: '42', hint: '8 drafts', icon: 'menu_book' },
-    { title: 'Instructors', value: '13', hint: '2 pending approval', icon: 'school' },
-    { title: 'Revenue', value: '$3,240', hint: 'This month', icon: 'payments' },
-  ];
+  const [stats, setStats] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, chartsData] = await Promise.all([
+          adminDashboardService.getStats(),
+          adminDashboardService.getChartData(),
+        ]);
+        setStats(statsData);
+        setChartData(chartsData);
+      } catch (err) {
+        setError('Failed to load dashboard data.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center p-8 text-neutral-500">Loading statistics...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center p-8 text-red-500">{error}</div>;
+  }
+
+  if (!stats) {
+    return <div className="text-center p-8 text-neutral-500">No statistics available.</div>;
+  }
+
+  const formattedRecentUsers = stats.recentUsers.map(user => ({
+    primaryText: user.login,
+    secondaryText: user.email,
+    timestamp: user.createdDate,
+  }));
+
+  const formattedRecentOrders = stats.recentOrders.map(order => ({
+    primaryText: `Order #${order.id} - ${order.courseTitle || 'N/A'}`,
+    secondaryText: `${order.userLogin} - ${order.status}`,
+    timestamp: order.createdDate,
+  }));
 
   return (
-    <div className="p-8 max-w-6xl">
-      <div className="mb-8">
-        <div className="text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">Admin</div>
-        <h1 className="mt-2 text-3xl md:text-5xl font-serif text-neutral-900 dark:text-white">Dashboard</h1>
-        <p className="mt-3 text-sm text-neutral-600 dark:text-zinc-400 font-light max-w-3xl">
-          In-memory admin console (demo). Refresh resets data.
+    <div className="space-y-8 p-8">
+      <div>
+        <h2 className="text-3xl font-serif text-neutral-900 dark:text-white">Dashboard Overview</h2>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light">
+          A quick glance at your platform's key metrics and recent activity.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {overviewStats.map((s) => (
-          <StatCard key={s.title} title={s.title} value={s.value} hint={s.hint} icon={s.icon} />
-        ))}
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Total Revenue" value={`$${(stats.totalRevenue || 0).toLocaleString()}`} icon="payments" color="green" />
+        <StatCard title="Total Users" value={(stats.totalUsers || 0).toLocaleString()} icon="group" color="blue" />
+        <StatCard title="Total Courses" value={(stats.totalCourses || 0).toLocaleString()} icon="school" color="primary" />
+        <StatCard title="Pending Courses" value={(stats.pendingCourses || 0).toLocaleString()} icon="pending_actions" color="yellow" />
       </div>
 
-      <div className="mt-8 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-sm">
-        <div className="px-6 py-5 border-b border-neutral-100 dark:border-zinc-800">
-          <div className="text-lg font-serif text-neutral-900 dark:text-white">Recent Signups</div>
-          <div className="text-xs text-neutral-500 dark:text-zinc-400 mt-1">Demo data (wired later to IAM)</div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-neutral-50 dark:bg-zinc-950 border-b border-neutral-100 dark:border-zinc-800">
-              <tr>
-                {['Email', 'Role', 'Status', 'Created'].map((c) => (
-                  <th key={c} className="text-left px-6 py-3 text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['tagiangnamttg@gmail.com', 'STUDENT', 'ACTIVE', 'Today'],
-                ['admin@trickcode.local', 'ADMIN', 'ACTIVE', 'Yesterday'],
-                ['instructor@trickcode.local', 'INSTRUCTOR', 'PENDING', '2 days ago'],
-              ].map((r, idx) => (
-                <tr key={idx} className="border-b border-neutral-100 dark:border-zinc-800 last:border-b-0">
-                  {r.map((cell, i) => (
-                    <td key={i} className="px-6 py-4 text-sm text-neutral-700 dark:text-zinc-200">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <DashboardChart
+          title="Daily Revenue (Last 30 Days)"
+          data={chartData?.dailyRevenue || []}
+          dataKey="value"
+          color="#10b981"
+          valueFormatter={(value) => `${(value / 100).toFixed(0)}`}
+        />
+        <DashboardChart
+          title="New Users (Last 30 Days)"
+          data={chartData?.dailySignups || []}
+          dataKey="value"
+          color="#3b82f6"
+          valueFormatter={(value) => value.toLocaleString()}
+        />
+      </div>
+
+      {/* Pie Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <DashboardPieChart
+          title="Courses by Level"
+          data={chartData?.coursesByLevel || []}
+        />
+        <DashboardPieChart
+          title="Courses by Status"
+          data={chartData?.coursesByStatus || []}
+        />
+      </div>
+
+      {/* Activity Feeds */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <ActivityFeed title="Recent Registrations" items={formattedRecentUsers} icon="person_add" />
+        <ActivityFeed title="Recent Orders" items={formattedRecentOrders} icon="receipt_long" />
       </div>
     </div>
   );
