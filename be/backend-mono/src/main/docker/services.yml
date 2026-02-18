@@ -7,4 +7,5 @@ services:
       service: postgresql
     profiles:
       - ''
+      - dev
       - prod
