@@ -27,19 +27,19 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalElements, page
     }
 
     return (
-        <div className="flex items-center justify-between px-6 py-4 border-t border-neutral-100 dark:border-zinc-800">
-            <div className="text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">
-                Showing <span className="font-mono text-neutral-900 dark:text-white">{startRange}-{endRange}</span> of <span className="font-mono text-neutral-900 dark:text-white">{totalElements}</span>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-neutral-100 dark:border-neutral-800">
+            <div className="text-[11px] font-sans text-neutral-400 dark:text-neutral-500">
+                Showing <span className="font-mono font-medium text-neutral-600 dark:text-neutral-300">{startRange}–{endRange}</span> of <span className="font-mono font-medium text-neutral-600 dark:text-neutral-300">{totalElements}</span>
             </div>
 
             {totalPages > 1 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-0.5">
                     <button
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 0}
-                        className="p-1 rounded hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all duration-200"
                     >
-                        <span className="material-symbols-outlined text-sm">chevron_left</span>
+                        <span className="material-symbols-outlined text-sm text-neutral-500">chevron_left</span>
                     </button>
 
                     {pages.map((p, i) => (
@@ -47,11 +47,11 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalElements, page
                             key={i}
                             onClick={() => typeof p === 'number' && onPageChange(p)}
                             disabled={p === '...'}
-                            className={`w-6 h-6 flex items-center justify-center text-[10px] font-mono rounded transition-colors ${p === currentPage
-                                ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                            className={`w-7 h-7 flex items-center justify-center text-[11px] font-mono rounded-lg transition-all duration-200 ${p === currentPage
+                                ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 shadow-sm'
                                 : p === '...'
-                                    ? 'cursor-default text-neutral-400'
-                                    : 'hover:bg-neutral-100 dark:hover:bg-zinc-800 text-neutral-600 dark:text-zinc-400'
+                                    ? 'cursor-default text-neutral-300 dark:text-neutral-600'
+                                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400'
                                 }`}
                         >
                             {typeof p === 'number' ? p + 1 : p}
@@ -61,9 +61,9 @@ const Pagination = ({ currentPage, totalPages, onPageChange, totalElements, page
                     <button
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage === totalPages - 1}
-                        className="p-1 rounded hover:bg-neutral-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all duration-200"
                     >
-                        <span className="material-symbols-outlined text-sm">chevron_right</span>
+                        <span className="material-symbols-outlined text-sm text-neutral-500">chevron_right</span>
                     </button>
                 </div>
             )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { adminDashboardService } from '../../../services/adminDashboardService';
 import StatCard from '../dashboard/StatCard';
 import ActivityFeed from '../dashboard/ActivityFeed';
@@ -32,32 +32,67 @@ const OverviewTab = () => {
     fetchData();
   }, []);
 
+  // Compute summary values for charts
+  const revenueSummary = useMemo(() => {
+    if (!chartData?.dailyRevenue?.length) return { total: '$0', subtitle: 'Last 30 days' };
+    const total = chartData.dailyRevenue.reduce((s, d) => s + (d.value || 0), 0);
+    return {
+      total: `$${(total / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      subtitle: `${chartData.dailyRevenue.length} days tracked`,
+    };
+  }, [chartData]);
+
+  const signupSummary = useMemo(() => {
+    if (!chartData?.dailySignups?.length) return { total: '0', subtitle: 'Last 30 days' };
+    const total = chartData.dailySignups.reduce((s, d) => s + (d.value || 0), 0);
+    return {
+      total: total.toLocaleString(),
+      subtitle: `${chartData.dailySignups.length} days tracked`,
+    };
+  }, [chartData]);
+
   if (loading) {
-    return <div className="text-center p-8 text-neutral-500">Loading statistics...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-10 h-10 border-2 border-neutral-200 dark:border-neutral-700 border-t-neutral-500 dark:border-t-neutral-400 rounded-full animate-spin" />
+        <p className="text-sm text-neutral-400 dark:text-neutral-500 animate-pulse">Loading dashboard...</p>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center p-8 text-red-500">{error}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <span className="material-symbols-outlined text-4xl text-red-400">error</span>
+        <p className="text-sm text-red-400">{error}</p>
+      </div>
+    );
   }
 
   if (!stats) {
-    return <div className="text-center p-8 text-neutral-500">No statistics available.</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <span className="material-symbols-outlined text-4xl text-neutral-300 dark:text-neutral-600">analytics</span>
+        <p className="text-sm text-neutral-400 dark:text-neutral-500">No statistics available.</p>
+      </div>
+    );
   }
 
-  const formattedRecentUsers = stats.recentUsers.map(user => ({
+  const formattedRecentUsers = (stats.recentUsers || []).map(user => ({
     primaryText: user.login,
     secondaryText: user.email,
     timestamp: user.createdDate,
   }));
 
-  const formattedRecentOrders = stats.recentOrders.map(order => ({
-    primaryText: `Order #${order.id} - ${order.courseTitle || 'N/A'}`,
-    secondaryText: `${order.userLogin} - ${order.status}`,
+  const formattedRecentOrders = (stats.recentOrders || []).map(order => ({
+    primaryText: `Order #${order.id} — ${order.courseTitle || 'N/A'}`,
+    secondaryText: `${order.userLogin} · ${order.status}`,
     timestamp: order.createdDate,
   }));
 
   return (
     <div className="space-y-8 p-8">
+      {/* Header */}
       <div>
         <h2 className="text-3xl font-serif text-neutral-900 dark:text-white">Dashboard Overview</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light">
@@ -66,33 +101,62 @@ const OverviewTab = () => {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Revenue" value={`$${(stats.totalRevenue || 0).toLocaleString()}`} icon="payments" color="green" />
-        <StatCard title="Total Users" value={(stats.totalUsers || 0).toLocaleString()} icon="group" color="blue" />
-        <StatCard title="Total Courses" value={(stats.totalCourses || 0).toLocaleString()} icon="school" color="primary" />
-        <StatCard title="Pending Courses" value={(stats.pendingCourses || 0).toLocaleString()} icon="pending_actions" color="yellow" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+        <StatCard
+          title="Total Revenue"
+          value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
+          icon="payments"
+          color="green"
+          subtitle="all time"
+        />
+        <StatCard
+          title="Total Users"
+          value={(stats.totalUsers || 0).toLocaleString()}
+          icon="group"
+          color="blue"
+          subtitle="registered"
+        />
+        <StatCard
+          title="Total Courses"
+          value={(stats.totalCourses || 0).toLocaleString()}
+          icon="school"
+          color="primary"
+          subtitle="all statuses"
+        />
+        <StatCard
+          title="Pending Courses"
+          value={(stats.pendingCourses || 0).toLocaleString()}
+          icon="pending_actions"
+          color="yellow"
+          subtitle="awaiting review"
+        />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Revenue + Signups Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <DashboardChart
-          title="Daily Revenue (Last 30 Days)"
+          title="Daily Revenue"
           data={chartData?.dailyRevenue || []}
           dataKey="value"
           color="#10b981"
-          valueFormatter={(value) => `${(value / 100).toFixed(0)}`}
+          valueFormatter={(value) => `$${(value / 100).toFixed(0)}`}
+          totalValue={revenueSummary.total}
+          subtitle={revenueSummary.subtitle}
         />
         <DashboardChart
-          title="New Users (Last 30 Days)"
+          title="New Users"
           data={chartData?.dailySignups || []}
           dataKey="value"
           color="#3b82f6"
           valueFormatter={(value) => value.toLocaleString()}
+          chartType="bar"
+          totalValue={signupSummary.total}
+          subtitle={signupSummary.subtitle}
         />
       </div>
 
-      {/* Pie Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Distribution Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <DashboardPieChart
           title="Courses by Level"
           data={chartData?.coursesByLevel || []}
@@ -104,9 +168,19 @@ const OverviewTab = () => {
       </div>
 
       {/* Activity Feeds */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ActivityFeed title="Recent Registrations" items={formattedRecentUsers} icon="person_add" />
-        <ActivityFeed title="Recent Orders" items={formattedRecentOrders} icon="receipt_long" />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ActivityFeed
+          title="Recent Registrations"
+          items={formattedRecentUsers}
+          icon="person_add"
+          emptyText="No recent registrations."
+        />
+        <ActivityFeed
+          title="Recent Orders"
+          items={formattedRecentOrders}
+          icon="receipt_long"
+          emptyText="No recent orders."
+        />
       </div>
     </div>
   );

@@ -35,6 +35,9 @@ spring:
   jackson:
     serialization:
       indent-output: true
+  h2:
+    console:
+      enabled: false  # Dùng PostgreSQL, không cần H2 console
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:postgresql://localhost:5432/trickcode

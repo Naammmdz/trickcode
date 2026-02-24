@@ -56,6 +56,8 @@ public class DataSeeder implements CommandLineRunner {
     // ─── Authorities ────────────────────────────────────────────────────────────
 
     private void seedAuthorities() {
+        ensureAuthority(AuthoritiesConstants.ADMIN);
+        ensureAuthority(AuthoritiesConstants.USER);
         ensureAuthority(AuthoritiesConstants.STAFF);
         ensureAuthority(AuthoritiesConstants.INSTRUCTOR);
     }
@@ -71,6 +73,16 @@ public class DataSeeder implements CommandLineRunner {
     // ─── Users ──────────────────────────────────────────────────────────────────
 
     private void seedUsers() {
+        if (userRepository.findOneByLogin("admin").isEmpty()) {
+            User admin = buildUser("admin", "admin", "Admin", "User", "admin@trickcode.local",
+                AuthoritiesConstants.ADMIN, AuthoritiesConstants.USER);
+            userRepository.save(admin);
+        }
+        if (userRepository.findOneByLogin("user").isEmpty()) {
+            User user = buildUser("user", "user", "Normal", "User", "user@trickcode.local",
+                AuthoritiesConstants.USER);
+            userRepository.save(user);
+        }
         if (userRepository.findOneByLogin("staff").isEmpty()) {
             User staff = buildUser("staff", "staff", "Staff", "Member", "staff@trickcode.local",
                 AuthoritiesConstants.STAFF, AuthoritiesConstants.USER);
