@@ -14,6 +14,8 @@ const CourseEditor = ({ courseId, onBack }) => {
 
     const [loading, setLoading] = useState(false);
     const [sections, setSections] = useState([]);
+    const [allCategories, setAllCategories] = useState([]);
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState(new Set());
 
     // Lesson Editor State
     const [editingLesson, setEditingLesson] = useState(null); // { sectionId, lessonId }
@@ -27,12 +29,21 @@ const CourseEditor = ({ courseId, onBack }) => {
             const data = await courseService.getCourseCurriculum(courseId);
             setCourse(data);
             setSections(data.sections || []);
+            // init selected categories from loaded course
+            if (data.categories) {
+                setSelectedCategoryIds(new Set(data.categories.map(c => c.id)));
+            }
         } catch (error) {
             console.error('Failed to load course', error);
         } finally {
             setLoading(false);
         }
     };
+
+    // Load all available categories once
+    useEffect(() => {
+        courseService.getCategories().then(res => setAllCategories(res.content || []));
+    }, []);
 
     useEffect(() => {
         if (courseId) {
@@ -45,13 +56,26 @@ const CourseEditor = ({ courseId, onBack }) => {
         setCourse(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleToggleCategory = (catId) => {
+        setSelectedCategoryIds(prev => {
+            const next = new Set(prev);
+            if (next.has(catId)) next.delete(catId);
+            else next.add(catId);
+            return next;
+        });
+    };
+
     const handleSaveCourse = async () => {
         try {
+            const payload = {
+                ...course,
+                categories: Array.from(selectedCategoryIds).map(id => ({ id }))
+            };
             if (courseId) {
-                await courseService.updateCourse(courseId, course);
+                await courseService.updateCourse(courseId, payload);
                 loadData(); // Reload to get potential server-side updates
             } else {
-                const newCourse = await courseService.createCourse(course);
+                const newCourse = await courseService.createCourse(payload);
                 // If created, maybe we should switch mode or notify
                 onBack(); // Simply go back for now
             }
@@ -318,6 +342,34 @@ const CourseEditor = ({ courseId, onBack }) => {
                                 className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded focus:outline-none focus:border-neutral-400 text-sm"
                             />
                         </div>
+                    </div>
+
+                    {/* Categories */}
+                    <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-6">
+                        <h3 className="font-medium text-neutral-900 dark:text-white mb-4">Categories</h3>
+                        {allCategories.length === 0 ? (
+                            <p className="text-xs text-neutral-400 italic">No categories found. Create some in admin panel.</p>
+                        ) : (
+                            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                {allCategories.map(cat => (
+                                    <label
+                                        key={cat.id}
+                                        className={`flex items-center gap-3 px-3 py-2 rounded cursor-pointer transition-colors border ${selectedCategoryIds.has(cat.id)
+                                                ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/10'
+                                                : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                                            }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCategoryIds.has(cat.id)}
+                                            onChange={() => handleToggleCategory(cat.id)}
+                                            className="accent-orange-500"
+                                        />
+                                        <span className="text-sm text-neutral-800 dark:text-neutral-200">{cat.name}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

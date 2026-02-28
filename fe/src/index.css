@@ -6,6 +6,12 @@
   --bg-grid: #374151;
 }
 
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
 body {
   @apply bg-frontier-black text-gray-200 antialiased font-sans;
 }

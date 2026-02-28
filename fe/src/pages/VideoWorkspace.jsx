@@ -10,10 +10,11 @@ const VideoWorkspace = () => {
   const { courseId, lessonId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const isReviewMode = location.state?.isReviewMode || false;
+  const isReviewMode = location.state?.reviewMode || false;
 
   const [lesson, setLesson] = useState(null);
   const [course, setCourse] = useState(null);
+  const [curriculum, setCurriculum] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,12 +22,14 @@ const VideoWorkspace = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [lessonData, courseData] = await Promise.all([
+        const [lessonData, courseData, curriculumData] = await Promise.all([
           courseService.getLesson(lessonId),
-          courseService.getCourse(courseId)
+          courseService.getCourse(courseId),
+          courseService.getCourseCurriculum(courseId)
         ]);
         setLesson(lessonData);
         setCourse(courseData);
+        setCurriculum(curriculumData);
       } catch (error) {
         console.error('Error loading data:', error);
         setError('Failed to load lesson');
@@ -68,6 +71,23 @@ const VideoWorkspace = () => {
   const youtubeEmbedUrl = lesson.videoUrl?.includes('youtube.com') || lesson.videoUrl?.includes('youtu.be')
     ? lesson.videoUrl.replace('watch?v=', 'embed/')
     : lesson.videoUrl;
+
+  const getLessonRoute = (lessonItem) => {
+    const type = lessonItem.type?.toLowerCase();
+    const baseRoute = isReviewMode ? `/admin/review/${courseId}` : `/my-courses/${courseId}`;
+    if (type === 'quiz') return `${baseRoute}/quiz/${lessonItem.id}`;
+    if (type === 'code') return `${baseRoute}/code/${lessonItem.id}`;
+    return `${baseRoute}/lesson/${lessonItem.id}`;
+  };
+
+  let prevLesson = null;
+  let nextLesson = null;
+  if (curriculum?.sections) {
+    const flattenedLessons = curriculum.sections.flatMap(section => section.lessons || []);
+    const currentIndex = flattenedLessons.findIndex(l => l.id === Number(lessonId));
+    if (currentIndex > 0) prevLesson = flattenedLessons[currentIndex - 1];
+    if (currentIndex !== -1 && currentIndex < flattenedLessons.length - 1) nextLesson = flattenedLessons[currentIndex + 1];
+  }
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-hidden selection:bg-primary selection:text-white h-screen flex flex-col">
@@ -146,18 +166,18 @@ const VideoWorkspace = () => {
                   state={{ reviewMode: true }}
                   className="hover:text-neutral-900 dark:hover:text-white transition-colors"
                 >
-                  Review Course
+                  {course?.title || 'Review Course'}
                 </Link>
                 <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <span className="text-neutral-900 dark:text-white font-semibold">{lesson.title}</span>
+                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Video'}</span>
               </>
             ) : (
               <>
                 <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
                 <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">Course</Link>
+                <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Course'}</Link>
                 <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <span className="text-neutral-900 dark:text-white font-semibold">{lesson.title}</span>
+                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Video'}</span>
               </>
             )}
           </div>
@@ -203,29 +223,33 @@ const VideoWorkspace = () => {
 
           {/* Bottom Navigation */}
           <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg border-t border-neutral-200 dark:border-neutral-800 p-4 md:px-8 flex items-center justify-between z-20 h-20">
-            <Link to={`/my-courses/${courseId}/lesson/1`} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
-              <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-lg">arrow_back</span>
-              </div>
-              <div className="hidden sm:block">
-                <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous Lesson</span>
-                <span className="block text-xs font-medium truncate max-w-[150px]">Intro to DP Concepts</span>
-              </div>
-            </Link>
+            {prevLesson ? (
+              <Link to={getLessonRoute(prevLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
+                <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
+                  <span className="material-symbols-outlined text-lg">arrow_back</span>
+                </div>
+                <div className="hidden sm:block">
+                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous Lesson</span>
+                  <span className="block text-xs font-medium truncate max-w-[150px]">{prevLesson.title}</span>
+                </div>
+              </Link>
+            ) : <div className="flex-1" />}
             <div className="flex items-center gap-2">
               <button className="hidden lg:hidden sm:flex items-center gap-2 px-4 py-2 text-xs font-sans uppercase tracking-widest text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded">
                 <span className="material-symbols-outlined text-lg">list</span> View Syllabus
               </button>
             </div>
-            <Link to={`/my-courses/${courseId}/quiz/3`} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
-              <div className="hidden sm:block">
-                <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next Lesson</span>
-                <span className="block text-xs font-medium truncate max-w-[150px]">Space Complexity Quiz</span>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </div>
-            </Link>
+            {nextLesson ? (
+              <Link to={getLessonRoute(nextLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
+                <div className="hidden sm:block">
+                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next Lesson</span>
+                  <span className="block text-xs font-medium truncate max-w-[150px]">{nextLesson.title}</span>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                </div>
+              </Link>
+            ) : <div className="flex-1" />}
           </div>
         </main>
       </div>

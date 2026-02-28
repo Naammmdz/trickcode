@@ -22,11 +22,14 @@ import TransactionHistory from './pages/TransactionHistory'
 import ProCheckout from './pages/ProCheckout'
 import AdminDashboard from './pages/AdminDashboard'
 import InstructorDashboard from './pages/InstructorDashboard'
+import AdminCourseReview from './pages/AdminCourseReview'
 import NotFound from './pages/NotFound'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-center" />
       <Router>
         <Routes>
           <Route path="/" element={<MarketplaceHome />} />
@@ -40,6 +43,7 @@ function App() {
           <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/review-course/:courseId" element={<ActiveCourse />} />
           <Route path="/admin/review/:courseId" element={<ActiveCourse />} />
+          <Route path="/admin/review-detail/:courseId" element={<AdminCourseReview />} />
           <Route path="/my-courses/:courseId" element={<ActiveCourse />} />
           <Route path="/my-courses/:courseId/lesson/:lessonId" element={<VideoWorkspace />} />
           <Route path="/my-courses/:courseId/quiz/:quizId" element={<QuizWorkspace />} />

@@ -12,22 +12,25 @@ const QuizWorkspace = () => {
   const location = useLocation();
   const [lesson, setLesson] = useState(null);
   const [course, setCourse] = useState(null);
+  const [curriculum, setCurriculum] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [quizData, setQuizData] = useState(null);
-  const isReviewMode = location.state?.isReviewMode || false;
+  const isReviewMode = location.state?.reviewMode || false;
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [lessonData, courseData] = await Promise.all([
+        const [lessonData, courseData, curriculumData] = await Promise.all([
           courseService.getLesson(quizId),
-          courseService.getCourse(courseId)
+          courseService.getCourse(courseId),
+          courseService.getCourseCurriculum(courseId)
         ]);
         setLesson(lessonData);
         setCourse(courseData);
+        setCurriculum(curriculumData);
 
         // Parse quiz config if available
         if (lessonData.quizConfig) {
@@ -93,10 +96,65 @@ const QuizWorkspace = () => {
     setSelectedAnswers({});
   };
 
+  const getLessonRoute = (lessonItem) => {
+    const type = lessonItem.type?.toLowerCase();
+    const baseRoute = isReviewMode ? `/admin/review/${courseId}` : `/my-courses/${courseId}`;
+    if (type === 'quiz') return `${baseRoute}/quiz/${lessonItem.id}`;
+    if (type === 'code') return `${baseRoute}/code/${lessonItem.id}`;
+    return `${baseRoute}/lesson/${lessonItem.id}`;
+  };
+
+  let prevLesson = null;
+  let nextLesson = null;
+  if (curriculum?.sections) {
+    const flattenedLessons = curriculum.sections.flatMap(section => section.lessons || []);
+    const currentIndex = flattenedLessons.findIndex(l => l.id === Number(quizId));
+    if (currentIndex > 0) prevLesson = flattenedLessons[currentIndex - 1];
+    if (currentIndex !== -1 && currentIndex < flattenedLessons.length - 1) nextLesson = flattenedLessons[currentIndex + 1];
+  }
+
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-hidden selection:bg-primary selection:text-white h-screen flex flex-col">
+      {/* Admin Review Banner */}
+      {isReviewMode && course && (
+        <div className="fixed top-0 left-0 right-0 h-16 bg-neutral-900 text-white z-[60] flex items-center justify-between px-6 shadow-xl">
+          <div className="flex items-center gap-3">
+            <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded">ADMIN REVIEW MODE</span>
+            <span className="text-sm text-neutral-300">You have full access to this course content.</span>
+            {course.status && (
+              <span className="text-xs text-neutral-400 ml-2">
+                Status: <span className="text-white font-bold">{course.status}</span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Only show approve/reject if status is PENDING or REJECTED */}
+            {course.status && (course.status === 'PENDING' || course.status === 'REJECTED') && (
+              <>
+                <button className="px-4 py-2 border border-red-500/50 text-red-500 hover:bg-red-500/10 rounded text-xs font-bold uppercase tracking-widest transition-colors">
+                  Reject Course
+                </button>
+                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-green-900/20">
+                  Approve & Publish
+                </button>
+              </>
+            )}
+            {/* Show status info if already published */}
+            {course.status === 'PUBLISHED' && (
+              <span className="text-sm text-green-400 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">check_circle</span>
+                Course is already published
+              </span>
+            )}
+            <button onClick={() => navigate('/admin')} className="ml-4 text-neutral-500 hover:text-white">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Navbar */}
-      <nav className="w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 h-16 shrink-0">
+      <nav className={`w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 h-16 shrink-0 ${isReviewMode ? 'mt-16' : ''}`}>
         <div className="w-full px-6 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="relative w-8 h-8 flex items-center justify-center">
@@ -123,11 +181,23 @@ const QuizWorkspace = () => {
         <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-black relative">
           {/* Breadcrumb */}
           <div className="h-12 border-b border-neutral-100 dark:border-neutral-800 flex items-center px-6 gap-2 text-[10px] font-sans uppercase tracking-widest text-neutral-500 overflow-x-auto whitespace-nowrap bg-white dark:bg-neutral-950">
-            <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
-            <span className="text-neutral-300 dark:text-neutral-700">/</span>
-            <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">Dynamic Programming Patterns</Link>
-            <span className="text-neutral-300 dark:text-neutral-700">/</span>
-            <span className="text-neutral-900 dark:text-white font-semibold">Space Complexity Quiz</span>
+            {isReviewMode ? (
+              <>
+                <Link to="/admin" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Admin Dashboard</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <Link to={`/admin/review/${courseId}`} state={{ reviewMode: true }} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Review Course'}</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
+              </>
+            ) : (
+              <>
+                <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Course'}</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
+              </>
+            )}
           </div>
 
           {/* Quiz Content */}
@@ -171,8 +241,8 @@ const QuizWorkspace = () => {
                                   key={oIdx}
                                   onClick={() => handleAnswerSelect(question.id, oIdx)}
                                   className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${selectedAnswers[question.id] === oIdx
-                                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                      : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
+                                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                                    : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
                                     }`}
                                 >
                                   <input
@@ -183,8 +253,8 @@ const QuizWorkspace = () => {
                                     className="mt-1"
                                   />
                                   <span className={`text-sm ${selectedAnswers[question.id] === oIdx
-                                      ? 'text-neutral-900 dark:text-white font-medium'
-                                      : 'text-neutral-600 dark:text-neutral-400'
+                                    ? 'text-neutral-900 dark:text-white font-medium'
+                                    : 'text-neutral-600 dark:text-neutral-400'
                                     }`}>{option}</span>
                                 </label>
                               ))}
@@ -218,29 +288,33 @@ const QuizWorkspace = () => {
 
           {/* Bottom Navigation */}
           <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg border-t border-neutral-200 dark:border-neutral-800 p-4 md:px-8 flex items-center justify-between z-20 h-20">
-            <Link to={`/my-courses/${courseId}/lesson/2`} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
-              <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-lg">arrow_back</span>
-              </div>
-              <div className="hidden sm:block">
-                <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous Lesson</span>
-                <span className="block text-xs font-medium truncate max-w-[150px]">Fibonacci: Top-Down vs Bottom-Up</span>
-              </div>
-            </Link>
+            {prevLesson ? (
+              <Link to={getLessonRoute(prevLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
+                <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
+                  <span className="material-symbols-outlined text-lg">arrow_back</span>
+                </div>
+                <div className="hidden sm:block">
+                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous Lesson</span>
+                  <span className="block text-xs font-medium truncate max-w-[150px]">{prevLesson.title}</span>
+                </div>
+              </Link>
+            ) : <div className="flex-1" />}
             <div className="flex items-center gap-2">
               <button className="hidden lg:hidden sm:flex items-center gap-2 px-4 py-2 text-xs font-sans uppercase tracking-widest text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded">
                 <span className="material-symbols-outlined text-lg">list</span> View Syllabus
               </button>
             </div>
-            <Link to={`/my-courses/${courseId}/code/4`} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
-              <div className="hidden sm:block">
-                <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next Lesson</span>
-                <span className="block text-xs font-medium truncate max-w-[150px]">Climbing Stairs</span>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </div>
-            </Link>
+            {nextLesson ? (
+              <Link to={getLessonRoute(nextLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
+                <div className="hidden sm:block">
+                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next Lesson</span>
+                  <span className="block text-xs font-medium truncate max-w-[150px]">{nextLesson.title}</span>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                </div>
+              </Link>
+            ) : <div className="flex-1" />}
           </div>
         </main>
       </div>

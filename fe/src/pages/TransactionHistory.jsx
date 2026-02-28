@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import logo from '/logo.png';
-import UserAvatar from '../components/layout/UserAvatar';
-import ThemeToggler from '../components/ui/ThemeToggler';
+import Navbar from '../components/layout/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 
 const TransactionHistory = () => {
@@ -63,31 +62,12 @@ const TransactionHistory = () => {
   const activeLicenses = transactions.length;
 
   const handleDownloadInvoice = (orderId) => {
-    // TODO: Implement invoice download
     console.log('Downloading invoice for:', orderId);
   };
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white flex flex-col min-h-screen">
-      {/* Navbar */}
-      <nav className="fixed w-full z-50 top-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="relative w-8 h-8 flex items-center justify-center">
-              <img
-                alt="TrickCode Logo"
-                className="w-full h-full object-contain rounded"
-                src={logo}
-              />
-            </div>
-            <span className="font-serif font-bold text-xl tracking-tight">Trickcode</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <UserAvatar />
-            <ThemeToggler />
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="flex-grow pt-32 pb-24 px-6 relative z-10">
         <div className="max-w-7xl mx-auto">

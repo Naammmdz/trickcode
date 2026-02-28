@@ -42,7 +42,7 @@ Khi demo với data thật, navigation sẽ nhảy sai bài hoặc 404.
 
 ---
 
-### #3 Code Execution là mock
+### #3 Code Execution là mock ✅ (Đã tích hợp Judge0 API)
 
 **File:** `fe/src/pages/CodeWorkspace.jsx`
 
@@ -54,30 +54,26 @@ Khi demo với data thật, navigation sẽ nhảy sai bài hoặc 404.
 
 ---
 
-### #4 Profile "Save Changes" không gọi API
+### #4 Profile "Save Changes" không gọi API ✅ (Đã tích hợp Backend + React Hot Toast)
 
-**File:** `fe/src/pages/Profile.jsx`
+**File:** `fe/src/pages/Profile.jsx`, `fe/src/services/authService.js`
 
-**Vấn đề:** `handleSaveProfile` và `handleChangePassword` chỉ `console.log`, không persist.
-
-**Cần làm:**
+**Đã sửa:**
 - `handleSaveProfile` → gọi `PUT /api/account` với `{ firstName, lastName, email, langKey }`
 - `handleChangePassword` → gọi `POST /api/account/change-password` với `{ currentPassword, newPassword }`
-- Hiển thị toast thành công / lỗi
+- Cài đặt `react-hot-toast`, hiển thị toast thành công / lỗi
+- Đổi trường `Display Name` thành `First Name` và `Last Name` cho đồng bộ với JHipster `AdminUserDTO`.
 
 ---
 
-### #5 Breadcrumb & tiêu đề bài học bị hardcode
+### #5 Breadcrumb & tiêu đề bài học bị hardcode ✅ (Đã sửa)
 
-**File:** `fe/src/pages/VideoWorkspace.jsx`, `QuizWorkspace.jsx`
+**File:** `fe/src/pages/VideoWorkspace.jsx`, `QuizWorkspace.jsx`, `CodeWorkspace.jsx`
 
-**Vấn đề:**
-- `VideoWorkspace` hiển thị "Course" thay vì tên thực của khóa học
-- `QuizWorkspace` hardcode tên "Dynamic Programming Patterns" trong breadcrumb
-
-**Cần làm:**
-- Lấy `courseId` từ lesson → fetch course title từ API
-- Render breadcrumb: `Marketplace > {courseName} > {lessonName}`
+**Đã sửa:**
+- Sử dụng `{course?.title || 'Course'}` và `{lesson?.title}` thay vì chuỗi cứng.
+- Xử lý mượt ở cả Admin Review Mode và My Courses.
+- Breadcrumb tự cập nhật thông minh theo data của backend.
 
 ---
 

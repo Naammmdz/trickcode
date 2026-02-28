@@ -29,8 +29,8 @@ const CourseSyllabus = ({ courseId }) => {
   }, [courseId]);
 
   const toggleSection = (sectionId) => {
-    setExpandedSections(prev => 
-      prev.includes(sectionId) 
+    setExpandedSections(prev =>
+      prev.includes(sectionId)
         ? prev.filter(id => id !== sectionId)
         : [...prev, sectionId]
     );
@@ -55,7 +55,7 @@ const CourseSyllabus = ({ courseId }) => {
   const getLessonRoute = (lesson) => {
     const type = lesson.type?.toLowerCase();
     const baseRoute = isReviewMode ? `/admin/review/${courseId}` : `/my-courses/${courseId}`;
-    
+
     if (type === 'quiz') {
       return `${baseRoute}/quiz/${lesson.id}`;
     } else if (type === 'code') {
@@ -91,7 +91,7 @@ const CourseSyllabus = ({ courseId }) => {
   }
 
   // Calculate progress
-  const totalLessons = curriculum.sections?.reduce((acc, section) => 
+  const totalLessons = curriculum.sections?.reduce((acc, section) =>
     acc + (section.lessons?.length || 0), 0) || 0;
 
   return (
@@ -107,25 +107,24 @@ const CourseSyllabus = ({ courseId }) => {
         {curriculum.sections?.map((section) => {
           const isExpanded = expandedSections.includes(section.id);
           return (
-            <details 
-              key={section.id} 
+            <details
+              key={section.id}
               className="border-b border-neutral-200 dark:border-neutral-800 group"
               open={isExpanded}
             >
-              <summary 
+              <summary
                 className="w-full px-5 py-3 flex items-center justify-between bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer select-none sticky top-0 z-10"
                 onClick={(e) => {
                   e.preventDefault();
                   toggleSection(section.id);
                 }}
               >
-                <span className={`text-xs font-sans uppercase tracking-widest ${
-                  isExpanded ? 'text-neutral-900 dark:text-white' : 'text-neutral-500'
-                }`}>
+                <span className={`text-xs font-sans uppercase tracking-widest ${isExpanded ? 'text-neutral-900 dark:text-white' : 'text-neutral-500'
+                  }`}>
                   {String(section.orderIndex || 0).padStart(2, '0')}. {section.title}
                 </span>
-                <span 
-                  className="material-symbols-outlined text-neutral-400 text-sm transition-transform" 
+                <span
+                  className="material-symbols-outlined text-neutral-400 text-sm transition-transform"
                   style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                 >
                   expand_more
@@ -135,15 +134,13 @@ const CourseSyllabus = ({ courseId }) => {
                 {section.lessons?.map((lesson) => {
                   const isActive = isLessonActive(lesson);
                   const lessonRoute = getLessonRoute(lesson);
-                  
                   return (
                     <Link
                       key={lesson.id}
                       to={lessonRoute}
-                      state={isReviewMode ? { isReviewMode: true } : undefined}
-                      className={`flex items-start gap-3 px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border-l-2 ${
-                        isActive ? 'border-orange-500 bg-white dark:bg-neutral-900' : 'border-transparent'
-                      }`}
+                      state={isReviewMode ? { reviewMode: true } : undefined}
+                      className={`flex items-start gap-3 px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors border-l-2 ${isActive ? 'border-orange-500 bg-white dark:bg-neutral-900' : 'border-transparent'
+                        }`}
                     >
                       {isActive ? (
                         <div className="relative flex items-center justify-center w-3.5 h-3.5 mt-0.5 shrink-0">
@@ -151,27 +148,24 @@ const CourseSyllabus = ({ courseId }) => {
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                         </div>
                       ) : (
-                        <span 
+                        <span
                           className="material-symbols-outlined text-neutral-400 text-sm mt-0.5"
                         >
                           {getLessonIcon(lesson.type)}
                         </span>
                       )}
                       <div className="flex-1">
-                        <p className={`text-sm font-medium leading-snug ${
-                          isActive ? 'text-neutral-900 dark:text-white' : 'text-neutral-600 dark:text-neutral-400'
-                        }`}>
+                        <p className={`text-sm font-medium leading-snug ${isActive ? 'text-neutral-900 dark:text-white' : 'text-neutral-600 dark:text-neutral-400'
+                          }`}>
                           {lesson.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`material-symbols-outlined text-[10px] ${
-                            isActive ? "text-orange-500" : "text-neutral-400"
-                          }`}>
+                          <span className={`material-symbols-outlined text-[10px] ${isActive ? "text-orange-500" : "text-neutral-400"
+                            }`}>
                             {getLessonIcon(lesson.type)}
                           </span>
-                          <span className={`text-[10px] font-sans uppercase tracking-widest ${
-                            isActive ? "text-orange-500" : "text-neutral-400"
-                          }`}>
+                          <span className={`text-[10px] font-sans uppercase tracking-widest ${isActive ? "text-orange-500" : "text-neutral-400"
+                            }`}>
                             {lesson.type}
                             {lesson.durationSeconds && ` · ${formatDuration(lesson.durationSeconds)}`}
                           </span>

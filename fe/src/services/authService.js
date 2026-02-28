@@ -8,7 +8,7 @@ const normalizeProfile = (profile) => {
   // Build name from firstName and lastName
   let name = profile?.login;
   if (profile?.firstName) {
-    name = profile.lastName && profile.lastName.trim() 
+    name = profile.lastName && profile.lastName.trim()
       ? `${profile.firstName} ${profile.lastName}`.trim()
       : profile.firstName.trim();
   }
@@ -116,6 +116,36 @@ export const authService = {
       const user = normalizeProfile(response.data);
       localStorage.setItem('user', JSON.stringify(user));
       return { user };
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update profile
+  async updateProfile(userData) {
+    try {
+      const payload = {
+        login: userData.email,
+        email: userData.email,
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        langKey: userData.langKey || 'en',
+      };
+      await apiClient.post(API_ENDPOINTS.AUTH.PROFILE, payload);
+      return this.getProfile(); // Fetch updated profile to keep local state synced
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Change password
+  async changePassword(currentPassword, newPassword) {
+    try {
+      await apiClient.post(`${API_ENDPOINTS.AUTH.PROFILE}/change-password`, {
+        currentPassword,
+        newPassword
+      });
+      return { message: 'Password changed successfully' };
     } catch (error) {
       throw error;
     }

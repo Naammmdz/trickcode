@@ -1,7 +1,6 @@
 import { Link, useParams, useLocation, useNavigate } from 'react-router-dom';
 import logo from '/logo.png';
-import UserAvatar from '../components/layout/UserAvatar';
-import ThemeToggler from '../components/ui/ThemeToggler';
+import Navbar from '../components/layout/Navbar';
 import CourseCurriculum from '../components/course/CourseCurriculum';
 import { useState, useEffect } from 'react';
 import { courseService } from '../services/courseService';
@@ -24,15 +23,15 @@ const ActiveCourse = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!courseId) return;
-      
+
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch course data
         const courseData = await courseService.getCourse(courseId);
         setCourse(courseData);
-        
+
         // Check access if user is logged in
         if (user) {
           const accessData = await courseService.checkCourseAccess(courseId);
@@ -45,7 +44,7 @@ const ActiveCourse = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [courseId, user]);
 
@@ -115,7 +114,6 @@ const ActiveCourse = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {/* Only show approve/reject if status is PENDING or REJECTED */}
             {course?.status && (course.status === 'PENDING' || course.status === 'REJECTED') && (
               <>
                 {showRejectInput ? (
@@ -142,7 +140,6 @@ const ActiveCourse = () => {
                 )}
               </>
             )}
-            {/* Show status info if already published */}
             {course?.status === 'PUBLISHED' && (
               <span className="text-sm text-green-400 flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">check_circle</span>
@@ -156,25 +153,10 @@ const ActiveCourse = () => {
         </div>
       )}
 
-      {/* Navbar - Adjusted top padding if review mode */}
-      <nav className={`fixed w-full z-50 ${isReviewMode ? 'top-16' : 'top-0'} bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 transition-all`}>
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="relative w-8 h-8 flex items-center justify-center">
-              <img
-                alt="TrickCode Logo"
-                className="w-full h-full object-contain rounded"
-                src={logo}
-              />
-            </div>
-            <span className="font-serif font-bold text-xl tracking-tight">Trickcode</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <UserAvatar />
-            <ThemeToggler />
-          </div>
-        </div>
-      </nav>
+      {/* Navbar - offset when review banner is shown */}
+      <div className={isReviewMode ? 'pt-16' : ''}>
+        <Navbar />
+      </div>
 
       <main className={`relative z-10 ${isReviewMode ? 'pt-40' : 'pt-24'} pb-12`}>
         <div className="max-w-7xl mx-auto px-6 mb-8">
@@ -213,12 +195,12 @@ const ActiveCourse = () => {
                     {course.description}
                   </p>
                 )}
-                
+
                 {/* Video Preview - Only show if course has preview video */}
                 {course.videoPreviewUrl && (
                   <div className="relative w-full aspect-video bg-neutral-900 rounded-lg overflow-hidden group cursor-pointer shadow-2xl border border-neutral-200 dark:border-neutral-800 mb-8">
-                    <div className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:opacity-40 transition-opacity duration-500" 
-                         style={{ backgroundImage: course.thumbnailUrl ? `url('${course.thumbnailUrl}')` : 'none' }}></div>
+                    <div className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:opacity-40 transition-opacity duration-500"
+                      style={{ backgroundImage: course.thumbnailUrl ? `url('${course.thumbnailUrl}')` : 'none' }}></div>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         <span className="material-symbols-outlined text-white text-4xl md:text-5xl ml-1">play_arrow</span>
@@ -247,9 +229,9 @@ const ActiveCourse = () => {
                   <div className="flex flex-col md:flex-row gap-8 items-start">
                     <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden border border-neutral-300 dark:border-neutral-700 flex items-center justify-center">
                       {course.instructor.imageUrl ? (
-                        <img alt={`${course.instructor.firstName} ${course.instructor.lastName}`} 
-                             className="w-full h-full object-cover" 
-                             src={course.instructor.imageUrl} />
+                        <img alt={`${course.instructor.firstName} ${course.instructor.lastName}`}
+                          className="w-full h-full object-cover"
+                          src={course.instructor.imageUrl} />
                       ) : (
                         <span className="text-4xl text-neutral-400">
                           {course.instructor.firstName?.[0]}{course.instructor.lastName?.[0]}

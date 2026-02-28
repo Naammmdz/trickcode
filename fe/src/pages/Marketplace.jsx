@@ -1,46 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { courseService } from '../services/courseService';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import logo from '/logo.png';
-import UserAvatar from '../components/layout/UserAvatar';
-import ThemeToggler from '../components/ui/ThemeToggler';
+import Navbar from '../components/layout/Navbar';
 
 const Marketplace = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef(null);
+  const [categories, setCategories] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+  // Fetch categories once
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await courseService.getCategories();
+        const cats = data?.content || data || [];
+        setCategories(Array.isArray(cats) ? cats.filter(c => c.isActive !== false) : []);
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        // Use public API endpoint for marketplace
-        const data = await courseService.getPublicCourses({ 
-          page, 
-          size: 9, 
-          q: searchQuery, 
+        const params = {
+          page,
+          size: 9,
+          q: searchQuery,
           sort: 'id,desc'
-        });
+        };
+        if (selectedCategory) {
+          params.categoryId = selectedCategory;
+        }
+        const data = await courseService.getPublicCourses(params);
         setTotalPages(data.totalPages);
         setTotalElements(data.totalElements);
-
-        // Map backend entities to UI model
-        const mapped = (data.content || []).map(c => ({
-          id: c.id,
-          title: c.title,
-          difficulty: c.level || 'Beginner',
-          rating: 5.0, // Placeholder
-          reviews: 0,  // Placeholder
-          students: 0, // Placeholder
-          instructor: c.instructor ? (c.instructor.firstName ? `${c.instructor.firstName} ${c.instructor.lastName}` : c.instructor.login) : 'Unknown',
-          price: c.price ? `$${c.price}` : 'Free',
-          thumbnailUrl: c.thumbnailUrl,
-          symbol: c.title ? c.title.substring(0, 2).toUpperCase() : '??'
-        }));
-        setCourses(mapped);
+        setCourses(data.content || []);
       } catch (err) {
         console.error("Marketplace: Failed to fetch courses", err);
       } finally {
@@ -50,9 +57,43 @@ const Marketplace = () => {
 
     const timer = setTimeout(() => {
       fetchCourses();
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, page]);
+  }, [searchQuery, page, selectedCategory]);
+
+  // Sync state when URL params change (e.g., from Navbar clicks)
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get('category') || '';
+    if (categoryFromUrl !== selectedCategory) {
+      setSelectedCategory(categoryFromUrl);
+      setPage(0);
+    }
+  }, [searchParams]);
+
+  const handleCategorySelect = (catId) => {
+    const newCat = selectedCategory === String(catId) ? '' : String(catId);
+    setSelectedCategory(newCat);
+    setPage(0);
+    // Update URL params
+    const params = new URLSearchParams(searchParams);
+    if (newCat) {
+      params.set('category', newCat);
+    } else {
+      params.delete('category');
+    }
+    setSearchParams(params, { replace: true });
+    setIsCategoryDropdownOpen(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
@@ -63,29 +104,7 @@ const Marketplace = () => {
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
-      {/* Navbar */}
-      <nav className="fixed w-full z-50 top-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="relative w-11 h-11 flex items-center justify-center">
-              <img
-                alt="TrickCode Logo"
-                className="w-full h-full object-contain rounded"
-                src={logo}
-              />
-            </div>
-            <span className="font-serif font-bold text-xl tracking-tight">Trickcode</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8 text-xs font-sans tracking-widest uppercase text-neutral-500 dark:text-neutral-400">
-            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-            <Link to="/marketplace" className="hover:text-primary transition-colors">Marketplace</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <UserAvatar />
-            <ThemeToggler />
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <main className="relative z-10 pt-24 pb-12">
         <div className="max-w-7xl mx-auto px-6 mb-8">
@@ -132,44 +151,57 @@ const Marketplace = () => {
         </div>
 
         {/* Filter Bar */}
-        <div className="sticky top-16 z-40 bg-white/95 dark:bg-[#0a0a0a]/95 backdrop-blur border-y border-neutral-200 dark:border-neutral-800 px-6 py-3 mb-12 shadow-sm">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-            <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 no-scrollbar">
-              <button className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 text-xs font-sans uppercase tracking-widest rounded-full transition-colors group">
-                Category
-                <span className="material-symbols-outlined text-sm text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white">expand_more</span>
-              </button>
-              <button className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 text-xs font-sans uppercase tracking-widest rounded-full transition-colors group">
-                Difficulty
-                <span className="material-symbols-outlined text-sm text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white">expand_more</span>
-              </button>
-              <button className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 text-xs font-sans uppercase tracking-widest rounded-full transition-colors group">
-                Price
-                <span className="material-symbols-outlined text-sm text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white">expand_more</span>
-              </button>
-              <button className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 text-xs font-sans uppercase tracking-widest rounded-full transition-colors group">
-                Rating
-                <span className="material-symbols-outlined text-sm text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-white">expand_more</span>
-              </button>
-              <div className="h-6 w-px bg-neutral-200 dark:bg-neutral-800 mx-2"></div>
-              <button className="whitespace-nowrap text-xs font-sans uppercase tracking-widest text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors">
-                Reset All
-              </button>
+        <div className="sticky top-[80px] z-40 max-w-7xl mx-auto px-6 mb-8 pt-4">
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 p-3 rounded-xl shadow-sm">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="relative" ref={categoryDropdownRef}>
+                <button
+                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  className={`flex items-center gap-2 px-4 py-2 border text-xs font-sans uppercase tracking-widest rounded transition-colors ${selectedCategory
+                    ? 'bg-orange-50 border-orange-200 text-orange-600 dark:bg-orange-900/20 dark:border-orange-800/50 dark:text-orange-400'
+                    : 'bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {selectedCategory ? 'filter_alt' : 'category'}
+                  </span>
+                  <span>
+                    {selectedCategory
+                      ? categories.find(c => String(c.id) === selectedCategory)?.name || 'Category'
+                      : 'All Categories'}
+                  </span>
+                  <span className={`material-symbols-outlined text-[16px] transition-transform ${isCategoryDropdownOpen ? 'rotate-180' : ''}`}>
+                    expand_more
+                  </span>
+                </button>
+
+                {isCategoryDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xl rounded z-50 py-1 font-sans">
+                    <button
+                      onClick={() => handleCategorySelect('')}
+                      className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors ${!selectedCategory ? 'text-orange-500 font-medium' : 'text-neutral-700 dark:text-neutral-300'
+                        }`}
+                    >
+                      All Categories
+                      {!selectedCategory && <span className="material-symbols-outlined text-[16px]">check</span>}
+                    </button>
+                    {categories.map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => handleCategorySelect(cat.id)}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors ${selectedCategory === String(cat.id) ? 'text-orange-500 font-medium' : 'text-neutral-700 dark:text-neutral-300'
+                          }`}
+                      >
+                        {cat.name}
+                        {selectedCategory === String(cat.id) && <span className="material-symbols-outlined text-[16px]">check</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-              <span className="text-xs font-sans text-neutral-500 uppercase tracking-widest hidden sm:inline">Sort By:</span>
-              <div className="relative group">
-                <button className="flex items-center gap-2 text-xs font-sans uppercase tracking-widest text-neutral-900 dark:text-white hover:text-primary transition-colors">
-                  Highest Rated
-                  <span className="material-symbols-outlined text-sm">sort</span>
-                </button>
-                <div className="hidden group-hover:block absolute top-full right-0 mt-2 w-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xl py-1 z-50 rounded">
-                  <a className="block px-4 py-2 text-xs font-sans hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded" href="#">Newest</a>
-                  <a className="block px-4 py-2 text-xs font-sans bg-neutral-50 dark:bg-neutral-800 text-primary rounded" href="#">Highest Rated</a>
-                  <a className="block px-4 py-2 text-xs font-sans hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded" href="#">Price: Low to High</a>
-                  <a className="block px-4 py-2 text-xs font-sans hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded" href="#">Price: High to Low</a>
-                </div>
-              </div>
+              <span className="text-xs font-sans text-neutral-500 uppercase tracking-widest hidden sm:inline">{totalElements} courses</span>
             </div>
           </div>
         </div>
@@ -177,50 +209,109 @@ const Marketplace = () => {
         {/* Course Grid */}
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
-              <Link
-                key={course.id}
-                to={`/learn/${course.id}`}
-                className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full cursor-pointer rounded"
-              >
-                <div className="h-40 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                  {course.thumbnailUrl ? (
-                    <img 
-                      src={course.thumbnailUrl} 
-                      alt={course.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                      <span className="font-serif text-5xl text-neutral-200 dark:text-neutral-700 italic group-hover:scale-110 transition-transform duration-500">{course.symbol}</span>
-                    </>
-                  )}
-                </div>
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="inline-block px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-sans uppercase tracking-widest rounded text-neutral-600 dark:text-neutral-400">{course.difficulty}</span>
-                    <div className="flex items-center gap-1 text-yellow-500 text-xs font-sans">
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> {course.rating}
-                      <span className="text-neutral-400 ml-1">({course.reviews})</span>
-                    </div>
-                  </div>
-                  <h4 className="text-lg font-serif mb-1 group-hover:underline decoration-1 underline-offset-4 leading-tight">{course.title}</h4>
-                  <div className="flex items-center gap-1 mb-4">
-                    <span className="text-[10px] font-sans text-neutral-500 dark:text-neutral-500 uppercase tracking-wide">
-                      {course.students >= 10000 ? '10k+ Students' : `${course.students.toLocaleString()} Students`}
-                    </span>
-                  </div>
-                  <div className="mt-auto pt-4 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden border border-white dark:border-neutral-600"></div>
-                      <span className="text-xs font-sans text-neutral-600 dark:text-neutral-400">{course.instructor}</span>
-                    </div>
-                    <span className="font-serif text-lg">{course.price}</span>
+            {loading ? (
+              Array(6).fill(0).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex flex-col h-full rounded-xl overflow-hidden animate-pulse">
+                  <div className="h-40 bg-neutral-200 dark:bg-neutral-800"></div>
+                  <div className="p-5 flex flex-col space-y-3">
+                    <div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4"></div>
+                    <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/2"></div>
+                    <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-full mt-4"></div>
                   </div>
                 </div>
-              </Link>
-            ))}
+              ))
+            ) : courses.length === 0 ? (
+              <div className="col-span-full text-center py-16">
+                <span className="material-symbols-outlined text-5xl text-neutral-300 dark:text-neutral-700 mb-4 block">search_off</span>
+                <p className="text-neutral-500">No courses found{selectedCategory ? ' in this category' : ''}. Try a different search or filter.</p>
+              </div>
+            ) : courses.map((course) => {
+              const instructorName = (() => {
+                if (!course.instructor) return 'Unknown Instructor';
+                if (course.instructor.firstName || course.instructor.lastName) {
+                  return `${course.instructor.firstName || ''} ${course.instructor.lastName || ''}`.trim();
+                }
+                return course.instructor.login || 'Unknown Instructor';
+              })();
+              const difficultyMap = { BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced' };
+              const difficultyLabel = difficultyMap[course.level] || course.level || '';
+              const difficultyColor = course.level === 'BEGINNER' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                : course.level === 'ADVANCED' ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                  : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400';
+              const rating = course.averageRating || 0;
+
+              return (
+                <Link
+                  key={course.id}
+                  to={`/courses/${course.id}`}
+                  className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-xl transition-all flex flex-col h-full rounded-xl overflow-hidden"
+                >
+                  <div className="h-40 bg-neutral-100 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative">
+                    {course.thumbnailUrl ? (
+                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-neutral-800 dark:to-neutral-900 opacity-50"></div>
+                        <span className="font-serif text-5xl text-orange-500/20 dark:text-neutral-700/50 italic group-hover:scale-110 transition-transform duration-500">
+                          {course.title ? course.title.substring(0, 2).toUpperCase() : '??'}
+                        </span>
+                      </>
+                    )}
+                    {difficultyLabel && (
+                      <span className={`absolute top-2 left-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded ${difficultyColor}`}>
+                        {difficultyLabel}
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-4 flex flex-col flex-1">
+                    <h4 className="text-base font-bold text-neutral-900 dark:text-white mb-1 line-clamp-2 leading-tight group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{course.title}</h4>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">{instructorName}</p>
+
+                    <div className="flex items-center gap-2 mb-3 text-sm">
+                      {rating > 0 ? (
+                        <>
+                          <span className="font-bold text-yellow-600 dark:text-yellow-500">{rating.toFixed(1)}</span>
+                          <div className="flex items-center">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <span
+                                key={s}
+                                className={`material-symbols-outlined text-[14px] ${s <= Math.round(rating) ? 'text-yellow-500' : 'text-neutral-300 dark:text-neutral-600'}`}
+                                style={s <= Math.round(rating) ? { fontVariationSettings: "'FILL' 1" } : {}}
+                              >star</span>
+                            ))}
+                          </div>
+                          <span className="text-xs text-neutral-400">({course.reviewCount || 0})</span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-neutral-400">No ratings yet</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 mb-3">
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">group</span>
+                        {course.studentCount || 0} students
+                      </span>
+                      {course.categories && course.categories.length > 0 && (
+                        <span className="flex items-center gap-1 line-clamp-1">
+                          <span className="material-symbols-outlined text-[14px]">label</span>
+                          {course.categories[0].name}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-auto pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                      <span className="font-bold text-lg text-neutral-900 dark:text-white">
+                        {course.price === 0 || !course.price ? 'Free' : `$${course.price}`}
+                      </span>
+                      <span className="text-xs font-medium text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                        View course <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           {/* Pagination */}
@@ -247,8 +338,8 @@ const Marketplace = () => {
                       key={index}
                       onClick={() => handlePageChange(index)}
                       className={`w-8 h-8 flex items-center justify-center text-xs font-sans rounded-sm transition-colors ${page === index
-                          ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
-                          : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                        ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900'
+                        : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                         }`}
                     >
                       {index + 1}

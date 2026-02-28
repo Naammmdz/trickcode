@@ -79,7 +79,7 @@ const CoursesTab = () => {
   };
 
   const handleReviewClick = (course) => {
-    navigate(`/review-course/${course.id}`, { state: { reviewMode: true, courseId: course.id } });
+    navigate(`/admin/review-detail/${course.id}`);
   };
 
   const handleDeleteCourse = async (courseId) => {

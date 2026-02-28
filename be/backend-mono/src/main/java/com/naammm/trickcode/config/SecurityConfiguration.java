@@ -86,6 +86,8 @@ public class SecurityConfiguration {
                     // Public sections and lessons list (for course preview)
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/sections")).permitAll()
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/lessons")).permitAll()
+                    // Public categories (for navbar dropdown and homepage)
+                    .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/categories")).permitAll()
                     // VNPay callbacks (public, but verified by signature)
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/payments/vnpay/return")).permitAll()
                     .requestMatchers(mvc.pattern(HttpMethod.POST, "/api/payments/vnpay/ipn")).permitAll()

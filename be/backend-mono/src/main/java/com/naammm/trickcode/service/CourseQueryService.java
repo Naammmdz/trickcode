@@ -81,7 +81,8 @@ public class CourseQueryService extends QueryService<Course> {
                 buildRangeSpecification(criteria.getUpdatedAt(), Course_.updatedAt),
                 buildRangeSpecification(criteria.getPublishedAt(), Course_.publishedAt),
                 buildSpecification(criteria.getSectionsId(), root -> root.join(Course_.sections, JoinType.LEFT).get(Section_.id)),
-                buildSpecification(criteria.getInstructorId(), root -> root.join(Course_.instructor, JoinType.LEFT).get(User_.id))
+                buildSpecification(criteria.getInstructorId(), root -> root.join(Course_.instructor, JoinType.LEFT).get(User_.id)),
+                buildSpecification(criteria.getCategoriesId(), root -> root.join(Course_.categories, JoinType.LEFT).get(Category_.id))
             );
         }
         return specification;

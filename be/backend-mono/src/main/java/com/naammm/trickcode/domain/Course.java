@@ -75,6 +75,16 @@ public class Course implements Serializable {
     @JsonIgnoreProperties(value = { "lessons", "course" }, allowSetters = true)
     private Set<Section> sections = new HashSet<>();
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "rel_course__categories",
+        joinColumns = @JoinColumn(name = "course_id"),
+        inverseJoinColumns = @JoinColumn(name = "categories_id")
+    )
+    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+    @JsonIgnoreProperties(value = { "courses" }, allowSetters = true)
+    private Set<Category> categories = new HashSet<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     private User instructor;
 
@@ -277,6 +287,29 @@ public class Course implements Serializable {
     public Course removeSections(Section section) {
         this.sections.remove(section);
         section.setCourse(null);
+        return this;
+    }
+
+    public Set<Category> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Set<Category> categories) {
+        this.categories = categories;
+    }
+
+    public Course categories(Set<Category> categories) {
+        this.setCategories(categories);
+        return this;
+    }
+
+    public Course addCategories(Category category) {
+        this.categories.add(category);
+        return this;
+    }
+
+    public Course removeCategories(Category category) {
+        this.categories.remove(category);
         return this;
     }
 

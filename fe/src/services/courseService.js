@@ -44,7 +44,7 @@ export const courseService = {
         }
     },
 
-    getPublicCourses: async ({ page = 0, size = 10, sort = 'id,asc', q = '' }) => {
+    getPublicCourses: async ({ page = 0, size = 10, sort = 'id,asc', q = '', categoryId }) => {
         try {
             const params = {
                 page,
@@ -54,6 +54,9 @@ export const courseService = {
 
             if (q) {
                 params['title.contains'] = q;
+            }
+            if (categoryId) {
+                params['categoriesId.equals'] = categoryId;
             }
 
             const response = await apiClient.get(API_ENDPOINTS.COURSES.PUBLIC, { params });
@@ -378,5 +381,38 @@ export const courseService = {
             console.error(`Failed to fetch curriculum for course ${courseId}:`, error);
             throw error;
         }
+    },
+
+    // ─── Category APIs ────────────────────────────────────────────────────────
+
+    getCategories: async ({ page = 0, size = 100, sort = 'orderIndex,asc' } = {}) => {
+        try {
+            const response = await apiClient.get('/api/categories', {
+                params: { page, size, sort }
+            });
+            const totalElements = parseInt(response.headers['x-total-count'] || '0', 10);
+            return {
+                content: response.data,
+                totalElements,
+                totalPages: Math.ceil(totalElements / size)
+            };
+        } catch (error) {
+            console.error('Failed to fetch categories:', error);
+            return { content: [], totalElements: 0, totalPages: 0 };
+        }
+    },
+
+    createCategory: async (category) => {
+        const response = await apiClient.post('/api/categories', category);
+        return response.data;
+    },
+
+    updateCategory: async (id, category) => {
+        const response = await apiClient.put(`/api/categories/${id}`, { ...category, id });
+        return response.data;
+    },
+
+    deleteCategory: async (id) => {
+        await apiClient.delete(`/api/categories/${id}`);
     }
 };

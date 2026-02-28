@@ -106,7 +106,7 @@ public class UserResource {
      */
     @PostMapping("/users")
     @PreAuthorize("hasAuthority(\"" + AuthoritiesConstants.ADMIN + "\")")
-    public ResponseEntity<User> createUser(@Valid @RequestBody AdminUserDTO userDTO) throws URISyntaxException {
+    public ResponseEntity<User> createUser(@Valid @RequestBody com.naammm.trickcode.web.rest.vm.ManagedUserVM userDTO) throws URISyntaxException {
         LOG.debug("REST request to save User : {}", userDTO);
 
         if (userDTO.getId() != null) {
@@ -117,7 +117,7 @@ public class UserResource {
         } else if (userRepository.findOneByEmailIgnoreCase(userDTO.getEmail()).isPresent()) {
             throw new EmailAlreadyUsedException();
         } else {
-            User newUser = userService.createUser(userDTO);
+            User newUser = userService.createUser(userDTO, userDTO.getPassword());
             mailService.sendCreationEmail(newUser);
             return ResponseEntity.created(new URI("/api/admin/users/" + newUser.getLogin()))
                 .headers(HeaderUtil.createAlert(applicationName, "userManagement.created", newUser.getLogin()))

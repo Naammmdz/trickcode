@@ -1,6 +1,7 @@
 package com.naammm.trickcode.config;
 
 import com.naammm.trickcode.domain.Authority;
+import com.naammm.trickcode.domain.Category;
 import com.naammm.trickcode.domain.Course;
 import com.naammm.trickcode.domain.Lesson;
 import com.naammm.trickcode.domain.Section;
@@ -9,6 +10,7 @@ import com.naammm.trickcode.domain.enumeration.CourseLevel;
 import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import com.naammm.trickcode.domain.enumeration.LessonType;
 import com.naammm.trickcode.repository.AuthorityRepository;
+import com.naammm.trickcode.repository.CategoryRepository;
 import com.naammm.trickcode.repository.CourseRepository;
 import com.naammm.trickcode.repository.UserRepository;
 import com.naammm.trickcode.security.AuthoritiesConstants;
@@ -19,24 +21,29 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
 
     private final CourseRepository courseRepository;
+    private final CategoryRepository categoryRepository;
     private final AuthorityRepository authorityRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataSeeder(
         CourseRepository courseRepository,
+        CategoryRepository categoryRepository,
         AuthorityRepository authorityRepository,
         UserRepository userRepository,
         PasswordEncoder passwordEncoder
     ) {
         this.courseRepository = courseRepository;
+        this.categoryRepository = categoryRepository;
         this.authorityRepository = authorityRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -47,9 +54,10 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) throws Exception {
         seedAuthorities();
         seedUsers();
+        Map<String, Category> catMap = seedCategories();
         // Guard: chỉ seed nếu chưa có course nào
         if (courseRepository.count() == 0) {
-            seedCourses();
+            seedCourses(catMap);
         }
     }
 
@@ -113,9 +121,38 @@ public class DataSeeder implements CommandLineRunner {
         return u;
     }
 
+    // ─── Categories ─────────────────────────────────────────────────────────────
+
+    private Map<String, Category> seedCategories() {
+        Map<String, Category> map = new HashMap<>();
+        map.put("ds", ensureCategory("Data Structures", "Arrays, LinkedList, Stack, Queue, Tree, HashMap", 1));
+        map.put("algo", ensureCategory("Algorithms", "Sorting, Searching, Divide & Conquer", 2));
+        map.put("graph", ensureCategory("Graph Theory", "BFS, DFS, Dijkstra, Union-Find, Topological Sort", 3));
+        map.put("tree", ensureCategory("Trees & Graphs", "Binary Tree, BST, AVL, Red-Black Tree", 4));
+        map.put("sort", ensureCategory("Sorting & Searching", "Binary Search, Merge Sort, Quick Sort", 5));
+        map.put("math", ensureCategory("Math & Geometry", "Number Theory, Combinatorics, Computational Geometry", 6));
+        map.put("dp", ensureCategory("Dynamic Programming", "Memoization, Tabulation, Knapsack, LCS, LIS", 7));
+        map.put("sd", ensureCategory("System Design", "Scalability, Load Balancing, Caching, Database Design", 8));
+        return map;
+    }
+
+    private Category ensureCategory(String name, String description, int orderIndex) {
+        return categoryRepository.findAll().stream()
+            .filter(c -> c.getName().equals(name))
+            .findFirst()
+            .orElseGet(() -> {
+                Category cat = new Category();
+                cat.setName(name);
+                cat.setDescription(description);
+                cat.setOrderIndex(orderIndex);
+                cat.setIsActive(true);
+                return categoryRepository.save(cat);
+            });
+    }
+
     // ─── Courses ────────────────────────────────────────────────────────────────
 
-    private void seedCourses() {
+    private void seedCourses(Map<String, Category> catMap) {
         User instructor = userRepository.findOneByLogin("instructor").orElse(null);
 
         // ── Course 1: Dynamic Programming Patterns (PUBLISHED, ADVANCED) ──────
@@ -186,6 +223,8 @@ public class DataSeeder implements CommandLineRunner {
             )));
         dp.addSections(dp_s2);
 
+        dp.addCategories(catMap.get("dp"));
+        dp.addCategories(catMap.get("algo"));
         courseRepository.save(dp);
 
         // ── Course 2: Data Structures Fundamentals (PUBLISHED, BEGINNER) ──────
@@ -261,6 +300,7 @@ public class DataSeeder implements CommandLineRunner {
             })));
         ds.addSections(ds_s2);
 
+        ds.addCategories(catMap.get("ds"));
         courseRepository.save(ds);
 
         // ── Course 3: Trees & Graphs Masterclass (PUBLISHED, INTERMEDIATE) ───
@@ -335,40 +375,58 @@ public class DataSeeder implements CommandLineRunner {
             })));
         tg.addSections(tg_s2);
 
+        tg.addCategories(catMap.get("tree"));
+        tg.addCategories(catMap.get("graph"));
         courseRepository.save(tg);
 
         // ── Thêm các khóa học khác (ít section hơn) ──────────────────────────
-        courseRepository.save(buildSimpleCourse("Binary Search Deep Dive",
+        Course bs = buildSimpleCourse("Binary Search Deep Dive",
             "Master binary search và các biến thể: tìm kiếm trong rotated array, tìm boundary, search space reduction.",
             new BigDecimal("24.99"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED,
-            "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&q=80", instructor));
+            "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&q=80", instructor);
+        bs.addCategories(catMap.get("sort"));
+        bs.addCategories(catMap.get("algo"));
+        courseRepository.save(bs);
 
-        courseRepository.save(buildSimpleCourse("Greedy Algorithms 101",
+        Course greedy = buildSimpleCourse("Greedy Algorithms 101",
             "Khi nào dùng Greedy? Interval Scheduling, Activity Selection, Huffman Coding, và các bài toán tham lam kinh điển.",
             new BigDecimal("14.50"), CourseLevel.BEGINNER, CourseStatus.PUBLISHED,
-            "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80", instructor));
+            "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80", instructor);
+        greedy.addCategories(catMap.get("algo"));
+        courseRepository.save(greedy);
 
-        courseRepository.save(buildSimpleCourse("Backtracking Visualized",
+        Course bt = buildSimpleCourse("Backtracking Visualized",
             "Giải quyết N-Queens, Sudoku, Permutations, Combinations bằng kỹ thuật backtracking với visualization rõ ràng.",
             new BigDecimal("27.50"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED,
-            "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80", instructor));
+            "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80", instructor);
+        bt.addCategories(catMap.get("algo"));
+        bt.addCategories(catMap.get("dp"));
+        courseRepository.save(bt);
 
         // Pending (chờ admin duyệt)
-        courseRepository.save(buildSimpleCourse("System Design Basics",
+        Course sysdesign = buildSimpleCourse("System Design Basics",
             "Thiết kế hệ thống scalable: Load Balancing, Caching, Database Sharding, Microservices. Chuẩn bị cho vòng System Design interview.",
             new BigDecimal("59.99"), CourseLevel.INTERMEDIATE, CourseStatus.PENDING,
-            "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", instructor));
+            "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", instructor);
+        sysdesign.addCategories(catMap.get("sd"));
+        courseRepository.save(sysdesign);
 
-        courseRepository.save(buildSimpleCourse("Segment Trees Explained",
+        Course seg = buildSimpleCourse("Segment Trees Explained",
             "Cấu trúc dữ liệu nâng cao: Segment Tree, Fenwick Tree, Lazy Propagation cho các bài toán range query.",
             new BigDecimal("45.00"), CourseLevel.ADVANCED, CourseStatus.PENDING,
-            "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80", instructor));
+            "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80", instructor);
+        seg.addCategories(catMap.get("ds"));
+        seg.addCategories(catMap.get("algo"));
+        courseRepository.save(seg);
 
         // Draft
-        courseRepository.save(buildSimpleCourse("Mock Interview Preparation",
+        Course mock = buildSimpleCourse("Mock Interview Preparation",
             "Luyện tập phỏng vấn với các câu hỏi thực tế từ Google, Meta, Amazon. Phân tích time/space complexity chi tiết.",
             new BigDecimal("49.99"), CourseLevel.INTERMEDIATE, CourseStatus.DRAFT,
-            "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80", instructor));
+            "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80", instructor);
+        mock.addCategories(catMap.get("algo"));
+        mock.addCategories(catMap.get("ds"));
+        courseRepository.save(mock);
     }
 
     // ─── Builder helpers ─────────────────────────────────────────────────────────
