@@ -2,7 +2,6 @@ import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import Login from './pages/Login'
 import CourseDetail from './pages/CourseDetail'
-import ActiveCourse from './pages/ActiveCourse'
 import VideoWorkspace from './pages/VideoWorkspace'
 import QuizWorkspace from './pages/QuizWorkspace'
 import QuizResult from './pages/QuizResult'
@@ -41,10 +40,10 @@ function App() {
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/learn/:id" element={<CourseDetail />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
-          <Route path="/review-course/:courseId" element={<ActiveCourse />} />
-          <Route path="/admin/review/:courseId" element={<ActiveCourse />} />
+          <Route path="/review-course/:courseId" element={<CourseDetail />} />
+          <Route path="/admin/review/:courseId" element={<CourseDetail />} />
           <Route path="/admin/review-detail/:courseId" element={<AdminCourseReview />} />
-          <Route path="/my-courses/:courseId" element={<ActiveCourse />} />
+          <Route path="/my-courses/:courseId" element={<CourseDetail />} />
           <Route path="/my-courses/:courseId/lesson/:lessonId" element={<VideoWorkspace />} />
           <Route path="/my-courses/:courseId/quiz/:quizId" element={<QuizWorkspace />} />
           <Route path="/my-courses/:courseId/quiz/:quizId/result" element={<QuizResult />} />

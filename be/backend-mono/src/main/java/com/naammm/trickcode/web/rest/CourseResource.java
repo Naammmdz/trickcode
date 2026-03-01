@@ -295,7 +295,7 @@ public class CourseResource {
         }
         criteria.getStatus().setEquals(CourseStatus.PUBLISHED);
         
-        Page<Course> page = courseQueryService.findByCriteria(criteria, pageable);
+        Page<Course> page = courseQueryService.findByCriteriaWithEagerRelationships(criteria, pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
