@@ -48,6 +48,7 @@ export const API_ENDPOINTS = {
     REJECT: (id) => `/api/courses/${id}/reject`,
     PUBLISH: (id) => `/api/courses/${id}/publish`,
     UNPUBLISH: (id) => `/api/courses/${id}/unpublish`,
+    SUBMIT: (id) => `/api/courses/${id}/submit`,
   },
 
   // Sections (part of a course)
@@ -62,6 +63,14 @@ export const API_ENDPOINTS = {
     LIST: '/api/lessons',
     DETAIL: (id) => `/api/lessons/${id}`,
     BY_SECTION: '/api/lessons', // Use with query param: ?sectionId.equals=X
+  },
+
+  // Files (upload & serve)
+  FILES: {
+    UPLOAD_VIDEO: '/api/files/upload/video',
+    VIDEO: (filename) => `/api/files/video/${filename}`,
+    UPLOAD_IMAGE: '/api/files/upload/image',
+    IMAGE: (filename) => `/api/files/image/${filename}`,
   },
 
   // News

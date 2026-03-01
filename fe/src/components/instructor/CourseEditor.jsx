@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { courseService } from '../../services/courseService';
 import LessonEditor from './LessonEditor';
 
@@ -21,6 +21,13 @@ const CourseEditor = ({ courseId, onBack }) => {
     const [editingLesson, setEditingLesson] = useState(null); // { sectionId, lessonId }
     const [isLessonEditorOpen, setIsLessonEditorOpen] = useState(false);
     const [activeSectionId, setActiveSectionId] = useState(null); // For creating new lesson in a section
+
+    // Thumbnail Upload State
+    const [thumbnailUploading, setThumbnailUploading] = useState(false);
+    const [thumbnailProgress, setThumbnailProgress] = useState(0);
+    const [thumbnailError, setThumbnailError] = useState('');
+    const [thumbnailDragActive, setThumbnailDragActive] = useState(false);
+    const thumbnailInputRef = useRef(null);
 
     const loadData = async () => {
         if (!courseId) return;
@@ -54,6 +61,52 @@ const CourseEditor = ({ courseId, onBack }) => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setCourse(prev => ({ ...prev, [name]: value }));
+    };
+
+    // ─── Thumbnail Upload Handlers ────────────────────────────────────────
+    const handleThumbnailFile = async (file) => {
+        if (!file) return;
+
+        // Validate image type
+        if (!file.type.startsWith('image/')) {
+            setThumbnailError('Only image files are allowed (JPEG, PNG, WebP, GIF)');
+            return;
+        }
+        // Validate size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setThumbnailError('Image must be smaller than 10MB');
+            return;
+        }
+
+        setThumbnailError('');
+        setThumbnailUploading(true);
+        setThumbnailProgress(0);
+
+        try {
+            const result = await courseService.uploadImage(file, (percent) => {
+                setThumbnailProgress(percent);
+            });
+            // Set the imageUrl from the server response
+            setCourse(prev => ({ ...prev, thumbnailUrl: result.imageUrl }));
+        } catch (err) {
+            console.error('Thumbnail upload failed:', err);
+            setThumbnailError(err.response?.data?.error || 'Upload failed. Please try again.');
+        } finally {
+            setThumbnailUploading(false);
+        }
+    };
+
+    const handleThumbnailDrop = (e) => {
+        e.preventDefault();
+        setThumbnailDragActive(false);
+        const file = e.dataTransfer.files?.[0];
+        handleThumbnailFile(file);
+    };
+
+    const handleRemoveThumbnail = () => {
+        setCourse(prev => ({ ...prev, thumbnailUrl: '' }));
+        setThumbnailError('');
+        setThumbnailProgress(0);
     };
 
     const handleToggleCategory = (catId) => {
@@ -325,15 +378,94 @@ const CourseEditor = ({ courseId, onBack }) => {
                 <div className="space-y-6">
                     <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-6">
                         <h3 className="font-medium text-neutral-900 dark:text-white mb-4">Thumbnail</h3>
-                        <div className="mb-4 aspect-video bg-neutral-100 dark:bg-neutral-800 rounded overflow-hidden">
-                            {course.thumbnailUrl ? (
-                                <img src={course.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-neutral-400">No Image</div>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Image URL</label>
+
+                        {/* Preview or Upload Zone */}
+                        {course.thumbnailUrl ? (
+                            <div className="relative group mb-3">
+                                <div className="aspect-video bg-neutral-100 dark:bg-neutral-800 rounded overflow-hidden">
+                                    <img
+                                        src={courseService.getImageUrl(course.thumbnailUrl)}
+                                        alt="Thumbnail"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                {/* Overlay controls on hover */}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => thumbnailInputRef.current?.click()}
+                                        className="px-3 py-1.5 bg-white/90 text-neutral-900 rounded text-xs font-bold uppercase tracking-wider hover:bg-white transition-colors"
+                                    >
+                                        Replace
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveThumbnail}
+                                        className="px-3 py-1.5 bg-red-500/90 text-white rounded text-xs font-bold uppercase tracking-wider hover:bg-red-500 transition-colors"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                onDragOver={(e) => { e.preventDefault(); setThumbnailDragActive(true); }}
+                                onDragLeave={() => setThumbnailDragActive(false)}
+                                onDrop={handleThumbnailDrop}
+                                onClick={() => thumbnailInputRef.current?.click()}
+                                className={`aspect-video rounded-lg border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
+                                    thumbnailDragActive
+                                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/10'
+                                        : 'border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 bg-neutral-50 dark:bg-neutral-950'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-3xl text-neutral-400">
+                                    {thumbnailDragActive ? 'download' : 'add_photo_alternate'}
+                                </span>
+                                <p className="text-xs text-neutral-500 text-center px-4">
+                                    {thumbnailDragActive
+                                        ? 'Drop image here'
+                                        : 'Click or drag & drop an image'}
+                                </p>
+                                <p className="text-[10px] text-neutral-400">JPEG, PNG, WebP — max 10MB</p>
+                            </div>
+                        )}
+
+                        {/* Upload Progress */}
+                        {thumbnailUploading && (
+                            <div className="mt-3">
+                                <div className="flex justify-between text-xs text-neutral-500 mb-1">
+                                    <span>Uploading...</span>
+                                    <span>{thumbnailProgress}%</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-orange-500 rounded-full transition-all duration-300"
+                                        style={{ width: `${thumbnailProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Error */}
+                        {thumbnailError && (
+                            <p className="mt-2 text-xs text-red-500">{thumbnailError}</p>
+                        )}
+
+                        {/* Hidden file input */}
+                        <input
+                            ref={thumbnailInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleThumbnailFile(e.target.files?.[0])}
+                        />
+
+                        {/* Fallback external URL input */}
+                        <div className="mt-3">
+                            <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">
+                                Or paste external URL
+                            </label>
                             <input
                                 name="thumbnailUrl"
                                 value={course.thumbnailUrl}

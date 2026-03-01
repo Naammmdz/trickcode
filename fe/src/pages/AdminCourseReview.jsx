@@ -265,7 +265,7 @@ const AdminCourseReview = () => {
                             <h3 className="font-medium text-neutral-900 dark:text-white mb-4">Thumbnail</h3>
                             <div className="mb-4 aspect-video bg-neutral-100 dark:bg-neutral-800 rounded overflow-hidden">
                                 {course.thumbnailUrl ? (
-                                    <img src={course.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                                    <img src={courseService.getImageUrl(course.thumbnailUrl)} alt="Thumbnail" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-neutral-400 text-sm">No Image Provided</div>
                                 )}

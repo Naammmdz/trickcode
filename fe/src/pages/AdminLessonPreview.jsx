@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { courseService } from '../services/courseService';
+import VideoPlayer from '../components/ui/VideoPlayer';
 
 const AdminLessonPreview = ({ lessonId, onClose }) => {
     const [lesson, setLesson] = useState(null);
@@ -132,28 +133,19 @@ const AdminLessonPreview = ({ lessonId, onClose }) => {
 
         switch (lesson.type) {
             case 'VIDEO':
-                const youtubeEmbedUrl = lesson.videoUrl?.includes('youtube.com') || lesson.videoUrl?.includes('youtu.be')
-                    ? lesson.videoUrl.replace('watch?v=', 'embed/')
-                    : lesson.videoUrl;
-
                 return (
                     <div className="space-y-6">
                         <div>
                             <label className="block text-xs font-bold uppercase text-neutral-500 mb-1.5">Video</label>
                             {lesson.videoUrl ? (
-                                <div className="relative aspect-video bg-neutral-900 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
-                                    <iframe
-                                        className="absolute inset-0 w-full h-full"
-                                        src={youtubeEmbedUrl}
-                                        title={lesson.title || 'Video Player'}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        allowFullScreen
-                                    />
-                                </div>
+                                <VideoPlayer
+                                    videoUrl={lesson.videoUrl}
+                                    title={lesson.title || 'Video Player'}
+                                    className="border border-neutral-200 dark:border-neutral-700"
+                                />
                             ) : (
                                 <div className="text-sm text-neutral-900 dark:text-white p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded border border-neutral-200 dark:border-neutral-700 flex items-center justify-center italic text-neutral-400">
-                                    No URL provided
+                                    No video provided
                                 </div>
                             )}
                         </div>

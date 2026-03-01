@@ -238,6 +238,18 @@ const CourseDetail = () => {
         <Navbar />
       </div>
 
+      {/* Course Under Revision Banner - shown to enrolled students when course is not PUBLISHED */}
+      {isEnrolled && !isReviewMode && course?.status && course.status !== 'PUBLISHED' && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/40">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-3">
+            <span className="material-symbols-outlined text-amber-500 text-xl">info</span>
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              This course is currently being updated by the instructor. You can still access all existing content while changes are being made.
+            </p>
+          </div>
+        </div>
+      )}
+
       <main className={`relative z-10 ${isReviewMode ? 'pt-6' : 'pt-20'}`}>
 
         {/* Hero Section */}
@@ -618,7 +630,7 @@ const SidebarCard = ({ course, isFree, oldPrice, enrollButton, studentCount }) =
     {/* Thumbnail preview */}
     {course.thumbnailUrl && (
       <div className="aspect-video bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
-        <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+        <img src={courseService.getImageUrl(course.thumbnailUrl)} alt={course.title} className="w-full h-full object-cover" />
       </div>
     )}
 

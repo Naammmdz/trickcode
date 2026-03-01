@@ -55,6 +55,16 @@ const InstructorCourses = () => {
         }
     };
 
+    const handleSubmitForReview = async (courseId) => {
+        if (!window.confirm('Submit this course for admin review? You won\'t be able to edit it while it\'s under review.')) return;
+        try {
+            await courseService.submitCourseForReview(courseId);
+            fetchCourses();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to submit course for review');
+        }
+    };
+
     const handleBackToList = () => {
         setView('list');
         setSelectedCourseId(null);
@@ -136,7 +146,16 @@ const InstructorCourses = () => {
                                             {new Date(course.createdAt).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1">
+                                                {(course.status === 'DRAFT' || course.status === 'REJECTED') && (
+                                                    <button
+                                                        onClick={() => handleSubmitForReview(course.id)}
+                                                        className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 transition-colors"
+                                                        title="Submit for Review"
+                                                    >
+                                                        <span className="material-symbols-outlined text-lg">send</span>
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => handleEdit(course.id)}
                                                     className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"

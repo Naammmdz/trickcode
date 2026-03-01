@@ -4,6 +4,7 @@ import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
+import VideoPlayer from '../components/ui/VideoPlayer';
 import { courseService } from '../services/courseService';
 
 const VideoWorkspace = () => {
@@ -67,10 +68,6 @@ const VideoWorkspace = () => {
       </div>
     );
   }
-
-  const youtubeEmbedUrl = lesson.videoUrl?.includes('youtube.com') || lesson.videoUrl?.includes('youtu.be')
-    ? lesson.videoUrl.replace('watch?v=', 'embed/')
-    : lesson.videoUrl;
 
   const getLessonRoute = (lessonItem) => {
     const type = lessonItem.type?.toLowerCase();
@@ -186,15 +183,11 @@ const VideoWorkspace = () => {
           <div className="flex-1 overflow-y-auto scroll-smooth pb-20">
             <div className="max-w-5xl mx-auto p-6 md:p-8 lg:p-10 pb-8">
               {lesson.type === 'VIDEO' && lesson.videoUrl && (
-                <div className="relative aspect-video bg-neutral-900 rounded-lg shadow-2xl overflow-hidden mb-8 border border-neutral-800">
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src={youtubeEmbedUrl}
+                <div className="mb-8">
+                  <VideoPlayer
+                    videoUrl={lesson.videoUrl}
                     title={lesson.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    allowFullScreen
+                    className="shadow-2xl border border-neutral-800"
                   />
                 </div>
               )}

@@ -248,6 +248,16 @@ export const courseService = {
         }
     },
 
+    submitCourseForReview: async (id) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.COURSES.SUBMIT(id));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to submit course ${id} for review:`, error);
+            throw error;
+        }
+    },
+
     deleteCourse: async (id) => {
         try {
             await apiClient.delete(API_ENDPOINTS.COURSES.DETAIL(id));
@@ -414,5 +424,65 @@ export const courseService = {
 
     deleteCategory: async (id) => {
         await apiClient.delete(`/api/categories/${id}`);
-    }
+    },
+
+    // ─── File Upload APIs ─────────────────────────────────────────────────────
+
+    uploadVideo: async (file, onProgress) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await apiClient.post(API_ENDPOINTS.FILES.UPLOAD_VIDEO, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 600000, // 10 min timeout for large videos
+            onUploadProgress: (progressEvent) => {
+                if (onProgress && progressEvent.total) {
+                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(percent);
+                }
+            },
+        });
+        return response.data; // { filename, videoUrl, originalName, size, contentType }
+    },
+
+    getVideoUrl: (videoUrlOrPath) => {
+        if (!videoUrlOrPath) return null;
+        // If it's already a full URL (YouTube, external), return as-is
+        if (videoUrlOrPath.startsWith('http://') || videoUrlOrPath.startsWith('https://')) {
+            return videoUrlOrPath;
+        }
+        // If it's a relative API path like /api/files/video/xxx, prepend backend base URL
+        const baseURL = apiClient.defaults.baseURL || '';
+        return baseURL + videoUrlOrPath;
+    },
+
+    // ─── Image Upload APIs ────────────────────────────────────────────────────
+
+    uploadImage: async (file, onProgress) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await apiClient.post(API_ENDPOINTS.FILES.UPLOAD_IMAGE, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000, // 1 min timeout for images
+            onUploadProgress: (progressEvent) => {
+                if (onProgress && progressEvent.total) {
+                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    onProgress(percent);
+                }
+            },
+        });
+        return response.data; // { filename, imageUrl, originalName, size, contentType }
+    },
+
+    getImageUrl: (imageUrlOrPath) => {
+        if (!imageUrlOrPath) return null;
+        // If it's already a full URL, return as-is
+        if (imageUrlOrPath.startsWith('http://') || imageUrlOrPath.startsWith('https://')) {
+            return imageUrlOrPath;
+        }
+        // If it's a relative API path like /api/files/image/xxx, prepend backend base URL
+        const baseURL = apiClient.defaults.baseURL || '';
+        return baseURL + imageUrlOrPath;
+    },
 };

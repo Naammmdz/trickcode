@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '/logo.png';
 import Navbar from '../components/layout/Navbar';
+import VideoPlayer from '../components/ui/VideoPlayer';
 import { courseService } from '../services/courseService';
 
 const LessonDetail = () => {
@@ -175,15 +176,10 @@ const LessonDetail = () => {
             {/* Video Player for VIDEO type */}
             {lesson.type?.toLowerCase() === 'video' && lesson.videoUrl && (
               <div className="mb-12 rounded-lg overflow-hidden border border-gray-300 dark:border-white/10">
-                <div className="aspect-video bg-black">
-                  <video
-                    controls
-                    className="w-full h-full"
-                    src={lesson.videoUrl}
-                  >
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
+                <VideoPlayer
+                  videoUrl={lesson.videoUrl}
+                  title={lesson.title}
+                />
               </div>
             )}
 

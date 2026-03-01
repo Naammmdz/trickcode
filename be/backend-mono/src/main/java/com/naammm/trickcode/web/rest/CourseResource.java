@@ -79,6 +79,13 @@ public class CourseResource {
         if (course.getId() != null) {
             throw new BadRequestAlertException("A new course cannot already have an ID", ENTITY_NAME, "idexists");
         }
+        // Auto-assign current user as instructor
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        userRepository.findOneByLogin(login).ifPresent(course::setInstructor);
+        // Default status to DRAFT
+        if (course.getStatus() == null) {
+            course.setStatus(CourseStatus.DRAFT);
+        }
         course = courseService.save(course);
         return ResponseEntity.created(new URI("/api/courses/" + course.getId()))
             .headers(HeaderUtil.createEntityCreationAlert(applicationName, true, ENTITY_NAME, course.getId().toString()))
@@ -110,6 +117,28 @@ public class CourseResource {
 
         if (!courseRepository.existsById(id)) {
             throw new BadRequestAlertException("Entity not found", ENTITY_NAME, "idnotfound");
+        }
+
+        // If instructor edits a non-DRAFT course, revert status to DRAFT
+        // so it must be re-submitted for review
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        Optional<User> currentUser = userRepository.findOneByLogin(login);
+        Optional<Course> existingCourse = courseRepository.findById(id);
+
+        if (currentUser.isPresent() && existingCourse.isPresent()) {
+            Course existing = existingCourse.get();
+            boolean isInstructor = existing.getInstructor() != null
+                && existing.getInstructor().getId().equals(currentUser.get().getId());
+            boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_STAFF"));
+
+            // Only revert for instructors, not for admin/staff edits
+            if (isInstructor && !isAdmin) {
+                CourseStatus currentStatus = existing.getStatus();
+                if (currentStatus == CourseStatus.PENDING || currentStatus == CourseStatus.APPROVED || currentStatus == CourseStatus.PUBLISHED) {
+                    course.setStatus(CourseStatus.DRAFT);
+                }
+            }
         }
 
         course = courseService.update(course);
@@ -168,7 +197,7 @@ public class CourseResource {
     ) {
         LOG.debug("REST request to get Courses by criteria: {}", criteria);
 
-        Page<Course> page = courseQueryService.findByCriteria(criteria, pageable);
+        Page<Course> page = courseQueryService.findByCriteriaWithEagerRelationships(criteria, pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
@@ -327,9 +356,41 @@ public class CourseResource {
         }
         criteria.getInstructorId().setEquals(user.get().getId());
         
-        Page<Course> page = courseQueryService.findByCriteria(criteria, pageable);
+        Page<Course> page = courseQueryService.findByCriteriaWithEagerRelationships(criteria, pageable);
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
+    }
+
+    /**
+     * {@code POST  /courses/:id/submit} : submit a course for review (DRAFT -> PENDING).
+     *
+     * @param id the id of the course to submit.
+     * @return the updated course with PENDING status.
+     */
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<Course> submitCourseForReview(@PathVariable("id") Long id) {
+        LOG.debug("REST request to submit Course for review : {}", id);
+        Optional<Course> courseOpt = courseRepository.findById(id);
+        if (courseOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Course course = courseOpt.get();
+
+        // Verify the current user is the instructor of this course
+        String login = SecurityContextHolder.getContext().getAuthentication().getName();
+        Optional<User> user = userRepository.findOneByLogin(login);
+        if (user.isEmpty() || course.getInstructor() == null || !course.getInstructor().getId().equals(user.get().getId())) {
+            return ResponseEntity.status(403).build();
+        }
+
+        // Only DRAFT or REJECTED courses can be submitted
+        if (course.getStatus() != CourseStatus.DRAFT && course.getStatus() != CourseStatus.REJECTED) {
+            throw new BadRequestAlertException("Only DRAFT or REJECTED courses can be submitted for review", ENTITY_NAME, "invalidstatus");
+        }
+
+        course.setStatus(CourseStatus.PENDING);
+        course = courseService.save(course);
+        return ResponseEntity.ok(course);
     }
 
     /**

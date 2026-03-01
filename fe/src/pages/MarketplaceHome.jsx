@@ -179,7 +179,7 @@ const MarketplaceHome = () => {
                   >
                     <div className="h-40 bg-neutral-100 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative">
                       {course.thumbnailUrl ? (
-                        <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={courseService.getImageUrl(course.thumbnailUrl)} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                       ) : (
                         <>
                           <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-neutral-800 dark:to-neutral-900 opacity-50"></div>
