@@ -92,6 +92,16 @@ public class VnPayPaymentService {
         String txnRef = generateTxnRef(order, user, course);
         order.setPaymentTxnRef(txnRef);
 
+        if (amountVnd.compareTo(BigDecimal.ZERO) <= 0) {
+            order.setStatus(OrderStatus.COMPLETED);
+            order.setPaidAt(Instant.now());
+            order.setVnpayResponseCode("00");
+            order.setVnpayTransactionNo("FREE");
+            order = orderRepository.save(order);
+            fulfillEnrollment(order);
+            return new CreatePaymentResult(order.getId(), txnRef, "/my-courses");
+        }
+
         order = orderRepository.save(order);
 
         String paymentUrl = buildPaymentUrl(order, clientIp, bankCode);
