@@ -90,13 +90,15 @@ public class SecurityConfiguration {
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/lessons")).permitAll()
                     // Public categories (for navbar dropdown and homepage)
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/categories")).permitAll()
-                    // File serving (videos & images) - authenticated users can stream
-                    .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/files/video/**")).authenticated()
+                    // File serving (videos & images) - permitAll because <video>/<img> tags don't send JWT headers
+                    .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/files/video/**")).permitAll()
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/files/image/**")).permitAll()
                     .requestMatchers(mvc.pattern(HttpMethod.POST, "/api/files/upload/**")).authenticated()
                     // VNPay callbacks (public, but verified by signature)
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/payments/vnpay/return")).permitAll()
                     .requestMatchers(mvc.pattern(HttpMethod.POST, "/api/payments/vnpay/ipn")).permitAll()
+                    // Code execution endpoints (authenticated users)
+                    .requestMatchers(mvc.pattern("/api/code/**")).authenticated()
                     .requestMatchers(mvc.pattern("/api/admin/**")).hasAuthority(AuthoritiesConstants.ADMIN)
                     .requestMatchers(mvc.pattern("/api/**")).authenticated()
                     .requestMatchers(mvc.pattern("/v3/api-docs/**")).hasAuthority(AuthoritiesConstants.ADMIN)

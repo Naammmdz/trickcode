@@ -5,7 +5,7 @@ import { courseService } from '../../services/courseService';
  * Smart video player that supports both uploaded videos (<video> tag)
  * and external embeds like YouTube (<iframe>).
  */
-const VideoPlayer = ({ videoUrl, title = 'Video', className = '' }) => {
+const VideoPlayer = ({ videoUrl, title = 'Video', className = '', onEnded }) => {
     const { isYoutube, embedUrl, nativeUrl } = useMemo(() => {
         if (!videoUrl) return { isYoutube: false, embedUrl: null, nativeUrl: null };
 
@@ -63,6 +63,7 @@ const VideoPlayer = ({ videoUrl, title = 'Video', className = '' }) => {
                 controlsList="nodownload"
                 preload="metadata"
                 playsInline
+                onEnded={onEnded}
             >
                 <source src={nativeUrl} type="video/mp4" />
                 <source src={nativeUrl} type="video/webm" />

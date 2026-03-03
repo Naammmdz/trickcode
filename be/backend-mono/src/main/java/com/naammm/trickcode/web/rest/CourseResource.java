@@ -58,12 +58,22 @@ public class CourseResource {
 
     private final CourseAccessService courseAccessService;
 
-    public CourseResource(CourseService courseService, CourseRepository courseRepository, CourseQueryService courseQueryService, UserRepository userRepository, CourseAccessService courseAccessService) {
+    private final com.naammm.trickcode.service.LessonProgressService lessonProgressService;
+
+    public CourseResource(
+        CourseService courseService, 
+        CourseRepository courseRepository, 
+        CourseQueryService courseQueryService, 
+        UserRepository userRepository, 
+        CourseAccessService courseAccessService,
+        com.naammm.trickcode.service.LessonProgressService lessonProgressService
+    ) {
         this.courseService = courseService;
         this.courseRepository = courseRepository;
         this.courseQueryService = courseQueryService;
         this.userRepository = userRepository;
         this.courseAccessService = courseAccessService;
+        this.lessonProgressService = lessonProgressService;
     }
 
     /**
@@ -243,6 +253,18 @@ public class CourseResource {
         boolean isInstructor = courseAccessService.isInstructor(id);
         
         return ResponseEntity.ok(new CourseAccessResponse(hasAccess, isAdmin, isStaff, isEnrolled, isInstructor));
+    }
+
+    /**
+     * {@code GET  /courses/:id/progress} : get the learning progress of the current user.
+     *
+     * @param id the id of the course to get progress for.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and body containing progress info.
+     */
+    @GetMapping("/{id}/progress")
+    public ResponseEntity<java.util.Map<String, Object>> getCourseProgress(@PathVariable("id") Long id) {
+        LOG.debug("REST request to get Course progress : {}", id);
+        return ResponseEntity.ok(lessonProgressService.getCourseProgress(id));
     }
 
     /**

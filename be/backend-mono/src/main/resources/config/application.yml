@@ -234,11 +234,16 @@ vnpay:
   payUrl: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
   # Return URL: Frontend URL where VNPay redirects browser after payment
   # Frontend will call /api/payments/vnpay/return to verify signature
-  returnUrl: ${VNPAY_RETURN_URL:https://7a42-103-199-40-35.ngrok-free.app/payment/return}
+  returnUrl: ${VNPAY_RETURN_URL:http://localhost:5173/payment/return}
   # IPN URL: Backend API endpoint for server-to-server callback from VNPay
-  ipnUrl: ${VNPAY_IPN_URL:https://47d5-103-199-40-35.ngrok-free.app/api/payments/vnpay/ipn}
+  # Note: VNPay cannot reach localhost; QueryDR fallback in handleReturn() handles confirmation
+  ipnUrl: ${VNPAY_IPN_URL:http://localhost:8080/api/payments/vnpay/ipn}
   apiUrl: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
 
 payment:
   # Fixed exchange rate (USD -> VND) used when creating VNPay amount
   usdToVndRate: ${PAYMENT_USD_TO_VND_RATE:25000}
+
+jdoodle:
+  client-id: ${JDOODLE_CLIENT_ID:dbaa7f26cceabfa2330de0c589c4e425}
+  client-secret: ${JDOODLE_CLIENT_SECRET:72a9359cf954aebf5ea669d5b3685cf4501290a806385e53478047153bd1d256}

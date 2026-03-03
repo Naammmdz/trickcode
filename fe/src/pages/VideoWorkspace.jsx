@@ -18,19 +18,26 @@ const VideoWorkspace = () => {
   const [curriculum, setCurriculum] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [markingComplete, setMarkingComplete] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [lessonData, courseData, curriculumData] = await Promise.all([
+        setIsCompleted(false);
+        const [lessonData, courseData, curriculumData, progressData] = await Promise.all([
           courseService.getLesson(lessonId),
           courseService.getCourse(courseId),
-          courseService.getCourseCurriculum(courseId)
+          courseService.getCourseCurriculum(courseId),
+          !isReviewMode ? courseService.getCourseProgress(courseId) : Promise.resolve(null)
         ]);
         setLesson(lessonData);
         setCourse(courseData);
         setCurriculum(curriculumData);
+        if (progressData?.completedLessonIds?.includes(Number(lessonId))) {
+          setIsCompleted(true);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
         setError('Failed to load lesson');
@@ -43,6 +50,24 @@ const VideoWorkspace = () => {
       loadData();
     }
   }, [lessonId, courseId]);
+
+  const markAsComplete = async () => {
+    if (isReviewMode || isCompleted || markingComplete) return;
+    setMarkingComplete(true);
+    try {
+      await courseService.completeLesson(lessonId);
+      setIsCompleted(true);
+      console.log('Lesson marked as completed:', lessonId);
+    } catch (err) {
+      console.error('Failed to complete lesson:', err);
+    } finally {
+      setMarkingComplete(false);
+    }
+  };
+
+  const handleVideoEnded = async () => {
+    await markAsComplete();
+  };
 
   if (loading) {
     return (
@@ -188,6 +213,7 @@ const VideoWorkspace = () => {
                     videoUrl={lesson.videoUrl}
                     title={lesson.title}
                     className="shadow-2xl border border-neutral-800"
+                    onEnded={handleVideoEnded}
                   />
                 </div>
               )}
@@ -210,6 +236,39 @@ const VideoWorkspace = () => {
                 <div className="prose dark:prose-invert prose-neutral max-w-none text-neutral-600 dark:text-neutral-400 leading-relaxed font-light whitespace-pre-line">
                   {lesson.markdownContent || 'No content available for this lesson.'}
                 </div>
+
+                {/* Mark as Complete Button */}
+                {!isReviewMode && (
+                  <div className="mt-8 pt-6 border-t border-neutral-200 dark:border-neutral-800">
+                    {isCompleted ? (
+                      <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl">
+                        <span className="material-symbols-outlined text-emerald-500 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                        <div>
+                          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Lesson Completed</p>
+                          <p className="text-xs text-emerald-600/70 dark:text-emerald-500/70">Great job! Move on to the next lesson.</p>
+                        </div>
+                        {nextLesson && (
+                          <Link
+                            to={getLessonRoute(nextLesson)}
+                            className="ml-auto inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                          >
+                            Next Lesson
+                            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                          </Link>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={markAsComplete}
+                        disabled={markingComplete}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">{markingComplete ? 'hourglass_empty' : 'task_alt'}</span>
+                        {markingComplete ? 'Saving...' : 'Mark as Complete'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260303-1" author="trickcode">
+        <createTable tableName="code_submission">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="language" type="varchar(30)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_code" type="clob">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(30)"/>
+            <column name="tests_passed" type="integer"/>
+            <column name="tests_total" type="integer"/>
+            <column name="execution_time" type="double"/>
+            <column name="memory_used" type="integer"/>
+            <column name="submitted_at" type="timestamp"/>
+            <column name="user_id" type="bigint"/>
+            <column name="lesson_id" type="bigint"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="code_submission"
+            baseColumnNames="user_id"
+            constraintName="fk_code_sub_user"
+            referencedTableName="jhi_user"
+            referencedColumnNames="id"/>
+
+        <addForeignKeyConstraint
+            baseTableName="code_submission"
+            baseColumnNames="lesson_id"
+            constraintName="fk_code_sub_lesson"
+            referencedTableName="lesson"
+            referencedColumnNames="id"/>
+
+        <createIndex tableName="code_submission" indexName="idx_code_sub_user_lesson">
+            <column name="user_id"/>
+            <column name="lesson_id"/>
+        </createIndex>
+
+        <createIndex tableName="code_submission" indexName="idx_code_sub_user">
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

@@ -49,6 +49,7 @@ export const API_ENDPOINTS = {
     PUBLISH: (id) => `/api/courses/${id}/publish`,
     UNPUBLISH: (id) => `/api/courses/${id}/unpublish`,
     SUBMIT: (id) => `/api/courses/${id}/submit`,
+    PROGRESS: (id) => `/api/courses/${id}/progress`,
   },
 
   // Sections (part of a course)
@@ -63,6 +64,7 @@ export const API_ENDPOINTS = {
     LIST: '/api/lessons',
     DETAIL: (id) => `/api/lessons/${id}`,
     BY_SECTION: '/api/lessons', // Use with query param: ?sectionId.equals=X
+    COMPLETE: (id) => `/api/lesson-progresses/lessons/${id}/complete`,
   },
 
   // Files (upload & serve)

@@ -14,6 +14,8 @@ const CourseDetail = () => {
   const { user } = useAuth();
   const [course, setCourse] = useState(null);
   const [courseAccess, setCourseAccess] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [curriculum, setCurriculum] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
@@ -37,6 +39,16 @@ const CourseDetail = () => {
         if (user) {
           const accessData = await courseService.checkCourseAccess(courseId);
           setCourseAccess(accessData);
+
+          // Fetch progress & curriculum for enrolled users
+          if (accessData?.hasAccess) {
+            const [progressData, curriculumData] = await Promise.all([
+              courseService.getCourseProgress(courseId),
+              courseService.getCourseCurriculum(courseId)
+            ]);
+            setProgress(progressData);
+            setCurriculum(curriculumData);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch course:', err);
@@ -160,13 +172,44 @@ const CourseDetail = () => {
   const isEnrolled = courseAccess?.isEnrolled || hasAccess;
   const studentCount = course.studentCount || 0;
 
+  // Compute smart continue URL: first uncompleted lesson, or first lesson overall
+  const getContinueUrl = () => {
+    if (!curriculum?.sections) return `/my-courses/${course.id}`;
+    const completedIds = progress?.completedLessonIds || [];
+    for (const section of curriculum.sections) {
+      for (const lesson of (section.lessons || [])) {
+        if (!completedIds.includes(lesson.id)) {
+          const type = lesson.type?.toLowerCase();
+          if (type === 'quiz') return `/my-courses/${course.id}/quiz/${lesson.id}`;
+          if (type === 'code') return `/my-courses/${course.id}/code/${lesson.id}`;
+          return `/my-courses/${course.id}/lesson/${lesson.id}`;
+        }
+      }
+    }
+    // All completed → go to first lesson
+    const firstSection = curriculum.sections[0];
+    const firstLesson = firstSection?.lessons?.[0];
+    if (firstLesson) {
+      const type = firstLesson.type?.toLowerCase();
+      if (type === 'quiz') return `/my-courses/${course.id}/quiz/${firstLesson.id}`;
+      if (type === 'code') return `/my-courses/${course.id}/code/${firstLesson.id}`;
+      return `/my-courses/${course.id}/lesson/${firstLesson.id}`;
+    }
+    return `/my-courses/${course.id}`;
+  };
+
+  const continueUrl = hasAccess ? getContinueUrl() : null;
+  const progressPercent = progress?.progressPercent || 0;
+  const completedLessons = progress?.completedLessons || 0;
+  const totalLessons = progress?.totalLessons || 0;
+
   const enrollButton = hasAccess ? (
     <Link
-      to={`/my-courses/${course.id}/lesson/1`}
+      to={continueUrl}
       className="w-full flex items-center justify-center gap-2 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30"
     >
       <span className="material-symbols-outlined text-[18px]">play_circle</span>
-      Continue Learning
+      {progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}
     </Link>
   ) : (
     <Link
@@ -356,6 +399,41 @@ const CourseDetail = () => {
                   </div>
                 </div>
 
+                {/* Progress Bar for enrolled users */}
+                {isEnrolled && hasAccess && progress && !isReviewMode && (
+                  <div className="mt-8 p-5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-orange-500 text-lg">trending_up</span>
+                        <span className="text-sm font-semibold text-neutral-900 dark:text-white">Your Progress</span>
+                      </div>
+                      <span className="text-sm font-bold text-orange-500">{progressPercent}%</span>
+                    </div>
+                    <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-2.5 overflow-hidden ring-1 ring-inset ring-black/5 dark:ring-white/5 mb-3">
+                      <div
+                        className="h-2.5 rounded-full transition-all duration-700 ease-out"
+                        style={{
+                          width: `${progressPercent}%`,
+                          background: progressPercent === 100
+                            ? 'linear-gradient(90deg, #10b981, #34d399)'
+                            : 'linear-gradient(90deg, #f97316, #fb923c)'
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-neutral-500">
+                      <span>{completedLessons} / {totalLessons} lessons completed</span>
+                      {progressPercent === 100 ? (
+                        <span className="flex items-center gap-1 text-emerald-500 font-medium">
+                          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                          Course Complete!
+                        </span>
+                      ) : (
+                        <span className="text-neutral-400">{totalLessons - completedLessons} remaining</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Mobile price + enroll (shown below lg) */}
                 <div className="lg:hidden mt-8 p-5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
                   <div className="flex items-center gap-3 mb-4">
@@ -516,48 +594,48 @@ const CourseDetail = () => {
 
       {/* Sticky Bottom Bar */}
       {!isReviewMode && (
-      <div className={`fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-t border-neutral-200 dark:border-neutral-800 transition-all duration-300 ${showStickyBar ? 'translate-y-0' : 'translate-y-full'}`}>
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-          <div className="hidden md:flex items-center gap-3 flex-1 min-w-0">
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">{course.title}</p>
-              <div className="flex items-center gap-2 text-xs text-neutral-500">
-                {rating > 0 && (
-                  <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    {rating.toFixed(1)}
-                  </span>
-                )}
-                <span>{studentCount.toLocaleString()} students</span>
+        <div className={`fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-t border-neutral-200 dark:border-neutral-800 transition-all duration-300 ${showStickyBar ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+            <div className="hidden md:flex items-center gap-3 flex-1 min-w-0">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-neutral-900 dark:text-white truncate">{course.title}</p>
+                <div className="flex items-center gap-2 text-xs text-neutral-500">
+                  {rating > 0 && (
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      {rating.toFixed(1)}
+                    </span>
+                  )}
+                  <span>{studentCount.toLocaleString()} students</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-4 ml-auto">
-            {!hasAccess && (
-              <span className="text-lg font-bold text-neutral-900 dark:text-white">
-                {isFree ? <span className="text-emerald-500">Free</span> : `$${course.price?.toFixed(2)}`}
-              </span>
-            )}
-            {hasAccess ? (
-              <Link
-                to={`/my-courses/${course.id}/lesson/1`}
-                className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[16px]">play_circle</span>
-                Continue
-              </Link>
-            ) : (
-              <Link
-                to={`/checkout?courseId=${course.id}`}
-                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[16px]">shopping_cart</span>
-                Enroll
-              </Link>
-            )}
+            <div className="flex items-center gap-4 ml-auto">
+              {!hasAccess && (
+                <span className="text-lg font-bold text-neutral-900 dark:text-white">
+                  {isFree ? <span className="text-emerald-500">Free</span> : `$${course.price?.toFixed(2)}`}
+                </span>
+              )}
+              {hasAccess ? (
+                <Link
+                  to={continueUrl}
+                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[16px]">play_circle</span>
+                  {progressPercent > 0 ? 'Continue' : 'Start'}
+                </Link>
+              ) : (
+                <Link
+                  to={`/checkout?courseId=${course.id}`}
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[16px]">shopping_cart</span>
+                  Enroll
+                </Link>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       {/* Footer */}

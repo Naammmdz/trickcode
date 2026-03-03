@@ -125,3 +125,9 @@ jhipster:
 # ===================================================================
 
 # application:
+
+# Judge0 CE - Local code execution engine
+judge0:
+  api-url: ${JUDGE0_API_URL:http://localhost:2358}
+  # Max wait time for synchronous execution (seconds)
+  wait-timeout: 30

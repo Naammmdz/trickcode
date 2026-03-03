@@ -195,6 +195,7 @@ public class DataSeeder implements CommandLineRunner {
             buildCodeConfig(
                 "Climbing Stairs",
                 "Bạn đang leo cầu thang có `n` bậc. Mỗi lần bạn có thể leo 1 hoặc 2 bậc. Hỏi có bao nhiêu cách khác nhau để leo lên đỉnh?\n\n**Ví dụ:**\n- Input: n = 2 → Output: 2 (1+1, 2)\n- Input: n = 3 → Output: 3 (1+1+1, 1+2, 2+1)",
+                "climbStairs",
                 "def climbStairs(n: int) -> int:\n    # Viết code của bạn ở đây\n    pass",
                 "function climbStairs(n) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public int climbStairs(int n) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
@@ -215,6 +216,7 @@ public class DataSeeder implements CommandLineRunner {
             buildCodeConfig(
                 "House Robber",
                 "Bạn là tên trộm muốn cướp các ngôi nhà trên một con phố. Mỗi nhà có một lượng tiền `nums[i]`. Không thể cướp hai nhà liền kề. Tìm số tiền tối đa có thể cướp.\n\n**Ví dụ:**\n- Input: [1,2,3,1] → Output: 4 (nhà 0 + nhà 2)\n- Input: [2,7,9,3,1] → Output: 12 (nhà 0 + nhà 2 + nhà 4)",
+                "rob",
                 "def rob(nums):\n    # Viết code của bạn ở đây\n    pass",
                 "function rob(nums) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public int rob(int[] nums) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
@@ -263,6 +265,7 @@ public class DataSeeder implements CommandLineRunner {
             buildCodeConfig(
                 "Reverse Linked List",
                 "Đảo ngược một Linked List.\n\n**Ví dụ:**\n- Input: 1 → 2 → 3 → 4 → 5\n- Output: 5 → 4 → 3 → 2 → 1\n\nHàm nhận vào `head` là node đầu tiên, trả về node đầu tiên sau khi đảo ngược.",
+                "reverseList",
                 "def reverseList(head):\n    prev = None\n    curr = head\n    # Viết code của bạn ở đây\n    pass",
                 "function reverseList(head) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public ListNode reverseList(ListNode head) {\n        // Viết code của bạn ở đây\n        return null;\n    }\n}",
@@ -342,6 +345,7 @@ public class DataSeeder implements CommandLineRunner {
             buildCodeConfig(
                 "Maximum Depth of Binary Tree",
                 "Tìm chiều sâu lớn nhất của một Binary Tree.\n\nChiều sâu là số node trên đường đi dài nhất từ root đến leaf.\n\n**Ví dụ:**\n```\n    3\n   / \\\n  9  20\n    /  \\\n   15   7\n```\nOutput: 3",
+                "maxDepth",
                 "def maxDepth(root) -> int:\n    # Viết code của bạn ở đây\n    pass",
                 "function maxDepth(root) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public int maxDepth(TreeNode root) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
@@ -475,6 +479,7 @@ public class DataSeeder implements CommandLineRunner {
             buildCodeConfig(
                 "Bài tập: " + title,
                 "Áp dụng kiến thức đã học để giải bài toán sau:\n\nCho một mảng số nguyên, tìm tổng lớn nhất của một dãy con liên tiếp (Maximum Subarray Sum).\n\n**Ví dụ:**\n- Input: [-2,1,-3,4,-1,2,1,-5,4] → Output: 6 (dãy [4,-1,2,1])",
+                "maxSubArray",
                 "def maxSubArray(nums):\n    # Viết code của bạn ở đây\n    pass",
                 "function maxSubArray(nums) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public int maxSubArray(int[] nums) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
@@ -551,12 +556,14 @@ public class DataSeeder implements CommandLineRunner {
 
     /** Tạo codeChallengeConfig JSON */
     private String buildCodeConfig(String title, String problemDescription,
+                                   String functionName,
                                    String pythonCode, String jsCode, String javaCode,
                                    String[] inputs, String[] expected) {
         StringBuilder sb = new StringBuilder();
         sb.append("{")
           .append("\"title\":\"").append(escape(title)).append("\",")
           .append("\"problemDescription\":\"").append(escape(problemDescription)).append("\",")
+          .append("\"functionName\":\"").append(escape(functionName)).append("\",")
           .append("\"initialCode\":{")
           .append("\"python\":\"").append(escape(pythonCode)).append("\",")
           .append("\"javascript\":\"").append(escape(jsCode)).append("\",")

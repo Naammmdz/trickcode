@@ -5,6 +5,7 @@ import { courseService } from '../../services/courseService';
 const CourseSyllabus = ({ courseId }) => {
   const location = useLocation();
   const [curriculum, setCurriculum] = useState(null);
+  const [progress, setProgress] = useState(null);
   const [expandedSections, setExpandedSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const isReviewMode = location.state?.isReviewMode || false;
@@ -12,8 +13,13 @@ const CourseSyllabus = ({ courseId }) => {
   useEffect(() => {
     const loadCurriculum = async () => {
       try {
-        const data = await courseService.getCourseCurriculum(courseId);
+        const [data, progressData] = await Promise.all([
+          courseService.getCourseCurriculum(courseId),
+          !isReviewMode ? courseService.getCourseProgress(courseId) : Promise.resolve(null)
+        ]);
+
         setCurriculum(data);
+        setProgress(progressData);
         // Auto-expand first section
         if (data.sections && data.sections.length > 0) {
           setExpandedSections([data.sections[0].id]);
@@ -99,8 +105,13 @@ const CourseSyllabus = ({ courseId }) => {
       <div className="p-5 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
         <h2 className="text-[10px] font-sans uppercase tracking-widest text-neutral-500 mb-2">Course Syllabus</h2>
         <h3 className="font-serif font-medium text-lg leading-tight mb-3">{curriculum.title}</h3>
-        <div className="flex justify-between text-[10px] font-sans text-neutral-400">
+        <div className="flex justify-between items-center text-[10px] font-sans text-neutral-400">
           <span>{totalLessons} Lessons</span>
+          {progress && !isReviewMode && (
+            <span className="text-orange-500 font-medium">
+              {progress.completedLessons} / {progress.totalLessons} Completed ({progress.progressPercent}%)
+            </span>
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
@@ -134,6 +145,8 @@ const CourseSyllabus = ({ courseId }) => {
                 {section.lessons?.map((lesson) => {
                   const isActive = isLessonActive(lesson);
                   const lessonRoute = getLessonRoute(lesson);
+                  const isCompleted = progress?.completedLessonIds?.includes(lesson.id) && !isReviewMode;
+
                   return (
                     <Link
                       key={lesson.id}
@@ -147,24 +160,28 @@ const CourseSyllabus = ({ courseId }) => {
                           <span className="absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75 animate-ping"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                         </div>
+                      ) : isCompleted ? (
+                        <div className="relative flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-green-500 text-[18px]">check_circle</span>
+                        </div>
                       ) : (
                         <span
-                          className="material-symbols-outlined text-neutral-400 text-sm mt-0.5"
+                          className="material-symbols-outlined text-neutral-400 text-[16px] mt-0.5"
                         >
                           {getLessonIcon(lesson.type)}
                         </span>
                       )}
                       <div className="flex-1">
-                        <p className={`text-sm font-medium leading-snug ${isActive ? 'text-neutral-900 dark:text-white' : 'text-neutral-600 dark:text-neutral-400'
+                        <p className={`text-sm font-medium leading-snug ${isActive ? 'text-neutral-900 dark:text-white' : isCompleted ? 'text-neutral-500 line-through dark:text-neutral-400' : 'text-neutral-600 dark:text-neutral-300'
                           }`}>
                           {lesson.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={`material-symbols-outlined text-[10px] ${isActive ? "text-orange-500" : "text-neutral-400"
+                          <span className={`material-symbols-outlined text-[10px] ${isActive ? "text-orange-500" : isCompleted ? "text-green-500/70" : "text-neutral-400"
                             }`}>
                             {getLessonIcon(lesson.type)}
                           </span>
-                          <span className={`text-[10px] font-sans uppercase tracking-widest ${isActive ? "text-orange-500" : "text-neutral-400"
+                          <span className={`text-[10px] font-sans uppercase tracking-widest ${isActive ? "text-orange-500" : isCompleted ? "text-green-500/70" : "text-neutral-400"
                             }`}>
                             {lesson.type}
                             {lesson.durationSeconds && ` · ${formatDuration(lesson.durationSeconds)}`}

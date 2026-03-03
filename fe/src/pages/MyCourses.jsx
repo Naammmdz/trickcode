@@ -63,21 +63,17 @@ const CourseCard = ({ course }) => {
 
         {/* Progress */}
         <div className="space-y-2">
-          <div className="flex justify-between items-center text-xs text-neutral-500 dark:text-neutral-400">
-            <span>{hasStarted ? 'In Progress' : 'Not started'}</span>
-            <span className="font-medium text-neutral-700 dark:text-neutral-300">{progressPercent}%</span>
+          {/* Progress Text */}
+          <div className="flex justify-between items-center text-xs text-neutral-500 font-medium tracking-wide">
+            <span>{course.progress > 0 ? `${course.progress}% Completed` : 'Not Started'}</span>
+            <span>{course.completedLessons || 0}/{course.totalLessons || 0} Lessons</span>
           </div>
-          <div className="h-1.5 w-full bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+          {/* Progress Bar */}
+          <div className="w-full bg-neutral-100 dark:bg-neutral-800 rounded-full h-1.5 overflow-hidden ring-1 ring-inset ring-black/5 dark:ring-white/5">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                progressPercent === 100
-                  ? 'bg-emerald-500'
-                  : progressPercent > 0
-                    ? 'bg-orange-500'
-                    : 'bg-neutral-300 dark:bg-neutral-700'
-              }`}
-              style={{ width: `${Math.max(progressPercent, 2)}%` }}
-            />
+              className="bg-orange-500 h-1.5 rounded-full transition-all duration-700 ease-out"
+              style={{ width: `${course.progress}%` }}
+            ></div>
           </div>
         </div>
 
@@ -97,23 +93,55 @@ const MyCourses = () => {
   const [activeCourses, setActiveCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // 'all' | 'in-progress' | 'completed'
+  const [error, setError] = useState(null); // Added error state
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        const data = await courseService.getMyEnrolledCourses({ page: 0, size: 50, sort: 'id,desc' });
-        const mapped = (data.content || []).map(c => ({
-          id: c.id,
-          symbol: c.title ? c.title.substring(0, 2).toUpperCase() : '??',
-          title: c.title,
-          thumbnailUrl: c.thumbnailUrl,
-          progress: c.progress || 0,
-          categories: c.categories || [],
-        }));
-        setActiveCourses(mapped);
+        setError(null); // Clear previous errors
+
+        const result = await courseService.getMyEnrolledCourses({
+          page: 0,
+          size: 50,
+          sort: 'id,desc'
+        });
+
+        // Fetch progress for each course
+        const coursesWithProgress = await Promise.all(
+          (result.content || []).map(async (course) => {
+            try {
+              const progressInfo = await courseService.getCourseProgress(course.id);
+              return {
+                id: course.id,
+                symbol: course.title ? course.title.substring(0, 2).toUpperCase() : '??',
+                title: course.title,
+                thumbnailUrl: course.thumbnailUrl,
+                categories: course.categories || [],
+                progress: progressInfo.progressPercent || 0,
+                completedLessons: progressInfo.completedLessons || 0,
+                totalLessons: progressInfo.totalLessons || 0
+              };
+            } catch (e) {
+              console.warn(`Failed to fetch progress for course ${course.id}:`, e);
+              return {
+                id: course.id,
+                symbol: course.title ? course.title.substring(0, 2).toUpperCase() : '??',
+                title: course.title,
+                thumbnailUrl: course.thumbnailUrl,
+                categories: course.categories || [],
+                progress: 0,
+                completedLessons: 0,
+                totalLessons: 0
+              };
+            }
+          })
+        );
+
+        setActiveCourses(coursesWithProgress);
       } catch (err) {
-        console.error('MyCourses: Failed to fetch enrolled courses', err);
+        console.error('Failed to load courses', err);
+        setError('Could not connect to server. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -183,11 +211,10 @@ const MyCourses = () => {
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    filter === f.key
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${filter === f.key
                       ? 'bg-orange-500 text-white shadow-sm'
                       : 'bg-white dark:bg-neutral-900 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-800 hover:border-orange-300 dark:hover:border-orange-500/40'
-                  }`}
+                    }`}
                 >
                   {f.label}
                   <span className={`text-xs ${filter === f.key ? 'text-orange-100' : 'text-neutral-400 dark:text-neutral-500'}`}>

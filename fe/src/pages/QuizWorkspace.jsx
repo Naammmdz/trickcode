@@ -17,6 +17,8 @@ const QuizWorkspace = () => {
   const [error, setError] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [quizData, setQuizData] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [quizResult, setQuizResult] = useState(null);
   const isReviewMode = location.state?.reviewMode || false;
 
   useEffect(() => {
@@ -57,43 +59,42 @@ const QuizWorkspace = () => {
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!quizData || !quizData.questions) return;
 
     const questions = quizData.questions;
 
-    let correctAnswers = 0;
-    const results = questions.map((q, idx) => {
+    let correctCount = 0;
+    const results = questions.map((q) => {
       const userAnswer = selectedAnswers[q.id];
       const isCorrect = userAnswer === q.correctAnswer;
-      if (isCorrect) correctAnswers++;
-
-      return {
-        ...q,
-        userAnswer: userAnswer !== undefined ? userAnswer : -1,
-        correctAnswer: q.correctAnswer,
-        isCorrect
-      };
+      if (isCorrect) correctCount++;
+      return { ...q, userAnswer: userAnswer !== undefined ? userAnswer : -1, isCorrect };
     });
 
     const totalQuestions = questions.length;
-    const score = Math.round((correctAnswers / totalQuestions) * 100);
+    const score = Math.round((correctCount / totalQuestions) * 100);
+    const passingScore = quizData.passingScore || 60;
+    const passed = score >= passingScore;
 
-    // Navigate to result page with data
-    navigate(`/my-courses/${courseId}/quiz/${quizId}/result`, {
-      state: {
-        results: {
-          totalQuestions,
-          correctAnswers,
-          score,
-          questions: results
-        }
+    // Mark as complete if score passes
+    if (passed && !isReviewMode) {
+      try {
+        await courseService.completeLesson(quizId);
+        console.log('Quiz completed successfully:', quizId);
+      } catch (err) {
+        console.error('Failed to mark quiz as completed', err);
       }
-    });
+    }
+
+    setQuizResult({ totalQuestions, correctCount, score, passingScore, passed, questions: results });
+    setSubmitted(true);
   };
 
   const handleReset = () => {
     setSelectedAnswers({});
+    setSubmitted(false);
+    setQuizResult(null);
   };
 
   const getLessonRoute = (lessonItem) => {
@@ -222,6 +223,58 @@ const QuizWorkspace = () => {
               </div>
 
               {/* Quiz Questions */}
+              {/* Result Banner */}
+              {submitted && quizResult && (
+                <div className={`mb-8 p-6 rounded-xl border ${quizResult.passed
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
+                  }`}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center ${quizResult.passed ? 'bg-emerald-500' : 'bg-red-500'
+                      }`}>
+                      <span className="material-symbols-outlined text-white text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {quizResult.passed ? 'check_circle' : 'cancel'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className={`text-xl font-bold ${quizResult.passed ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                        {quizResult.passed ? 'Quiz Passed!' : 'Quiz Failed'}
+                      </h3>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                        Score: <span className="font-bold">{quizResult.score}%</span> ({quizResult.correctCount}/{quizResult.totalQuestions} correct) · Passing: {quizResult.passingScore}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Link
+                      to={`/my-courses/${courseId}`}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                      Back to Course
+                    </Link>
+                    {!quizResult.passed && (
+                      <button
+                        onClick={handleReset}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 border border-neutral-300 dark:border-neutral-700 text-sm font-semibold rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">refresh</span>
+                        Retry Quiz
+                      </button>
+                    )}
+                    {quizResult.passed && nextLesson && (
+                      <Link
+                        to={getLessonRoute(nextLesson)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                      >
+                        Next Lesson
+                        <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-8">
                 <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 md:p-8">
                   {!quizData ? (
@@ -229,58 +282,91 @@ const QuizWorkspace = () => {
                       No quiz configuration found.
                     </div>
                   ) : (
-                    quizData.questions?.map((question, qIdx) => (
-                      <div key={question.id} className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800 last:border-0 last:mb-0 last:pb-0">
-                        <div className="flex items-start gap-3 mb-4">
-                          <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">{qIdx + 1}.</span>
-                          <div className="flex-1">
-                            <p className="text-base text-neutral-900 dark:text-white mb-4">{question.question}</p>
-                            <div className="space-y-3">
-                              {question.options.map((option, oIdx) => (
-                                <label
-                                  key={oIdx}
-                                  onClick={() => handleAnswerSelect(question.id, oIdx)}
-                                  className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${selectedAnswers[question.id] === oIdx
-                                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                    : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                                    }`}
-                                >
-                                  <input
-                                    type="radio"
-                                    name={question.id}
-                                    checked={selectedAnswers[question.id] === oIdx}
-                                    onChange={() => handleAnswerSelect(question.id, oIdx)}
-                                    className="mt-1"
-                                  />
-                                  <span className={`text-sm ${selectedAnswers[question.id] === oIdx
-                                    ? 'text-neutral-900 dark:text-white font-medium'
-                                    : 'text-neutral-600 dark:text-neutral-400'
-                                    }`}>{option}</span>
-                                </label>
-                              ))}
+                    quizData.questions?.map((question, qIdx) => {
+                      const resultQ = submitted && quizResult ? quizResult.questions.find(r => r.id === question.id) : null;
+                      return (
+                        <div key={question.id} className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800 last:border-0 last:mb-0 last:pb-0">
+                          <div className="flex items-start gap-3 mb-4">
+                            <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">{qIdx + 1}.</span>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-4">
+                                <p className="text-base text-neutral-900 dark:text-white">{question.question}</p>
+                                {resultQ && (
+                                  <span className={`material-symbols-outlined text-lg ${resultQ.isCorrect ? 'text-emerald-500' : 'text-red-500'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                                    {resultQ.isCorrect ? 'check_circle' : 'cancel'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="space-y-3">
+                                {question.options.map((option, oIdx) => {
+                                  let borderClass = 'border-neutral-200 dark:border-neutral-700';
+                                  let bgClass = '';
+                                  if (submitted && resultQ) {
+                                    if (oIdx === question.correctAnswer) {
+                                      borderClass = 'border-emerald-400 dark:border-emerald-600';
+                                      bgClass = 'bg-emerald-50 dark:bg-emerald-900/20';
+                                    } else if (oIdx === selectedAnswers[question.id] && !resultQ.isCorrect) {
+                                      borderClass = 'border-red-400 dark:border-red-600';
+                                      bgClass = 'bg-red-50 dark:bg-red-900/20';
+                                    }
+                                  } else if (selectedAnswers[question.id] === oIdx) {
+                                    borderClass = 'border-orange-400 dark:border-orange-500';
+                                    bgClass = 'bg-orange-50 dark:bg-orange-900/10';
+                                  }
+                                  return (
+                                    <label
+                                      key={oIdx}
+                                      onClick={() => !submitted && handleAnswerSelect(question.id, oIdx)}
+                                      className={`flex items-start gap-3 p-3 border rounded transition-colors ${borderClass} ${bgClass} ${submitted ? 'cursor-default' : 'cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/40'}`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={String(question.id)}
+                                        checked={selectedAnswers[question.id] === oIdx}
+                                        onChange={() => !submitted && handleAnswerSelect(question.id, oIdx)}
+                                        disabled={submitted}
+                                        className="mt-1"
+                                      />
+                                      <span className={`text-sm ${submitted && oIdx === question.correctAnswer
+                                          ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
+                                          : submitted && oIdx === selectedAnswers[question.id] && !resultQ?.isCorrect
+                                            ? 'text-red-600 dark:text-red-400 line-through'
+                                            : selectedAnswers[question.id] === oIdx
+                                              ? 'text-neutral-900 dark:text-white font-medium'
+                                              : 'text-neutral-600 dark:text-neutral-400'
+                                        }`}>{option}</span>
+                                      {submitted && oIdx === question.correctAnswer && (
+                                        <span className="ml-auto text-[10px] uppercase tracking-widest font-bold text-emerald-500">Correct</span>
+                                      )}
+                                    </label>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
 
-                  {/* Submit Button */}
-                  <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800">
-                    <button
-                      onClick={handleReset}
-                      className="px-6 py-3 border border-neutral-200 dark:border-neutral-700 text-sm font-sans uppercase tracking-widest text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors rounded"
-                    >
-                      Reset
-                    </button>
-                    <button
-                      onClick={handleSubmit}
-                      disabled={!quizData || !quizData.questions || Object.keys(selectedAnswers).length < quizData.questions.length}
-                      className="px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-sans uppercase tracking-widest hover:opacity-90 transition-opacity rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Submit Answers
-                    </button>
-                  </div>
+                  {/* Submit / Reset Buttons */}
+                  {!submitted && (
+                    <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800">
+                      <button
+                        onClick={handleReset}
+                        className="px-6 py-3 border border-neutral-200 dark:border-neutral-700 text-sm font-sans uppercase tracking-widest text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors rounded"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={!quizData || !quizData.questions || Object.keys(selectedAnswers).length < quizData.questions.length}
+                        className="px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-sans uppercase tracking-widest hover:opacity-90 transition-opacity rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Submit Answers
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

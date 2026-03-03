@@ -393,6 +393,33 @@ export const courseService = {
         }
     },
 
+    // ─── Progress APIs ────────────────────────────────────────────────────────
+
+    getCourseProgress: async (courseId) => {
+        try {
+            const response = await apiClient.get(API_ENDPOINTS.COURSES.PROGRESS(courseId));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to get progress for course ${courseId}:`, error);
+            return {
+                totalLessons: 0,
+                completedLessons: 0,
+                progressPercent: 0,
+                completedLessonIds: []
+            };
+        }
+    },
+
+    completeLesson: async (lessonId) => {
+        try {
+            const response = await apiClient.post(API_ENDPOINTS.LESSONS.COMPLETE(lessonId));
+            return response.data;
+        } catch (error) {
+            console.error(`Failed to complete lesson ${lessonId}:`, error);
+            throw error;
+        }
+    },
+
     // ─── Category APIs ────────────────────────────────────────────────────────
 
     getCategories: async ({ page = 0, size = 100, sort = 'orderIndex,asc' } = {}) => {

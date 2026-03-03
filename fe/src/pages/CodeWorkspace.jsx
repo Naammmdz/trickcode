@@ -6,6 +6,7 @@ import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
 import { courseService } from '../services/courseService';
+import { codeExecutionService } from '../services/codeExecutionService';
 
 const CodeWorkspace = () => {
   const { courseId, codeId } = useParams();
@@ -150,49 +151,29 @@ const CodeWorkspace = () => {
     });
   };
 
-  const getLanguageId = (lang) => {
-    const ids = {
-      python: 92, // Python (3.11.2)
-      javascript: 93, // Node.js (18.15.0)
-      java: 91 // Java (JDK 17.0.6)
-    };
-    return ids[lang] || 92;
-  };
-
-  const executeOnJudge0 = async (sourceCode, languageId, stdin = '') => {
-    try {
-      const response = await fetch('https://ce.judge0.com/submissions?base64_encoded=false&wait=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ source_code: sourceCode, language_id: languageId, stdin: stdin }),
-      });
-      if (!response.ok) throw new Error('API request failed');
-      return await response.json();
-    } catch (e) {
-      return { error: e.message };
-    }
-  };
-
   const handleRunCode = async () => {
     setIsRunning(true);
     setOutput('');
     setTestResults(null);
 
-    const langId = getLanguageId(language);
-    const data = await executeOnJudge0(code, langId);
+    try {
+      const data = await codeExecutionService.runCode(code, language);
 
-    if (data.error) {
-      setOutput(`Error: ${data.error}`);
-    } else if (data.compile_output) {
-      setOutput(data.compile_output);
-    } else if (data.stderr) {
-      setOutput(data.stderr);
-    } else if (data.stdout !== null && data.stdout !== undefined) {
-      setOutput(data.stdout || '\n');
-    } else if (data.message) {
-      setOutput(data.message);
-    } else {
-      setOutput('Execution finished with no output.');
+      if (data.error) {
+        setOutput(`Error: ${data.error}`);
+      } else if (data.compile_output) {
+        setOutput(data.compile_output);
+      } else if (data.stderr) {
+        setOutput(data.stderr);
+      } else if (data.stdout != null) {
+        setOutput(data.stdout || '\n');
+      } else if (data.message) {
+        setOutput(data.message);
+      } else {
+        setOutput('Execution finished with no output.');
+      }
+    } catch (err) {
+      setOutput(`Error: ${err.message || 'Code execution failed'}`);
     }
 
     setIsRunning(false);
@@ -205,48 +186,29 @@ const CodeWorkspace = () => {
     setOutput('');
     setTestResults(null);
 
-    const langId = getLanguageId(language);
-    const results = [];
-    let hasError = false;
+    try {
+      const result = await codeExecutionService.submitCode(
+        Number(codeId),
+        code,
+        language
+      );
 
-    for (const testCase of codeData.testCases) {
-      // In a real system, the starter code must be configured to read from stdin 
-      // or we must inject a template to call the target function.
-      const data = await executeOnJudge0(code, langId, testCase.input);
-
-      if (data.error) {
-        hasError = true;
-        setOutput(`Error during execution: ${data.error}`);
-        break;
-      }
-
-      const isAccepted = data.status?.id === 3; // 3 = Accepted
-      const actualRaw = data.stdout != null ? data.stdout : (data.stderr || data.compile_output || data.message || '');
-      const actualStr = actualRaw.trim();
-      const expectedStr = testCase.expected.trim();
-
-      const passed = isAccepted && (actualStr === expectedStr);
-
-      results.push({
-        input: testCase.input,
-        expected: expectedStr,
-        actual: actualStr,
-        passed: passed
-      });
-    }
-
-    if (!hasError) {
-      const passedCount = results.filter(r => r.passed).length;
       setTestResults({
-        passed: passedCount,
-        total: results.length,
-        tests: results
+        passed: result.testsPassed,
+        total: result.testsTotal,
+        tests: result.testCaseResults || [],
+        submissionId: result.submissionId,
+        executionTime: result.executionTime,
+        memoryUsed: result.memoryUsed,
       });
-      if (passedCount === results.length) {
-        setOutput('All test cases passed!');
+
+      if (result.testsPassed === result.testsTotal) {
+        setOutput(`✓ All ${result.testsTotal} test cases passed! (${result.executionTime}s, ${result.memoryUsed}KB)`);
       } else {
-        setOutput(`Failed ${results.length - passedCount} test cases.`);
+        setOutput(`✗ ${result.testsTotal - result.testsPassed} of ${result.testsTotal} test cases failed.`);
       }
+    } catch (err) {
+      setOutput(`Error: ${err.message || 'Submission failed'}`);
     }
 
     setIsRunning(false);
@@ -279,12 +241,11 @@ const CodeWorkspace = () => {
   };
 
   const getLanguageFileName = (lang) => {
-    const files = {
-      python: 'climbing_stairs.py',
-      javascript: 'climbing_stairs.js',
-      java: 'Solution.java'
-    };
-    return files[lang] || 'code';
+    const funcName = codeData?.functionName || 'solution';
+    const extensions = { python: '.py', javascript: '.js', java: '.java' };
+    const ext = extensions[lang] || '';
+    if (lang === 'java') return 'Solution.java';
+    return funcName + ext;
   };
 
   const getLessonRoute = (lessonItem) => {
@@ -302,6 +263,32 @@ const CodeWorkspace = () => {
     const currentIndex = flattenedLessons.findIndex(l => l.id === Number(codeId));
     if (currentIndex > 0) prevLesson = flattenedLessons[currentIndex - 1];
     if (currentIndex !== -1 && currentIndex < flattenedLessons.length - 1) nextLesson = flattenedLessons[currentIndex + 1];
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-neutral-300 dark:border-neutral-700 border-t-neutral-900 dark:border-t-white rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500 font-mono">Loading workspace...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <span className="material-symbols-outlined text-4xl text-red-500">error</span>
+          <h2 className="text-lg font-serif">Failed to load workspace</h2>
+          <p className="text-sm text-neutral-500">{error}</p>
+          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-xs font-sans uppercase tracking-widest rounded">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -405,35 +392,66 @@ const CodeWorkspace = () => {
                     <span className="text-xs font-sans uppercase tracking-widest text-neutral-500">Problem</span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-5">
                   <h2 className="text-lg font-serif font-medium text-neutral-900 dark:text-white mb-4">{lesson?.title}</h2>
-                  <div className="prose dark:prose-invert prose-sm max-w-none">
-                    {codeData?.problemDescription ? (
-                      <div className="whitespace-pre-line text-neutral-600 dark:text-neutral-400">
-                        {codeData.problemDescription}
-                      </div>
-                    ) : (
-                      <div className="text-neutral-500 italic">No problem description available.</div>
-                    )}
+                  {codeData?.problemDescription ? (
+                    <div className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed space-y-3">
+                      {codeData.problemDescription.split('\n').map((line, i) => {
+                        const trimmed = line.trim();
+                        if (!trimmed) return <br key={i} />;
+                        // Bold markers **text**
+                        const parts = trimmed.split(/(\*\*.*?\*\*)/).map((part, j) => {
+                          if (part.startsWith('**') && part.endsWith('**')) {
+                            return <strong key={j} className="text-neutral-900 dark:text-white font-semibold">{part.slice(2, -2)}</strong>;
+                          }
+                          return part;
+                        });
+                        // Lines starting with - as list items
+                        if (trimmed.startsWith('- ')) {
+                          return <div key={i} className="pl-4 flex gap-2"><span className="text-orange-400">•</span><span>{parts}</span></div>;
+                        }
+                        return <p key={i}>{parts}</p>;
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-neutral-500 italic text-sm">No problem description available.</div>
+                  )}
 
-                    {/* Show example test cases if available in description or parse them */}
-                  </div>
+                  {/* Example Test Cases */}
+                  {codeData?.testCases && codeData.testCases.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-xs font-sans uppercase tracking-widest text-neutral-400 mb-3">Examples</h3>
+                      <div className="space-y-2">
+                        {codeData.testCases.slice(0, 3).map((tc, idx) => (
+                          <div key={idx} className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-3 text-xs font-mono">
+                            <div className="text-neutral-500 mb-1">Input:</div>
+                            <div className="text-neutral-800 dark:text-neutral-200 mb-2 pl-2">{tc.input}</div>
+                            <div className="text-neutral-500 mb-1">Output:</div>
+                            <div className="text-emerald-600 dark:text-emerald-400 pl-2">{tc.expected}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Resize Handle - Vertical */}
               <div
                 onMouseDown={() => setIsResizing('vertical')}
-                className="w-1 bg-neutral-200 dark:bg-neutral-800 hover:bg-primary cursor-col-resize transition-colors group relative flex-shrink-0"
-                style={{ minWidth: '4px' }}
+                className="w-2 bg-neutral-100 dark:bg-neutral-900 hover:bg-orange-200 dark:hover:bg-orange-900/40 cursor-col-resize transition-colors group relative flex-shrink-0 flex items-center justify-center"
               >
-                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-1 group-hover:bg-primary"></div>
+                <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-0.5 h-0.5 rounded-full bg-neutral-400"></div>
+                  <div className="w-0.5 h-0.5 rounded-full bg-neutral-400"></div>
+                  <div className="w-0.5 h-0.5 rounded-full bg-neutral-400"></div>
+                </div>
               </div>
 
               {/* Right: Code Editor & Test Results */}
-              <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1 flex flex-col min-w-0 min-h-0">
                 {/* Code Editor */}
-                <div className="flex-1 flex flex-col border-b border-neutral-200 dark:border-neutral-800">
+                <div className="flex-1 flex flex-col min-h-0 border-b border-neutral-200 dark:border-neutral-800">
                   {/* Editor Header */}
                   <div className="h-12 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-between px-4 shrink-0">
                     <div className="flex items-center gap-3">
@@ -476,7 +494,11 @@ const CodeWorkspace = () => {
                   </div>
 
                   {/* Code Editor */}
-                  <div className="flex-1 overflow-hidden bg-neutral-50 dark:bg-black">
+                  <div className="flex-1 overflow-hidden bg-neutral-50 dark:bg-black relative">
+                    {/* Overlay to prevent Monaco from capturing mouse during resize */}
+                    {isResizing && (
+                      <div className="absolute inset-0 z-10 cursor-row-resize" />
+                    )}
                     <Editor
                       height="100%"
                       language={language}
@@ -507,33 +529,27 @@ const CodeWorkspace = () => {
                   </div>
 
                   {/* Editor Footer */}
-                  <div className="h-12 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-between px-4 shrink-0">
-                    <div className="flex items-center gap-4 text-xs text-neutral-500">
-                      <span className="font-mono">{getLanguageDisplayName(language)}</span>
-                      <span className="w-px h-4 bg-neutral-300 dark:bg-neutral-700"></span>
+                  <div className="h-11 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-between px-4 shrink-0">
+                    <div className="flex items-center gap-3 text-[11px] text-neutral-400 font-mono">
+                      <span>{getLanguageDisplayName(language)}</span>
+                      <span className="w-px h-3.5 bg-neutral-300 dark:bg-neutral-700"></span>
                       <span>{code.split('\n').length} lines</span>
-                      {editorRef.current && (
-                        <>
-                          <span className="w-px h-4 bg-neutral-300 dark:bg-neutral-700"></span>
-                          <span>Ln {editorRef.current.getPosition()?.lineNumber || 1}, Col {editorRef.current.getPosition()?.column || 1}</span>
-                        </>
-                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={handleRunCode}
                         disabled={isRunning}
-                        className="px-4 py-1.5 bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-sans uppercase tracking-widest hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-4 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors rounded-md border border-neutral-200 dark:border-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
                       >
-                        <span className="material-symbols-outlined text-sm">play_arrow</span>
+                        <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
                         Run
                       </button>
                       <button
                         onClick={handleSubmit}
                         disabled={isRunning}
-                        className="px-4 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-xs font-sans uppercase tracking-widest hover:opacity-90 transition-opacity rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium transition-colors rounded-md disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm shadow-emerald-500/20"
                       >
-                        <span className="material-symbols-outlined text-sm">send</span>
+                        <span className="material-symbols-outlined text-[15px]">upload</span>
                         Submit
                       </button>
                     </div>
@@ -543,10 +559,13 @@ const CodeWorkspace = () => {
                 {/* Resize Handle - Horizontal */}
                 <div
                   onMouseDown={() => setIsResizing('horizontal')}
-                  className="h-1 bg-neutral-200 dark:bg-neutral-800 hover:bg-primary cursor-row-resize transition-colors group relative flex-shrink-0"
-                  style={{ minHeight: '4px' }}
+                  className="h-2 bg-neutral-100 dark:bg-neutral-900 hover:bg-orange-200 dark:hover:bg-orange-900/40 cursor-row-resize transition-colors group relative flex-shrink-0 flex items-center justify-center"
                 >
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 group-hover:bg-primary"></div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-0.5 h-0.5 rounded-full bg-neutral-400"></div>
+                    <div className="w-0.5 h-0.5 rounded-full bg-neutral-400"></div>
+                    <div className="w-0.5 h-0.5 rounded-full bg-neutral-400"></div>
+                  </div>
                 </div>
 
                 {/* Test Results - Bottom Section */}
@@ -601,6 +620,20 @@ const CodeWorkspace = () => {
                           <span className="text-xs font-sans uppercase tracking-widest text-neutral-500">
                             Test Results: {testResults.passed}/{testResults.total} Passed
                           </span>
+                          {testResults.executionTime != null && (
+                            <span className="text-[10px] font-mono text-neutral-400 ml-auto flex items-center gap-3">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">timer</span>
+                                {testResults.executionTime}s
+                              </span>
+                              {testResults.memoryUsed != null && (
+                                <span className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-xs">memory</span>
+                                  {testResults.memoryUsed}KB
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {testResults.tests.map((test, idx) => (
