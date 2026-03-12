@@ -123,11 +123,11 @@ const InstructorOverview = ({ onTabChange }) => {
                     subtitle="enrolled"
                 />
                 <StatCard
-                    title="Total Revenue"
+                    title="Net Earnings"
                     value={formatCurrency(stats.totalRevenue)}
                     icon="payments"
                     color="primary"
-                    subtitle="all time"
+                    subtitle="80% share · all time"
                 />
                 <StatCard
                     title="Pending Review"

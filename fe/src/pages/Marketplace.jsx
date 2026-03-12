@@ -581,7 +581,10 @@ const Marketplace = () => {
               <span className="font-semibold text-xs uppercase tracking-wider text-neutral-900 dark:text-white mb-1">Marketplace</span>
               <Link to="/learn" className="text-xs hover:text-orange-500 transition-colors">Browse All</Link>
               <a href="#" className="text-xs hover:text-orange-500 transition-colors">Instructors</a>
-              <a href="#" className="text-xs hover:text-orange-500 transition-colors">Become a Mentor</a>
+              <Link to="/apply-instructor" className="text-xs hover:text-orange-500 transition-colors inline-flex items-center gap-1">
+                <span className="material-symbols-outlined text-[12px]">school</span>
+                Become an Instructor
+              </Link>
             </div>
             <div className="flex flex-col gap-2.5">
               <span className="font-semibold text-xs uppercase tracking-wider text-neutral-900 dark:text-white mb-1">Resources</span>

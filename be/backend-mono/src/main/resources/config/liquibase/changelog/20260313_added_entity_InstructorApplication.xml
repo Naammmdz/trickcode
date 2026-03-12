@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260313-1" author="system">
+        <createTable tableName="instructor_application">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="full_name" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="bio" type="varchar(2000)"/>
+            <column name="experience" type="varchar(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="motivation" type="varchar(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="varchar(20)" defaultValue="PENDING">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rejection_reason" type="varchar(1000)"/>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reviewed_at" type="timestamp"/>
+            <column name="reviewed_by" type="varchar(255)"/>
+        </createTable>
+
+        <addForeignKeyConstraint
+            baseTableName="instructor_application"
+            baseColumnNames="user_id"
+            constraintName="fk_instructor_app_user"
+            referencedTableName="jhi_user"
+            referencedColumnNames="id"/>
+
+        <createIndex indexName="idx_instructor_app_user" tableName="instructor_application">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex indexName="idx_instructor_app_status" tableName="instructor_application">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

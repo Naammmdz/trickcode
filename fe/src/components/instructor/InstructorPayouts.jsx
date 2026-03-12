@@ -79,7 +79,7 @@ const InstructorPayouts = () => {
                             <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20">
                                 <span className="material-symbols-outlined text-lg text-emerald-500">account_balance_wallet</span>
                             </div>
-                            <span className="text-[11px] font-sans uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">Total Earnings</span>
+                            <span className="text-[11px] font-sans uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">Net Earnings (80%)</span>
                         </div>
                         <p className="text-4xl font-serif font-bold text-neutral-900 dark:text-white">
                             ${(totals.totalRevenue || 0).toFixed(2)}
@@ -150,7 +150,7 @@ const InstructorPayouts = () => {
                     <table className="min-w-full">
                         <thead className="bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800">
                             <tr>
-                                {['Course', 'Price', 'Status', 'Enrollments', 'Revenue', '%'].map((h) => (
+                                {['Course', 'Price', 'Status', 'Enrollments', 'Revenue'].map((h) => (
                                     <th key={h} className="text-left px-6 py-3 text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-neutral-400">{h}</th>
                                 ))}
                             </tr>
@@ -158,7 +158,7 @@ const InstructorPayouts = () => {
                         <tbody>
                             {payouts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-10 text-center text-sm text-neutral-500">
+                                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-neutral-500">
                                         No earning data available yet.
                                     </td>
                                 </tr>
@@ -166,7 +166,6 @@ const InstructorPayouts = () => {
                                 [...payouts]
                                     .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
                                     .map((course) => {
-                                        const share = totals.totalRevenue > 0 ? ((course.revenue || 0) / totals.totalRevenue * 100) : 0;
                                         return (
                                             <tr key={course.courseId} className="border-b border-neutral-100 dark:border-neutral-800 last:border-b-0 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/30 transition-colors">
                                                 <td className="px-6 py-4">
@@ -198,17 +197,6 @@ const InstructorPayouts = () => {
                                                         ${((course.revenue || 0)).toFixed(2)}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-16 h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
-                                                            <div
-                                                                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                                                style={{ width: `${Math.min(share, 100)}%` }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-[11px] font-mono text-neutral-400">{share.toFixed(1)}%</span>
-                                                    </div>
-                                                </td>
                                             </tr>
                                         );
                                     })
@@ -220,7 +208,7 @@ const InstructorPayouts = () => {
                 {/* Total Row */}
                 {payouts.length > 0 && (
                     <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950 flex justify-between items-center">
-                        <span className="text-xs font-sans uppercase tracking-widest text-neutral-500 dark:text-neutral-400">Total Earnings</span>
+                        <span className="text-xs font-sans uppercase tracking-widest text-neutral-500 dark:text-neutral-400">Net Earnings (80% share)</span>
                         <span className="text-lg font-serif font-bold text-emerald-600 dark:text-emerald-400">
                             ${(totals.totalRevenue || 0).toFixed(2)}
                         </span>
@@ -235,9 +223,8 @@ const InstructorPayouts = () => {
                     <div>
                         <h4 className="text-sm font-medium text-neutral-900 dark:text-white mb-1">About Payouts</h4>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
-                            Revenue shown reflects completed orders from your published courses. Payouts are processed monthly and
-                            will be sent to your configured payment method. Contact support for payout inquiries or to set up your
-                            payment preferences.
+                            You receive <strong className="text-neutral-700 dark:text-neutral-200">80%</strong> of each course sale. The platform retains 20% as a service fee.
+                            Revenue shown is your net earnings after the platform commission. Payouts are processed monthly.
                         </p>
                     </div>
                 </div>

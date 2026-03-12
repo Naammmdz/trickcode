@@ -11,7 +11,7 @@ import RolesTab from '../components/admin/tabs/RolesTab';
 import CoursesTab from '../components/admin/tabs/CoursesTab';
 import CategoriesTab from '../components/admin/tabs/CategoriesTab';
 import SettingsTab from '../components/admin/tabs/SettingsTab';
-import PlaceholderTab from '../components/admin/tabs/PlaceholderTab';
+import InstructorsTab from '../components/admin/tabs/InstructorsTab';
 import PaymentsTab from '../components/admin/tabs/PaymentsTab';
 
 const AdminDashboard = () => {
@@ -39,17 +39,7 @@ const AdminDashboard = () => {
     roles: <RolesTab />,
     courses: <CoursesTab />,
     categories: <CategoriesTab />,
-    instructors: (
-      <PlaceholderTab
-        title="Instructors"
-        subtitle="KYC / approval workflow (demo)"
-        columns={['Email', 'Courses', 'Status']}
-        rows={[
-          ['instructor@trickcode.local', '2', 'APPROVED'],
-          ['pending@trickcode.local', '0', 'PENDING'],
-        ]}
-      />
-    ),
+    instructors: <InstructorsTab />,
     payments: <PaymentsTab />,
     settings: <SettingsTab />,
   };

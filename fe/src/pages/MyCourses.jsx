@@ -3,6 +3,7 @@ import logo from '/logo.png';
 import Navbar from '../components/layout/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { courseService } from '../services/courseService';
+import { proSubscriptionService } from '../services/proService';
 import { useState, useEffect } from 'react';
 
 /* ─── Skeleton card for loading state ─── */
@@ -92,8 +93,15 @@ const MyCourses = () => {
   const { user } = useAuth();
   const [activeCourses, setActiveCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all' | 'in-progress' | 'completed'
-  const [error, setError] = useState(null); // Added error state
+  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState(null);
+  const [isPro, setIsPro] = useState(true); // default true to hide banner until checked
+
+  useEffect(() => {
+    proSubscriptionService.getStatus()
+      .then(data => setIsPro(data.isStudentPro || false))
+      .catch(() => setIsPro(false));
+  }, []);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -202,6 +210,33 @@ const MyCourses = () => {
             </div>
           </div>
         </div>
+
+        {/* Pro Upgrade Banner (students only, non-Pro) */}
+        {!isPro && (
+          <div className="max-w-7xl mx-auto px-6 mt-6">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 p-5 md:p-6">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white text-xl">smart_toy</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-sm">Unlock AI Learning Assistant</p>
+                    <p className="text-blue-100 text-xs mt-0.5">Get code hints, failure explanations, and AI Q&A while you learn.</p>
+                  </div>
+                </div>
+                <Link
+                  to="/checkout/pro?plan=STUDENT_PRO"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-blue-600 text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-blue-50 transition-colors shadow-lg shrink-0"
+                >
+                  <span className="material-symbols-outlined text-sm">stars</span>
+                  Upgrade to Pro
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="max-w-7xl mx-auto px-6 mt-8">
           {/* Toolbar: Filters + Browse link */}

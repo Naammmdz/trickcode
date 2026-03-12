@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class InstructorDashboardService {
 
+    private static final BigDecimal INSTRUCTOR_SHARE = new BigDecimal("0.80"); // 80% to instructor
+
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final OrderRepository orderRepository;
@@ -78,15 +80,16 @@ public class InstructorDashboardService {
         // Fetch instructor's courses
         List<Course> courses = courseRepository.findAllByInstructorLogin(login);
 
-        // Total revenue calculated from course price * enrollments
-        BigDecimal totalRevenue = courses.stream()
+        // Total gross revenue (course price * enrollments)
+        BigDecimal grossRevenue = courses.stream()
             .map(course -> {
                 BigDecimal price = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
                 long enrolls = enrollmentRepository.countByCourseId(course.getId());
                 return price.multiply(BigDecimal.valueOf(enrolls));
             })
             .reduce(BigDecimal.ZERO, BigDecimal::add);
-        stats.setTotalRevenue(totalRevenue);
+        // Instructor net revenue (80%)
+        stats.setTotalRevenue(grossRevenue.multiply(INSTRUCTOR_SHARE));
 
         // Recent enrollments (last 10)
         List<Enrollment> recentEnrollments = enrollmentRepository.findByCourseIdInOrderByEnrolledAtDesc(courseIds);
@@ -108,7 +111,7 @@ public class InstructorDashboardService {
             courses.stream().map(course -> {
                 long enrollCount = enrollmentRepository.countByCourseId(course.getId());
                 BigDecimal price = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
-                BigDecimal courseRevenue = price.multiply(BigDecimal.valueOf(enrollCount));
+                BigDecimal courseRevenue = price.multiply(BigDecimal.valueOf(enrollCount)).multiply(INSTRUCTOR_SHARE);
                 return new InstructorDashboardStatsDTO.CourseStatDTO(
                     course.getId(),
                     course.getTitle(),
@@ -151,7 +154,7 @@ public class InstructorDashboardService {
             .collect(Collectors.groupingBy(
                 e -> LocalDate.ofInstant(e.getEnrolledAt(), zoneId).format(formatter),
                 Collectors.reducing(BigDecimal.ZERO,
-                    e -> coursePriceMap.getOrDefault(e.getCourse() != null ? e.getCourse().getId() : 0L, BigDecimal.ZERO),
+                    e -> coursePriceMap.getOrDefault(e.getCourse() != null ? e.getCourse().getId() : 0L, BigDecimal.ZERO).multiply(INSTRUCTOR_SHARE),
                     BigDecimal::add)
             ));
         Map<String, BigDecimal> sortedRevenue = new TreeMap<>(revenueMap);
@@ -199,7 +202,7 @@ public class InstructorDashboardService {
         return courses.stream().map(course -> {
             long enrollCount = enrollmentRepository.countByCourseId(course.getId());
             BigDecimal price = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
-            BigDecimal courseRevenue = price.multiply(BigDecimal.valueOf(enrollCount));
+            BigDecimal courseRevenue = price.multiply(BigDecimal.valueOf(enrollCount)).multiply(INSTRUCTOR_SHARE);
             return new InstructorDashboardStatsDTO.CourseStatDTO(
                 course.getId(),
                 course.getTitle(),

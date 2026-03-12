@@ -1,12 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { proSubscriptionService } from '../../services/proService';
 
 const UserAvatar = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [proStatus, setProStatus] = useState(null);
+
+  // Fetch Pro status
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    proSubscriptionService.getStatus()
+      .then(data => setProStatus(data))
+      .catch(() => setProStatus(null));
+  }, [isAuthenticated]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -121,15 +131,22 @@ const UserAvatar = () => {
                 Transaction History
               </Link>
             )}
-            {!(user?.roles?.includes('ROLE_ADMIN') || user?.authorities?.includes('ROLE_ADMIN')) && !user?.isPro && (
-              <Link
-                to="/checkout/pro"
-                onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors font-sans font-medium"
-              >
-                <span className="material-symbols-outlined text-base">workspace_premium</span>
-                Update to Pro
-              </Link>
+            {!(user?.roles?.includes('ROLE_ADMIN') || user?.authorities?.includes('ROLE_ADMIN')) && (
+              proStatus?.isPro ? (
+                <div className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 font-sans">
+                  <span className="material-symbols-outlined text-base">verified</span>
+                  <span>Pro Active</span>
+                </div>
+              ) : (
+                <Link
+                  to={`/checkout/pro${hasRole('ROLE_INSTRUCTOR') ? '?plan=INSTRUCTOR_PRO' : '?plan=STUDENT_PRO'}`}
+                  onClick={() => setDropdownOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors font-sans font-medium"
+                >
+                  <span className="material-symbols-outlined text-base">workspace_premium</span>
+                  Upgrade to Pro
+                </Link>
+              )
             )}
             <div className="border-t border-neutral-100 dark:border-neutral-800 my-1"></div>
             <Link

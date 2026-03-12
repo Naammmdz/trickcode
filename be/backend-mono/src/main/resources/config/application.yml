@@ -252,3 +252,8 @@ gemini:
   api-key: ${GEMINI_API_KEY:}
   model: ${GEMINI_MODEL:gemini-3.1-flash-lite-preview}
   api-url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models}
+
+pro-subscription:
+  student-price-usd: ${PRO_STUDENT_PRICE:9.99}
+  instructor-price-usd: ${PRO_INSTRUCTOR_PRICE:19.99}
+  duration-days: ${PRO_DURATION_DAYS:30}

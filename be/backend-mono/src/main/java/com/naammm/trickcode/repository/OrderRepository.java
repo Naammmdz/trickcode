@@ -23,6 +23,9 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("select jhiOrder from Order jhiOrder where jhiOrder.user.login = ?#{authentication.name}")
     List<Order> findByUserIsCurrentUser();
 
+    @Query("select o from Order o left join fetch o.course where o.user.login = ?#{authentication.name} and o.status = 'COMPLETED' order by o.createdAt desc")
+    List<Order> findByCurrentUserCompleted();
+
     default Optional<Order> findOneWithEagerRelationships(Long id) {
         return this.findOneWithToOneRelationships(id);
     }

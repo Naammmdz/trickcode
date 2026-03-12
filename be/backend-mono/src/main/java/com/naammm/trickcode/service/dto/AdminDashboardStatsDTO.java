@@ -14,6 +14,10 @@ public class AdminDashboardStatsDTO {
     private long totalCourses;
     private long pendingCourses;
     private BigDecimal totalRevenue;
+    private BigDecimal courseRevenue;
+    private BigDecimal subscriptionRevenue;
+    private BigDecimal platformCommission;
+    private BigDecimal instructorPayouts;
     private List<RecentUserDTO> recentUsers;
     private List<RecentOrderDTO> recentOrders;
 
@@ -50,6 +54,18 @@ public class AdminDashboardStatsDTO {
     public void setTotalRevenue(BigDecimal totalRevenue) {
         this.totalRevenue = totalRevenue;
     }
+
+    public BigDecimal getCourseRevenue() { return courseRevenue; }
+    public void setCourseRevenue(BigDecimal courseRevenue) { this.courseRevenue = courseRevenue; }
+
+    public BigDecimal getSubscriptionRevenue() { return subscriptionRevenue; }
+    public void setSubscriptionRevenue(BigDecimal subscriptionRevenue) { this.subscriptionRevenue = subscriptionRevenue; }
+
+    public BigDecimal getPlatformCommission() { return platformCommission; }
+    public void setPlatformCommission(BigDecimal platformCommission) { this.platformCommission = platformCommission; }
+
+    public BigDecimal getInstructorPayouts() { return instructorPayouts; }
+    public void setInstructorPayouts(BigDecimal instructorPayouts) { this.instructorPayouts = instructorPayouts; }
 
     public List<RecentUserDTO> getRecentUsers() {
         return recentUsers;

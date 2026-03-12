@@ -1,12 +1,28 @@
+import { useState, useEffect } from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
+import AiAssistantPanel from '../components/ai/AiAssistantPanel';
+import { proSubscriptionService } from '../services/proService';
 
 const QuizResult = () => {
   const { courseId, quizId } = useParams();
   const location = useLocation();
+
+  // AI Panel state
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    proSubscriptionService.getStatus()
+      .then(data => setIsPro(data.isStudentPro || false))
+      .catch(() => setIsPro(false));
+  }, []);
   
   // Mock data - trong thực tế sẽ lấy từ location.state hoặc API
   const quizResults = location.state?.results || {
@@ -247,6 +263,21 @@ const QuizResult = () => {
                             </div>
                           </div>
                         )}
+                        {/* Ask AI Button */}
+                        <button
+                          onClick={() => {
+                            setSelectedQuestion({
+                              quizQuestion: q.question,
+                              studentAnswer: q.options[q.userAnswer],
+                              correctAnswer: q.options[q.correctAnswer],
+                            });
+                            setAiPanelOpen(true);
+                          }}
+                          className="mt-3 flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans uppercase tracking-widest text-neutral-500 hover:text-primary border border-neutral-200 dark:border-neutral-700 hover:border-primary/50 rounded transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">smart_toy</span>
+                          Ask AI {!isPro && '🔒'}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -283,6 +314,15 @@ const QuizResult = () => {
           </div>
         </main>
       </div>
+
+      {/* AI Assistant Panel */}
+      <AiAssistantPanel
+        isOpen={aiPanelOpen}
+        onClose={() => setAiPanelOpen(false)}
+        isPro={isPro}
+        mode="quiz"
+        context={selectedQuestion || {}}
+      />
     </div>
   );
 };

@@ -22,6 +22,7 @@ import ProCheckout from './pages/ProCheckout'
 import AdminDashboard from './pages/AdminDashboard'
 import InstructorDashboard from './pages/InstructorDashboard'
 import AdminCourseReview from './pages/AdminCourseReview'
+import ApplyInstructor from './pages/ApplyInstructor'
 import NotFound from './pages/NotFound'
 import { Toaster } from 'react-hot-toast'
 
@@ -56,6 +57,7 @@ function App() {
           <Route path="/checkout/pro" element={<ProCheckout />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/instructor" element={<InstructorDashboard />} />
+          <Route path="/apply-instructor" element={<ApplyInstructor />} />
           <Route path="/admin/review/:courseId/lesson/:lessonId" element={<VideoWorkspace />} />
           <Route path="/my-courses/:courseId/lesson/:lessonId" element={<VideoWorkspace />} />
           <Route path="/admin/review/:courseId/quiz/:quizId" element={<QuizWorkspace />} />

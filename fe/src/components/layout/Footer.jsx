@@ -35,6 +35,12 @@ const Footer = ({ simple = false }) => {
                 <li><a className="hover:text-primary transition-colors" href="#">Careers</a></li>
                 <li><a className="hover:text-primary transition-colors" href="#">Blog</a></li>
                 <li><a className="hover:text-primary transition-colors" href="#">Contact</a></li>
+                <li>
+                  <a className="hover:text-primary transition-colors inline-flex items-center gap-1.5" href="/apply-instructor">
+                    <span className="material-symbols-outlined text-sm">school</span>
+                    Become an Instructor
+                  </a>
+                </li>
               </ul>
             </div>
             <div>

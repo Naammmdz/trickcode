@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { proSubscriptionService } from '../../services/proService';
 import ThemeToggler from '../ui/ThemeToggler';
 
 const InstructorDashboardSidebar = ({ currentTab, onTabChange }) => {
@@ -8,6 +9,7 @@ const InstructorDashboardSidebar = ({ currentTab, onTabChange }) => {
   const navigate = useNavigate();
 
   const [showDropdown, setShowDropdown] = useState(false);
+  const [proStatus, setProStatus] = useState(null);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -33,6 +35,12 @@ const InstructorDashboardSidebar = ({ currentTab, onTabChange }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDropdown]);
+
+  useEffect(() => {
+    proSubscriptionService.getStatus()
+      .then(data => setProStatus(data))
+      .catch(() => setProStatus(null));
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -121,6 +129,38 @@ const InstructorDashboardSidebar = ({ currentTab, onTabChange }) => {
               <span className="material-symbols-outlined text-neutral-900 dark:text-white text-[16px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span>
             </button>
           </nav>
+        </div>
+
+        {/* Pro Subscription CTA / Status */}
+        <div className="px-6 pb-4">
+          {proStatus?.isPro ? (
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/30">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-500 text-lg">workspace_premium</span>
+                <span className="text-xs font-sans uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-bold">Pro Active ✓</span>
+              </div>
+              <p className="text-[10px] text-neutral-500 dark:text-neutral-400 mt-1">
+                Expires: {new Date(proStatus.expiresAt).toLocaleDateString('vi-VN')}
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200/50 dark:border-orange-800/30">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-orange-500 text-lg">workspace_premium</span>
+                <span className="text-xs font-sans uppercase tracking-widest text-orange-600 dark:text-orange-400 font-bold">Instructor Pro</span>
+              </div>
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-3">
+                Unlock AI-powered quiz & code generation for your courses.
+              </p>
+              <Link
+                to="/checkout/pro?plan=INSTRUCTOR_PRO"
+                className="w-full flex items-center justify-center gap-2 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-sans uppercase tracking-widest font-bold rounded-lg hover:opacity-90 transition-opacity"
+              >
+                <span className="material-symbols-outlined text-sm">stars</span>
+                Upgrade
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
