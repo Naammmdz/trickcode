@@ -44,6 +44,8 @@ public class JacksonConfiguration {
      */
     @Bean
     public Hibernate6Module hibernate6Module() {
-        return new Hibernate6Module().configure(Feature.SERIALIZE_IDENTIFIER_FOR_LAZY_NOT_LOADED_OBJECTS, true);
+        return new Hibernate6Module()
+            .configure(Feature.SERIALIZE_IDENTIFIER_FOR_LAZY_NOT_LOADED_OBJECTS, true)
+            .configure(Feature.USE_TRANSIENT_ANNOTATION, false);
     }
 }

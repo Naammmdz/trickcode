@@ -43,4 +43,10 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     Optional<Course> findOneWithToOneRelationships(@Param("id") Long id);
 
     long countByStatus(CourseStatus status);
+
+    long countByInstructorLoginAndStatus(String login, CourseStatus status);
+
+    long countByInstructorLogin(String login);
+
+    List<Course> findAllByInstructorLogin(String login);
 }

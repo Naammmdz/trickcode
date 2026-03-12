@@ -3,22 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import InstructorDashboardSidebar from '../components/layout/InstructorDashboardSidebar';
+import InstructorOverview from '../components/instructor/InstructorOverview';
 import InstructorCourses from '../components/instructor/InstructorCourses';
+import InstructorAnalytics from '../components/instructor/InstructorAnalytics';
+import InstructorPayouts from '../components/instructor/InstructorPayouts';
 
-// Placeholder tab components - can be expanded later
-const OverviewTab = () => <div className="p-8">Instructor Overview</div>;
-const AnalyticsTab = () => <div className="p-8">Analytics</div>;
-const PayoutsTab = () => <div className="p-8">Payouts</div>;
-const SettingsTab = () => <div className="p-8">Settings</div>;
+const SettingsTab = () => (
+  <div className="p-8">
+    <h2 className="text-3xl font-serif text-neutral-900 dark:text-white mb-2">Settings</h2>
+    <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light">Coming soon.</p>
+  </div>
+);
 
 const InstructorDashboard = () => {
   const { isAuthenticated, user, loading, hasRole } = useAuth();
   const navigate = useNavigate();
 
-  const isInstructor = useMemo(() => hasRole('ROLE_INSTRUCTOR'), [user]);
+  const isInstructor = useMemo(() => hasRole('ROLE_INSTRUCTOR'), [hasRole, user]);
 
   useEffect(() => {
-    if (loading) return; // Wait until auth state is loaded
+    if (loading) return;
 
     if (!isAuthenticated) {
       navigate('/login');
@@ -32,21 +36,20 @@ const InstructorDashboard = () => {
   const [currentTab, setCurrentTab] = useState('overview');
 
   const content = {
-    overview: <OverviewTab />,
+    overview: <InstructorOverview onTabChange={setCurrentTab} />,
     courses: <InstructorCourses />,
-    analytics: <AnalyticsTab />,
-    payouts: <PayoutsTab />,
+    analytics: <InstructorAnalytics />,
+    payouts: <InstructorPayouts />,
     settings: <SettingsTab />,
   };
 
-  // Render nothing or a loading spinner until user role is confirmed
   if (!isInstructor) {
     return null;
   }
 
   return (
     <DashboardLayout currentTab={currentTab} onTabChange={setCurrentTab} SidebarComponent={InstructorDashboardSidebar}>
-      {content[currentTab] || <OverviewTab />}
+      {content[currentTab] || <InstructorOverview onTabChange={setCurrentTab} />}
     </DashboardLayout>
   );
 };

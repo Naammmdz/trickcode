@@ -1,6 +1,7 @@
 package com.naammm.trickcode.repository;
 
 import com.naammm.trickcode.domain.Enrollment;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -48,4 +49,12 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long>, J
      */
     @Query("select case when count(e) > 0 then true else false end from Enrollment e where e.user.login = :login and e.course.id = :courseId")
     boolean existsByUserLoginAndCourseId(@Param("login") String login, @Param("courseId") Long courseId);
+
+    long countByCourseId(Long courseId);
+
+    @Query("select e from Enrollment e left join fetch e.user left join fetch e.course where e.course.id in :courseIds order by e.enrolledAt desc")
+    List<Enrollment> findByCourseIdInOrderByEnrolledAtDesc(@Param("courseIds") List<Long> courseIds);
+
+    @Query("select e from Enrollment e where e.course.id in :courseIds and e.enrolledAt >= :startDate")
+    List<Enrollment> findByCourseIdInAndEnrolledAtGreaterThanEqual(@Param("courseIds") List<Long> courseIds, @Param("startDate") Instant startDate);
 }

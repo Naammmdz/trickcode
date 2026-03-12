@@ -51,14 +51,16 @@ public class CodeExecutionService {
     private final EnrollmentRepository enrollmentRepository;
 
     public CodeExecutionService(
+        RestTemplate restTemplate,
+        ObjectMapper objectMapper,
         LessonRepository lessonRepository,
         UserRepository userRepository,
         CodeSubmissionRepository codeSubmissionRepository,
         LessonProgressRepository lessonProgressRepository,
         EnrollmentRepository enrollmentRepository
     ) {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
         this.lessonRepository = lessonRepository;
         this.userRepository = userRepository;
         this.codeSubmissionRepository = codeSubmissionRepository;
@@ -273,19 +275,30 @@ public class CodeExecutionService {
 
     private String inferJavaType(String value) {
         value = value.trim();
+        if (value.equals("null")) return "String";
         if (value.startsWith("[")) {
             // Array — check contents
             String inner = value.substring(1, value.length() - 1).trim();
             if (inner.isEmpty()) return "int[]";
             if (inner.contains("\"")) return "String[]";
+            if (inner.contains("'")) return "char[]";
             if (inner.contains(".")) return "double[]";
+            // Check if any element exceeds int range
+            try {
+                for (String item : inner.split(",")) {
+                    long val = Long.parseLong(item.trim());
+                    if (val > Integer.MAX_VALUE || val < Integer.MIN_VALUE) return "long[]";
+                }
+            } catch (NumberFormatException ignored) {}
             return "int[]";
         }
         if (value.startsWith("\"")) return "String";
+        if (value.startsWith("'") && value.endsWith("'") && value.length() == 3) return "char";
         if (value.equals("true") || value.equals("false")) return "boolean";
         if (value.contains(".")) return "double";
         try {
-            Long.parseLong(value);
+            long parsed = Long.parseLong(value);
+            if (parsed > Integer.MAX_VALUE || parsed < Integer.MIN_VALUE) return "long";
             return "int";
         } catch (NumberFormatException e) {
             return "String";
@@ -293,10 +306,18 @@ public class CodeExecutionService {
     }
 
     private String convertToJavaValue(String value, String type) {
+        if (value.trim().equals("null")) return "null";
+        if (type.equals("char")) {
+            // 'a' → 'a' (already valid Java)
+            return value.trim();
+        }
         if (type.endsWith("[]")) {
             // Convert [1,2,3] to new int[]{1,2,3}
             String inner = value.substring(1, value.length() - 1);
             return "new " + type + "{" + inner + "}";
+        }
+        if (type.equals("long")) {
+            return value.trim() + "L";
         }
         return value;
     }
@@ -344,44 +365,81 @@ public class CodeExecutionService {
             Map<String, Object> jdoodleResult = response.getBody();
 
             if (jdoodleResult == null) {
-                return Map.of("error", "Empty response from JDoodle");
+                throw new IllegalStateException("Empty response from JDoodle");
             }
 
             // Map JDoodle format back to a Judge0-like structure to keep existing frontend logic working
             Map<String, Object> mappedResult = new HashMap<>();
-            
-            if (jdoodleResult.get("output") != null) {
-                mappedResult.put("stdout", jdoodleResult.get("output"));
-            }
+            String output = jdoodleResult.get("output") != null ? jdoodleResult.get("output").toString() : "";
+
             if (jdoodleResult.get("cpuTime") != null) {
                 mappedResult.put("time", jdoodleResult.get("cpuTime"));
             }
             if (jdoodleResult.get("memory") != null) {
                 mappedResult.put("memory", jdoodleResult.get("memory"));
             }
-            
+
             Map<String, Object> statusMap = new HashMap<>();
             Number statusCode = (Number) jdoodleResult.get("statusCode");
+
             if (statusCode != null && statusCode.intValue() == 200) {
-                 statusMap.put("id", 3); // ACCEPTED maps to 3
+                // JDoodle returns 200 for successful API calls, but output may contain errors
+                // Detect compile/runtime errors from output content
+                if (isCompileError(output, language)) {
+                    statusMap.put("id", 6); // COMPILE_ERROR
+                    mappedResult.put("compile_output", output);
+                } else if (isRuntimeError(output, language)) {
+                    statusMap.put("id", 7); // RUNTIME_ERROR
+                    mappedResult.put("stderr", output);
+                } else {
+                    statusMap.put("id", 3); // ACCEPTED (ran successfully)
+                    mappedResult.put("stdout", output);
+                }
             } else {
-                 statusMap.put("id", 4); // Fail
-                 Object errorObj = jdoodleResult.get("error");
-                 if (errorObj != null && !errorObj.toString().trim().isEmpty()) {
-                     mappedResult.put("stderr", "JDoodle API Error: " + errorObj);
-                 } else if (jdoodleResult.get("output") != null) {
-                     mappedResult.remove("stdout");
-                     mappedResult.put("stderr", jdoodleResult.get("output"));
-                 }
+                statusMap.put("id", 4); // API-level failure
+                Object errorObj = jdoodleResult.get("error");
+                if (errorObj != null && !errorObj.toString().trim().isEmpty()) {
+                    mappedResult.put("stderr", "JDoodle API Error: " + errorObj);
+                } else {
+                    mappedResult.put("stderr", output);
+                }
             }
             mappedResult.put("status", statusMap);
 
             return mappedResult;
 
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             LOG.error("JDoodle API call failed: {}", e.getMessage());
-            return Map.of("error", "JDoodle unavailable: " + e.getMessage());
+            throw new IllegalStateException("JDoodle unavailable: " + e.getMessage(), e);
         }
+    }
+
+    private boolean isCompileError(String output, String language) {
+        if (output == null || output.isBlank()) return false;
+        String lower = output.toLowerCase();
+        return switch (language.toLowerCase()) {
+            case "java" -> lower.contains("error:") && (lower.contains(".java:") || lower.contains("cannot find symbol")
+                || lower.contains("class, interface") || lower.contains("illegal start"));
+            case "python" -> lower.contains("syntaxerror:") || lower.contains("indentationerror:");
+            case "javascript" -> lower.contains("syntaxerror:");
+            default -> false;
+        };
+    }
+
+    private boolean isRuntimeError(String output, String language) {
+        if (output == null || output.isBlank()) return false;
+        String lower = output.toLowerCase();
+        return switch (language.toLowerCase()) {
+            case "java" -> lower.contains("exception in thread") || lower.contains("at java.")
+                || lower.contains("at com.") || lower.contains("nullpointerexception");
+            case "python" -> lower.contains("traceback (most recent call last)") || lower.contains("error:")
+                && !lower.contains("syntaxerror:") && !lower.contains("indentationerror:");
+            case "javascript" -> (lower.contains("typeerror:") || lower.contains("referenceerror:")
+                || lower.contains("rangeerror:")) && !lower.contains("syntaxerror:");
+            default -> false;
+        };
     }
 
     private SubmissionStatus mapJudge0Status(int statusId) {

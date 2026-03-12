@@ -55,4 +55,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Optional<BigDecimal> sumTotalAmountByStatus(@Param("status") OrderStatus status);
 
     List<Order> findTop5ByOrderByIdDesc();
+
+    @Query("select o from Order o left join fetch o.user left join fetch o.course where o.course.id in :courseIds and o.status = :status order by o.createdAt desc")
+    List<Order> findByCourseIdInAndStatusOrderByCreatedAtDesc(@Param("courseIds") List<Long> courseIds, @Param("status") OrderStatus status);
+
+    @Query("select coalesce(sum(o.totalAmount), 0) from Order o where o.course.id in :courseIds and o.status = :status")
+    BigDecimal sumTotalAmountByCourseIdInAndStatus(@Param("courseIds") List<Long> courseIds, @Param("status") OrderStatus status);
+
+    @Query("select o from Order o where o.course.id in :courseIds and o.status = :status and o.createdAt >= :startDate")
+    List<Order> findByCourseIdInAndStatusAndCreatedAtGreaterThanEqual(@Param("courseIds") List<Long> courseIds, @Param("status") OrderStatus status, @Param("startDate") Instant startDate);
 }
