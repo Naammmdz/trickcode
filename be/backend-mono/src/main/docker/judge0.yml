@@ -1,0 +1,58 @@
+# Judge0 CE - Code Execution Engine (Local)
+# Run: docker compose -f src/main/docker/judge0.yml up -d
+name: trickcode-judge0
+services:
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    platform: linux/amd64
+    ports:
+      - "127.0.0.1:2358:2358"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    env_file: judge0.conf
+    restart: unless-stopped
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+
+  judge0-worker:
+    image: judge0/judge0:1.13.1
+    platform: linux/amd64
+    command: ["./scripts/workers"]
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    env_file: judge0.conf
+    restart: unless-stopped
+    privileged: true
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+
+  judge0-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0secret
+    volumes:
+      - judge0-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  judge0-redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  judge0-db-data:

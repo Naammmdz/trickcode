@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import logo from '/logo.png';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const redirectUrl = searchParams.get('redirect') || '/';
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,7 +21,8 @@ const Login = () => {
 
     try {
       await login({ email, password });
-      navigate('/');
+      // Redirect to the original destination or home
+      navigate(redirectUrl);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {

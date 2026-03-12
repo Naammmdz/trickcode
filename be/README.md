@@ -1,10 +1,5 @@
-## Backend (placeholder)
+## Backend
 
-Thư mục `be/` để bạn dán source backend (API Gateway + IAM service) từ dự án khác vào để tái sử dụng.
+Thư mục `be/` chứa backend monolith của dự án TrickCode.
 
-Gợi ý cấu trúc (tuỳ bạn):
-
-- `be/gateway/`
-- `be/iam/`
-- `be/docker-compose.yml`
-
+- `be/backend-mono/` — Spring Boot monolith (đang sử dụng)

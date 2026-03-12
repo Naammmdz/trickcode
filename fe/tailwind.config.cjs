@@ -21,9 +21,10 @@ module.exports = {
         "sharp-yellow": "#FACC15",
       },
       fontFamily: {
-        serif: ["DM Serif Display", "serif"],
+        serif: ["Space Grotesk", "Plus Jakarta Sans", "sans-serif"],
         sans: ["Plus Jakarta Sans", "sans-serif"],
         mono: ["Fira Code", "monospace"],
+        display: ["Space Grotesk", "Plus Jakarta Sans", "sans-serif"],
       },
       backgroundImage: {
         'grid-pattern': "linear-gradient(to right, #374151 1px, transparent 1px), linear-gradient(to bottom, #374151 1px, transparent 1px)",

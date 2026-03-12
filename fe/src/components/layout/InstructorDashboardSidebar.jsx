@@ -4,14 +4,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggler from '../ui/ThemeToggler';
 
 const InstructorDashboardSidebar = ({ currentTab, onTabChange }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
 
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
 
-  const isInstructor = useMemo(() => user?.roles?.includes('INSTRUCTOR'), [user]);
+  const isInstructor = useMemo(() => hasRole('ROLE_INSTRUCTOR'), [user]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -64,44 +64,40 @@ const InstructorDashboardSidebar = ({ currentTab, onTabChange }) => {
         <nav className="space-y-1 mb-10">
           <button
             onClick={() => onTabChange('overview')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'overview'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'overview'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">home</span>
             Overview
           </button>
           <button
             onClick={() => onTabChange('courses')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'courses'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'courses'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">menu_book</span>
             My Courses
           </button>
           <button
             onClick={() => onTabChange('analytics')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'analytics'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'analytics'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">bar_chart</span>
             Analytics
           </button>
           <button
             onClick={() => onTabChange('payouts')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              currentTab === 'payouts'
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'payouts'
                 ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white border border-neutral-200 dark:border-zinc-700'
                 : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-            }`}
+              }`}
           >
             <span className="material-symbols-outlined text-[18px]">payments</span>
             Payouts
@@ -113,11 +109,10 @@ const InstructorDashboardSidebar = ({ currentTab, onTabChange }) => {
           <nav className="space-y-1">
             <button
               onClick={() => onTabChange('settings')}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group ${
-                currentTab === 'settings'
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group ${currentTab === 'settings'
                   ? 'bg-neutral-100 dark:bg-zinc-800 text-neutral-900 dark:text-white'
                   : 'text-neutral-600 dark:text-zinc-300 hover:bg-neutral-100 dark:hover:bg-zinc-800 hover:text-neutral-900 dark:hover:text-white'
-              }`}
+                }`}
             >
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-[18px]">settings</span>

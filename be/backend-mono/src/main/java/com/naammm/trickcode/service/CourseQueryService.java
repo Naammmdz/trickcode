@@ -5,6 +5,7 @@ import com.naammm.trickcode.domain.Course;
 import com.naammm.trickcode.repository.CourseRepository;
 import com.naammm.trickcode.service.criteria.CourseCriteria;
 import jakarta.persistence.criteria.JoinType;
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -46,6 +47,24 @@ public class CourseQueryService extends QueryService<Course> {
     }
 
     /**
+     * Return a {@link Page} of {@link Course} with eagerly loaded relationships (categories, instructor).
+     * @param criteria The object which holds all the filters, which the entities should match.
+     * @param page The page, which should be returned.
+     * @return the matching entities with eager relationships.
+     */
+    @Transactional(readOnly = true)
+    public Page<Course> findByCriteriaWithEagerRelationships(CourseCriteria criteria, Pageable page) {
+        LOG.debug("find by criteria with eager relationships : {}, page: {}", criteria, page);
+        final Specification<Course> specification = createSpecification(criteria);
+        Page<Course> result = courseRepository.findAll(specification, page);
+        result.getContent().forEach(course -> {
+            Hibernate.initialize(course.getCategories());
+            Hibernate.initialize(course.getInstructor());
+        });
+        return result;
+    }
+
+    /**
      * Return the number of matching entities in the database.
      * @param criteria The object which holds all the filters, which the entities should match.
      * @return the number of matching entities.
@@ -81,7 +100,8 @@ public class CourseQueryService extends QueryService<Course> {
                 buildRangeSpecification(criteria.getUpdatedAt(), Course_.updatedAt),
                 buildRangeSpecification(criteria.getPublishedAt(), Course_.publishedAt),
                 buildSpecification(criteria.getSectionsId(), root -> root.join(Course_.sections, JoinType.LEFT).get(Section_.id)),
-                buildSpecification(criteria.getInstructorId(), root -> root.join(Course_.instructor, JoinType.LEFT).get(User_.id))
+                buildSpecification(criteria.getInstructorId(), root -> root.join(Course_.instructor, JoinType.LEFT).get(User_.id)),
+                buildSpecification(criteria.getCategoriesId(), root -> root.join(Course_.categories, JoinType.LEFT).get(Category_.id))
             );
         }
         return specification;

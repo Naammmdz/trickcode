@@ -1,62 +1,186 @@
-import StatCard from '../common/StatCard';
+import { useEffect, useState, useMemo } from 'react';
+import { adminDashboardService } from '../../../services/adminDashboardService';
+import StatCard from '../dashboard/StatCard';
+import ActivityFeed from '../dashboard/ActivityFeed';
+import DashboardChart from '../dashboard/DashboardChart';
+import DashboardPieChart from '../dashboard/DashboardPieChart';
 
 const OverviewTab = () => {
-  const overviewStats = [
-    { title: 'Active Users', value: '1,284', hint: '+12% vs last week', icon: 'group' },
-    { title: 'Courses', value: '42', hint: '8 drafts', icon: 'menu_book' },
-    { title: 'Instructors', value: '13', hint: '2 pending approval', icon: 'school' },
-    { title: 'Revenue', value: '$3,240', hint: 'This month', icon: 'payments' },
-  ];
+  const [stats, setStats] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, chartsData] = await Promise.all([
+          adminDashboardService.getStats(),
+          adminDashboardService.getChartData(),
+        ]);
+        setStats(statsData);
+        setChartData(chartsData);
+      } catch (err) {
+        setError('Failed to load dashboard data.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Compute summary values for charts
+  const revenueSummary = useMemo(() => {
+    if (!chartData?.dailyRevenue?.length) return { total: '$0', subtitle: 'Last 30 days' };
+    const total = chartData.dailyRevenue.reduce((s, d) => s + (d.value || 0), 0);
+    return {
+      total: `$${(total / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      subtitle: `${chartData.dailyRevenue.length} days tracked`,
+    };
+  }, [chartData]);
+
+  const signupSummary = useMemo(() => {
+    if (!chartData?.dailySignups?.length) return { total: '0', subtitle: 'Last 30 days' };
+    const total = chartData.dailySignups.reduce((s, d) => s + (d.value || 0), 0);
+    return {
+      total: total.toLocaleString(),
+      subtitle: `${chartData.dailySignups.length} days tracked`,
+    };
+  }, [chartData]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-10 h-10 border-2 border-neutral-200 dark:border-neutral-700 border-t-neutral-500 dark:border-t-neutral-400 rounded-full animate-spin" />
+        <p className="text-sm text-neutral-400 dark:text-neutral-500 animate-pulse">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <span className="material-symbols-outlined text-4xl text-red-400">error</span>
+        <p className="text-sm text-red-400">{error}</p>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3">
+        <span className="material-symbols-outlined text-4xl text-neutral-300 dark:text-neutral-600">analytics</span>
+        <p className="text-sm text-neutral-400 dark:text-neutral-500">No statistics available.</p>
+      </div>
+    );
+  }
+
+  const formattedRecentUsers = (stats.recentUsers || []).map(user => ({
+    primaryText: user.login,
+    secondaryText: user.email,
+    timestamp: user.createdDate,
+  }));
+
+  const formattedRecentOrders = (stats.recentOrders || []).map(order => ({
+    primaryText: `Order #${order.id} — ${order.courseTitle || 'N/A'}`,
+    secondaryText: `${order.userLogin} · ${order.status}`,
+    timestamp: order.createdDate,
+  }));
 
   return (
-    <div className="p-8 max-w-6xl">
-      <div className="mb-8">
-        <div className="text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">Admin</div>
-        <h1 className="mt-2 text-3xl md:text-5xl font-serif text-neutral-900 dark:text-white">Dashboard</h1>
-        <p className="mt-3 text-sm text-neutral-600 dark:text-zinc-400 font-light max-w-3xl">
-          In-memory admin console (demo). Refresh resets data.
+    <div className="space-y-8 p-8">
+      {/* Header */}
+      <div>
+        <h2 className="text-3xl font-serif text-neutral-900 dark:text-white">Dashboard Overview</h2>
+        <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light">
+          A quick glance at your platform's key metrics and recent activity.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        {overviewStats.map((s) => (
-          <StatCard key={s.title} title={s.title} value={s.value} hint={s.hint} icon={s.icon} />
-        ))}
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+        <StatCard
+          title="Total Revenue"
+          value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
+          icon="payments"
+          color="green"
+          subtitle="all time"
+        />
+        <StatCard
+          title="Total Users"
+          value={(stats.totalUsers || 0).toLocaleString()}
+          icon="group"
+          color="blue"
+          subtitle="registered"
+        />
+        <StatCard
+          title="Total Courses"
+          value={(stats.totalCourses || 0).toLocaleString()}
+          icon="school"
+          color="primary"
+          subtitle="all statuses"
+        />
+        <StatCard
+          title="Pending Courses"
+          value={(stats.pendingCourses || 0).toLocaleString()}
+          icon="pending_actions"
+          color="yellow"
+          subtitle="awaiting review"
+        />
       </div>
 
-      <div className="mt-8 border border-neutral-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-sm">
-        <div className="px-6 py-5 border-b border-neutral-100 dark:border-zinc-800">
-          <div className="text-lg font-serif text-neutral-900 dark:text-white">Recent Signups</div>
-          <div className="text-xs text-neutral-500 dark:text-zinc-400 mt-1">Demo data (wired later to IAM)</div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-neutral-50 dark:bg-zinc-950 border-b border-neutral-100 dark:border-zinc-800">
-              <tr>
-                {['Email', 'Role', 'Status', 'Created'].map((c) => (
-                  <th key={c} className="text-left px-6 py-3 text-[10px] font-sans uppercase tracking-widest text-neutral-500 dark:text-zinc-400">
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                ['tagiangnamttg@gmail.com', 'STUDENT', 'ACTIVE', 'Today'],
-                ['admin@trickcode.local', 'ADMIN', 'ACTIVE', 'Yesterday'],
-                ['instructor@trickcode.local', 'INSTRUCTOR', 'PENDING', '2 days ago'],
-              ].map((r, idx) => (
-                <tr key={idx} className="border-b border-neutral-100 dark:border-zinc-800 last:border-b-0">
-                  {r.map((cell, i) => (
-                    <td key={i} className="px-6 py-4 text-sm text-neutral-700 dark:text-zinc-200">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Revenue + Signups Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <DashboardChart
+          title="Daily Revenue"
+          data={chartData?.dailyRevenue || []}
+          dataKey="value"
+          color="#10b981"
+          valueFormatter={(value) => `$${(value / 100).toFixed(0)}`}
+          totalValue={revenueSummary.total}
+          subtitle={revenueSummary.subtitle}
+        />
+        <DashboardChart
+          title="New Users"
+          data={chartData?.dailySignups || []}
+          dataKey="value"
+          color="#3b82f6"
+          valueFormatter={(value) => value.toLocaleString()}
+          chartType="bar"
+          totalValue={signupSummary.total}
+          subtitle={signupSummary.subtitle}
+        />
+      </div>
+
+      {/* Distribution Charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <DashboardPieChart
+          title="Courses by Level"
+          data={chartData?.coursesByLevel || []}
+        />
+        <DashboardPieChart
+          title="Courses by Status"
+          data={chartData?.coursesByStatus || []}
+        />
+      </div>
+
+      {/* Activity Feeds */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <ActivityFeed
+          title="Recent Registrations"
+          items={formattedRecentUsers}
+          icon="person_add"
+          emptyText="No recent registrations."
+        />
+        <ActivityFeed
+          title="Recent Orders"
+          items={formattedRecentOrders}
+          icon="receipt_long"
+          emptyText="No recent orders."
+        />
       </div>
     </div>
   );

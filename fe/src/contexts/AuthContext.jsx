@@ -50,8 +50,8 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     try {
       const response = await authService.signup(userData);
-      setUser(response.user);
-      setIsAuthenticated(true);
+      // JHipster registration requires email activation by default.
+      // Do NOT mark as authenticated here.
       return response;
     } catch (error) {
       throw error;

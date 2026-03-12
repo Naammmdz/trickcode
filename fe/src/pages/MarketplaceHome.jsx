@@ -1,394 +1,370 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { courseService } from '../services/courseService';
 import logo from '/logo.png';
-import UserAvatar from '../components/layout/UserAvatar';
-import ThemeToggler from '../components/ui/ThemeToggler';
+import Navbar from '../components/layout/Navbar';
+import HeroGLBackground from '../components/ui/HeroGLBackground';
 
 const MarketplaceHome = () => {
+  const [featuredCourses, setFeaturedCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const categoryIcons = {
+    'Data Structures': 'data_object',
+    'Algorithms': 'code_blocks',
+    'Graph Theory': 'scatter_plot',
+    'Trees & Graphs': 'account_tree',
+    'Sorting & Searching': 'sort',
+    'Math & Geometry': 'functions',
+    'Dynamic Programming': 'dynamic_feed',
+    'System Design': 'architecture',
+    'Web Development': 'web',
+    'Machine Learning': 'smart_toy',
+    'Database': 'storage',
+    'DevOps': 'cloud',
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [coursesData, catsData] = await Promise.all([
+          courseService.getPublicCourses({ page: 0, size: 8, sort: 'id,desc' }),
+          courseService.getCategories().catch(() => [])
+        ]);
+        setFeaturedCourses(coursesData.content || []);
+        const cats = catsData?.content || catsData || [];
+        setCategories(Array.isArray(cats) ? cats.filter(c => c.isActive !== false) : []);
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const getInstructorName = (instructor) => {
+    if (!instructor) return 'Unknown';
+    if (instructor.firstName && instructor.lastName) {
+      return `${instructor.firstName} ${instructor.lastName}`;
+    }
+    if (instructor.firstName) return instructor.firstName;
+    if (instructor.login) return instructor.login;
+    return 'Unknown';
+  };
 
   return (
-    <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
-      {/* Navbar */}
-      <nav className="fixed w-full z-50 top-0 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="relative w-11 h-11 flex items-center justify-center">
-              <img
-                alt="TrickCode Logo"
-                className="w-full h-full object-contain rounded"
-                src={logo}
-              />
-            </div>
-            <span className="font-serif font-bold text-xl tracking-tight">Trickcode</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8 text-xs font-sans tracking-widest uppercase text-neutral-500 dark:text-neutral-400">
-            <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-            <Link to="/marketplace" className="hover:text-primary transition-colors">Marketplace</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <UserAvatar />
-            <ThemeToggler />
-          </div>
-        </div>
-      </nav>
+    <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-orange-500 selection:text-white">
+      <Navbar />
 
-      {/* Header/Hero */}
-      <header className="relative pt-32 pb-20 lg:pt-40 lg:pb-24 px-6 z-10 border-b border-neutral-100 dark:border-neutral-800">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 mb-8 border border-primary/20 bg-primary/5 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-            <span className="text-[10px] font-sans text-primary">400+ New Courses Available</span>
-          </div>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif leading-[1.1] mb-8 text-neutral-900 dark:text-white">
-            Master <span className="italic font-light text-neutral-600 dark:text-neutral-400">Data Structures</span><br/>
-            and <span className="italic font-light text-neutral-600 dark:text-neutral-400">Algorithms</span>
-          </h1>
-          <p className="text-lg md:text-xl text-neutral-500 dark:text-neutral-400 max-w-2xl mx-auto mb-10 font-light leading-relaxed">
-            Learn from top engineers and ace your technical interviews. Comprehensive DSA courses designed for real-world problem solving.
-          </p>
-          <div className="relative max-w-xl mx-auto mb-12 group">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none z-10">
-              <span className="material-symbols-outlined text-neutral-400 group-focus-within:text-primary transition-colors">search</span>
+      {/* Hero Section */}
+      <header className="relative mt-16 min-h-[calc(100vh-4rem)] flex flex-col justify-center py-20 px-6 z-10 overflow-hidden">
+        <HeroGLBackground />
+
+        <div className="relative max-w-7xl mx-auto">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-orange-200 dark:border-orange-900/30 bg-orange-50 dark:bg-orange-900/10 text-orange-600 dark:text-orange-400 text-xs font-medium mb-8">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+              Trusted by 10,000+ learners worldwide
             </div>
-            <input 
-              className="block w-full p-4 pl-12 pr-24 text-sm font-sans text-neutral-900 dark:text-white border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white focus:border-neutral-900 dark:focus:border-white placeholder-neutral-400 shadow-sm rounded" 
-              placeholder="Search courses (e.g. 'Dynamic Programming', 'Binary Search')..." 
-              type="text"
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 z-10">
-              <button className="px-4 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-[10px] uppercase font-sans tracking-widest text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 transition-colors rounded">
-                Find
-              </button>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-medium leading-[1.05] mb-6 text-neutral-900 dark:text-white">
+              Master <span className="text-orange-500">DSA</span> with<br />Expert-Led Courses
+            </h1>
+            <p className="text-lg md:text-xl text-neutral-500 dark:text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
+              Level up your problem-solving skills with world-class curriculum in algorithms, data structures, and system design.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
+              <Link to="/learn" className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-8 rounded-lg text-base transition-all shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 hover:-translate-y-0.5">
+                Browse Courses <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+              </Link>
+              <Link to="/learn" className="inline-flex items-center gap-2 bg-white dark:bg-[#0a0a0a] border border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500 text-neutral-700 dark:text-neutral-300 font-medium py-4 px-8 rounded-lg text-base transition-all hover:-translate-y-0.5">
+                <span className="material-symbols-outlined text-[20px]">grid_view</span> Explore Categories
+              </Link>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-4 opacity-80">
-            <div className="flex -space-x-3">
-              <div className="w-8 h-8 rounded-full border-2 border-white dark:border-neutral-900 bg-neutral-200 dark:bg-neutral-700"></div>
-              <div className="w-8 h-8 rounded-full border-2 border-white dark:border-neutral-900 bg-neutral-300 dark:bg-neutral-600"></div>
-              <div className="w-8 h-8 rounded-full border-2 border-white dark:border-neutral-900 bg-neutral-400 dark:bg-neutral-500"></div>
-            </div>
-            <span className="text-xs font-sans text-neutral-500 dark:text-neutral-400">Joined by 10,000+ Students</span>
+
+          {/* Stats row */}
+          <div className="flex flex-wrap justify-center gap-8 md:gap-16">
+            {[
+              { value: '200+', label: 'Lessons', icon: 'play_circle' },
+              { value: '50+', label: 'Courses', icon: 'school' },
+              { value: '10k+', label: 'Students', icon: 'group' },
+              { value: '4.9', label: 'Avg Rating', icon: 'star' },
+            ].map((stat, idx) => (
+              <div key={idx} className="flex items-center gap-3 text-center">
+                <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500">
+                  <span className="material-symbols-outlined text-xl" style={stat.icon === 'star' ? { fontVariationSettings: "'FILL' 1" } : {}}>{stat.icon}</span>
+                </div>
+                <div className="text-left">
+                  <div className="text-xl font-bold text-neutral-900 dark:text-white">{stat.value}</div>
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400">{stat.label}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </header>
 
-      {/* Featured Protocols */}
-      <section className="py-24 px-6 relative z-10 border-b border-neutral-100 dark:border-neutral-800">
+      {/* Top Categories */}
+      <section className="py-16 px-6 bg-white dark:bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-end mb-16">
+          <h2 className="text-2xl font-serif font-medium text-neutral-900 dark:text-white mb-8">Top Categories</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {(categories.length > 0 ? categories : [
+              { id: 'ds', name: 'Data Structures' },
+              { id: 'algo', name: 'Algorithms' },
+              { id: 'graph', name: 'Graph Theory' },
+              { id: 'tree', name: 'Trees & Graphs' },
+              { id: 'sort', name: 'Sorting & Searching' },
+              { id: 'math', name: 'Math & Geometry' },
+              { id: 'dp', name: 'Dynamic Programming' },
+              { id: 'sd', name: 'System Design' }
+            ]).map((cat) => (
+              <Link key={cat.id} to={`/learn?category=${cat.id}`} className="group flex items-center gap-4 p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:border-orange-500 hover:shadow-md transition-all cursor-pointer bg-neutral-50 dark:bg-neutral-900/50 hover:bg-white dark:hover:bg-neutral-900">
+                <div className="text-neutral-500 group-hover:text-orange-500 transition-colors">
+                  <span className="material-symbols-outlined text-3xl">{categoryIcons[cat.name] || 'category'}</span>
+                </div>
+                <span className="font-medium text-neutral-800 dark:text-neutral-200 group-hover:text-neutral-900 dark:group-hover:text-white">{cat.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Courses */}
+      <section className="py-16 px-6 relative z-10 bg-neutral-50 dark:bg-neutral-950/30 border-y border-neutral-200 dark:border-neutral-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-end mb-10">
             <div>
-              <h2 className="text-xs font-mono uppercase tracking-widest text-primary mb-2">Editor's Choice</h2>
-              <h3 className="text-4xl font-serif text-neutral-900 dark:text-white">Featured Courses</h3>
+              <h2 className="text-3xl font-serif text-neutral-900 dark:text-white font-medium">Students are viewing</h2>
+              <p className="text-neutral-500 dark:text-neutral-400 mt-2">Popular courses chosen by our community</p>
             </div>
-            <Link to="/marketplace" className="hidden md:flex items-center gap-2 text-xs font-sans hover:text-neutral-900 dark:hover:text-white transition-colors">
-              View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            <Link to="/learn" className="hidden md:flex items-center gap-1 font-medium text-orange-600 dark:text-orange-500 hover:text-orange-700 dark:hover:text-orange-400 transition-colors">
+              Explore All <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Course Card 1 */}
-            <div className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded">
-              <div className="h-48 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                <span className="font-serif text-6xl text-neutral-200 dark:text-neutral-800 italic group-hover:scale-110 transition-transform duration-500">O(log n)</span>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="inline-block px-2 py-1 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-mono uppercase tracking-widest rounded">Algorithms</span>
-                  <div className="flex items-center gap-1 text-yellow-500 text-xs font-mono">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.9
-                  </div>
-                </div>
-                <h4 className="text-xl font-serif mb-2 group-hover:underline decoration-1 underline-offset-4">Binary Search Deep Dive</h4>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2">Master the art of divide and conquer. From basic implementation to rotated arrays and answer space search.</p>
-                <div className="mt-auto pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700"></div>
-                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">Dr. A. Chen</span>
-                  </div>
-                  <span className="font-serif text-lg">$24.99</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Course Card 2 */}
-            <div className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded">
-              <div className="h-48 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                <span className="font-serif text-6xl text-neutral-200 dark:text-neutral-800 italic group-hover:scale-110 transition-transform duration-500">DP[]</span>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="inline-block px-2 py-1 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-mono uppercase tracking-widest rounded">Advanced</span>
-                  <div className="flex items-center gap-1 text-yellow-500 text-xs font-mono">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
-                  </div>
-                </div>
-                <h4 className="text-xl font-serif mb-2 group-hover:underline decoration-1 underline-offset-4">Dynamic Programming Patterns</h4>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2">Stop guessing. Learn the 5 underlying patterns that solve 90% of DP problems in interviews.</p>
-                <div className="mt-auto pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700"></div>
-                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">Sarah J.</span>
-                  </div>
-                  <span className="font-serif text-lg">$39.99</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Course Card 3 */}
-            <div className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-900 dark:hover:border-neutral-500 transition-colors flex flex-col h-full rounded">
-              <div className="h-48 bg-gray-50 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative rounded-t">
-                <div className="absolute inset-0 bg-grid-pattern opacity-50" style={{ backgroundSize: '40px 40px' }}></div>
-                <span className="font-serif text-6xl text-neutral-200 dark:text-neutral-800 italic group-hover:scale-110 transition-transform duration-500">G(V,E)</span>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="inline-block px-2 py-1 bg-neutral-100 dark:bg-neutral-800 text-[10px] font-mono uppercase tracking-widest rounded">Graph Theory</span>
-                  <div className="flex items-center gap-1 text-yellow-500 text-xs font-mono">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 5.0
-                  </div>
-                </div>
-                <h4 className="text-xl font-serif mb-2 group-hover:underline decoration-1 underline-offset-4">Graph Algorithms for Production</h4>
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6 line-clamp-2">Beyond BFS/DFS. Network flow, topological sorting, and real-world routing engine architecture.</p>
-                <div className="mt-auto pt-6 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700"></div>
-                    <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">M. Roberts</span>
-                  </div>
-                  <span className="font-serif text-lg">$34.50</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Mission Roadmaps */}
-      <section id="roadmaps" className="py-24 px-6 bg-gray-50 dark:bg-neutral-950/30 relative z-10 border-b border-neutral-100 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-16 text-center">
-            <h2 className="text-xs font-mono uppercase tracking-widest text-primary mb-2">Curated Journeys</h2>
-            <h3 className="text-4xl font-serif text-neutral-900 dark:text-white">Learning Paths</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="group relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 hover:border-primary/50 transition-colors rounded">
-              <div className="absolute top-0 right-0 p-4 opacity-10 font-serif text-8xl leading-none select-none">01</div>
-              <h4 className="text-2xl font-serif mb-2">From Zero to FAANG</h4>
-              <p className="text-sm text-neutral-500 mb-6 font-sans max-w-sm">A comprehensive 6-month learning path covering all major patterns required for top tech company interviews.</p>
-              <div className="space-y-4 mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-mono border border-neutral-200 dark:border-neutral-700">1</div>
-                  <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800"></div>
-                  <span className="text-xs font-mono uppercase text-neutral-500">Data Structures</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-mono border border-neutral-200 dark:border-neutral-700">2</div>
-                  <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800"></div>
-                  <span className="text-xs font-mono uppercase text-neutral-500">Algorithms</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-mono">3</div>
-                  <div className="h-px flex-1 bg-primary"></div>
-                  <span className="text-xs font-mono uppercase text-primary">System Design</span>
-                </div>
-              </div>
-              <Link to="/marketplace" className="inline-block text-xs font-sans border-b border-neutral-900 dark:border-white pb-1 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors">
-                Start Path
-              </Link>
-            </div>
-            <div className="group relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-8 hover:border-primary/50 transition-colors rounded">
-              <div className="absolute top-0 right-0 p-4 opacity-10 font-serif text-8xl leading-none select-none">02</div>
-              <h4 className="text-2xl font-serif mb-2">Competitive Programming Track</h4>
-              <p className="text-sm text-neutral-500 mb-6 font-sans max-w-sm">Master advanced techniques for competitive programming. Perfect for Codeforces, ICPC, and serious problem solvers.</p>
-              <div className="space-y-4 mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-mono border border-neutral-200 dark:border-neutral-700">1</div>
-                  <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800"></div>
-                  <span className="text-xs font-mono uppercase text-neutral-500">Number Theory</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-mono border border-neutral-200 dark:border-neutral-700">2</div>
-                  <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800"></div>
-                  <span className="text-xs font-mono uppercase text-neutral-500">Segment Trees</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-mono">3</div>
-                  <div className="h-px flex-1 bg-primary"></div>
-                  <span className="text-xs font-mono uppercase text-primary">Flow Networks</span>
-                </div>
-              </div>
-              <Link to="/marketplace" className="inline-block text-xs font-sans border-b border-neutral-900 dark:border-white pb-1 hover:text-neutral-600 dark:hover:text-neutral-300 hover:border-neutral-600 dark:hover:border-neutral-300 transition-colors">
-                Start Path
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Lead Engineers */}
-      <section id="mentors" className="py-24 px-6 relative z-10 border-b border-neutral-100 dark:border-neutral-800">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-end mb-16">
-            <div>
-              <h2 className="text-xs font-mono uppercase tracking-widest text-primary mb-2">Expertise</h2>
-              <h3 className="text-4xl font-serif text-neutral-900 dark:text-white">Lead Engineers</h3>
-            </div>
-          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { name: 'Dr. Alex Chen', role: 'Ex-Google Staff Eng', tags: ['Algorithms', 'Java'] },
-              { name: 'Sarah Jenkins', role: 'Principal @ Stripe', tags: ['System Design', 'Ruby'] },
-              { name: 'Marcus Roberts', role: 'Competitive Programmer', tags: ['C++', 'Math'] },
-              { name: 'Elena Vo', role: 'Netflix Core Team', tags: ['Microservices', 'Go'] },
-            ].map((instructor, idx) => (
-              <div key={idx} className="text-center group">
-                <div className="w-32 h-32 mx-auto mb-6 rounded-full p-1 border border-neutral-200 dark:border-neutral-700 group-hover:border-primary transition-colors">
-                  <div className="w-full h-full rounded-full bg-neutral-200 dark:bg-neutral-700"></div>
-                </div>
-                <h4 className="text-lg font-serif mb-1">{instructor.name}</h4>
-                <p className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-3">{instructor.role}</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {instructor.tags.map((tag, tagIdx) => (
-                    <span key={tagIdx} className="text-[10px] px-2 py-0.5 border border-neutral-200 dark:border-neutral-800 rounded bg-gray-50 dark:bg-neutral-950">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Explore by Domain */}
-      <section className="py-24 px-6 z-10 relative">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-serif text-center mb-16">Explore by Domain</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { icon: 'dns', title: 'Backend Devs', desc: '"Optimize this database query"', content: 'System Design & Scaling' },
-              { icon: 'web', title: 'Frontend Devs', desc: '"Implement a virtual DOM"', content: 'DOM & State Management' },
-              { icon: 'psychology', title: 'Founders', desc: '"What technical problem are you solving?"', content: 'Architecture & Trade-offs' },
-            ].map((domain, idx) => (
-              <div key={idx} className="bg-white dark:bg-neutral-900 p-6 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-colors rounded cursor-pointer group">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="material-symbols-outlined text-neutral-400 group-hover:text-primary transition-colors">{domain.icon}</span>
-                  <span className="text-xs font-mono uppercase tracking-widest">{domain.title}</span>
-                </div>
-                <p className="text-sm text-neutral-500 mb-6 font-mono">{domain.desc}</p>
-                <div className="bg-gray-50 dark:bg-neutral-950 p-4 rounded text-xs font-mono text-neutral-400 border border-neutral-100 dark:border-neutral-800 h-32 flex items-center justify-center">
-                  <div className="text-center">
-                    <span className="block mb-2 text-2xl opacity-20">
-                      {idx === 0 ? '< >' : idx === 1 ? '{ }' : '#'}
-                    </span>
-                    {domain.content}
+            {loading ? (
+              Array(4).fill(0).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex flex-col h-full rounded-xl overflow-hidden animate-pulse">
+                  <div className="h-40 bg-neutral-200 dark:bg-neutral-800"></div>
+                  <div className="p-4 flex flex-col space-y-3">
+                    <div className="h-5 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4"></div>
+                    <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/2"></div>
+                    <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-full mt-4"></div>
                   </div>
                 </div>
+              ))
+            ) : featuredCourses.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-neutral-500">No courses available right now.</div>
+            ) : (
+              featuredCourses.map((course) => {
+                const rating = course.averageRating || 0;
+                const reviewCount = course.ratingCount || 0;
+                const studentCount = course.enrollmentCount || 0;
+                const difficultyMap = { BEGINNER: 'Beginner', INTERMEDIATE: 'Intermediate', ADVANCED: 'Advanced' };
+                const difficultyLabel = difficultyMap[course.difficulty] || course.difficulty || '';
+                const difficultyColor = course.difficulty === 'BEGINNER' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                  : course.difficulty === 'ADVANCED' ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                    : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400';
+
+                return (
+                  <Link
+                    key={course.id}
+                    to={`/courses/${course.id}`}
+                    className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 hover:shadow-xl transition-all flex flex-col h-full rounded-xl overflow-hidden"
+                  >
+                    <div className="h-40 bg-neutral-100 dark:bg-neutral-950 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-center overflow-hidden relative">
+                      {course.thumbnailUrl ? (
+                        <img src={courseService.getImageUrl(course.thumbnailUrl)} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-neutral-800 dark:to-neutral-900 opacity-50"></div>
+                          <span className="font-serif text-5xl text-orange-500/20 dark:text-neutral-700/50 italic group-hover:scale-110 transition-transform duration-500">
+                            {course.title.substring(0, 2).toUpperCase()}
+                          </span>
+                        </>
+                      )}
+                      {difficultyLabel && (
+                        <span className={`absolute top-2 left-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded ${difficultyColor}`}>
+                          {difficultyLabel}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-4 flex flex-col flex-1">
+                      <h4 className="text-base font-bold text-neutral-900 dark:text-white mb-1 line-clamp-2 leading-tight group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{course.title}</h4>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">{getInstructorName(course.instructor)}</p>
+
+                      <div className="flex items-center gap-2 mb-3 text-sm">
+                        {rating > 0 ? (
+                          <>
+                            <span className="font-bold text-yellow-600 dark:text-yellow-500">{rating.toFixed(1)}</span>
+                            <div className="flex items-center">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <span
+                                  key={s}
+                                  className={`material-symbols-outlined text-[14px] ${s <= Math.round(rating) ? 'text-yellow-500' : 'text-neutral-300 dark:text-neutral-600'}`}
+                                  style={s <= Math.round(rating) ? { fontVariationSettings: "'FILL' 1" } : {}}
+                                >star</span>
+                              ))}
+                            </div>
+                            <span className="text-xs text-neutral-400">({reviewCount})</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-neutral-400">No ratings yet</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 mb-3">
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">group</span>
+                          {studentCount} students
+                        </span>
+                        {course.category && (
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">label</span>
+                            {course.category.name}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-auto pt-3 border-t border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                        <span className="font-bold text-lg text-neutral-900 dark:text-white">
+                          {course.price === 0 ? 'Free' : `$${course.price}`}
+                        </span>
+                        <span className="text-xs font-medium text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                          View course <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Learn With Us (replaces SAAS pricing blocks) */}
+      <section className="py-20 px-6 bg-white dark:bg-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-serif text-neutral-900 dark:text-white mb-4">Why learn on Trickcode?</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-16">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-500 rounded-full flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-3xl">play_circle</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Learn at your own pace</h3>
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+                Enjoy lifetime access to courses on Trickcode's website. Watch and learn whenever and wherever you want.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-500 rounded-full flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-3xl">workspace_premium</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Learn from industry experts</h3>
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+                Our instructors and mentors are top engineers from leading tech companies, bringing real-world experience to your screen.
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500 rounded-full flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-3xl">terminal</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Hands-on practice</h3>
+              <p className="text-neutral-600 dark:text-neutral-400 text-sm leading-relaxed">
+                Practice what you learn with an interactive coding workspace, immediate feedback, and real-world project portfolios.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section id="how-it-works" className="py-16 px-6 relative z-10 bg-neutral-50 dark:bg-neutral-950/30 border-t border-neutral-200 dark:border-neutral-800">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-serif text-neutral-900 dark:text-white font-medium mb-3">How It Works</h2>
+            <p className="text-neutral-500 dark:text-neutral-400">Start learning in 3 simple steps</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { step: '01', icon: 'search', title: 'Browse & Choose', desc: 'Explore our library of courses curated by real industry experts. Filter by topic, difficulty, and rating to find your perfect match.' },
+              { step: '02', icon: 'play_lesson', title: 'Learn & Practice', desc: 'Watch video lessons, complete interactive quizzes, and write code in our built-in workspace — all in one place.' },
+              { step: '03', icon: 'emoji_events', title: 'Earn & Grow', desc: 'Track your progress, earn certificates, and build a portfolio of skills that proves your expertise to employers.' },
+            ].map((item, idx) => (
+              <div key={idx} className="relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-8 hover:shadow-lg transition-shadow group">
+                <div className="text-5xl font-serif font-bold text-orange-100 dark:text-orange-900/30 absolute top-4 right-6 select-none">{item.step}</div>
+                <div className="w-14 h-14 bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-2xl">{item.icon}</span>
+                </div>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-2">{item.title}</h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Marketplace Access / Pricing */}
-      <section className="py-24 px-6 relative z-10 bg-gray-50 dark:bg-neutral-950/50">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-serif text-center mb-20">Marketplace Access</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-neutral-900 p-8 border border-neutral-200 dark:border-neutral-800 flex flex-col rounded">
-              <div className="mb-8">
-                <h3 className="text-xs font-mono uppercase tracking-widest text-neutral-500 mb-2">Pay Per Course</h3>
-                <p className="text-4xl font-serif">A La Carte</p>
-              </div>
-              <p className="text-sm text-neutral-500 mb-8 leading-relaxed">
-                Buy exactly what you need. Own the content forever with lifetime updates from the author.
-              </p>
-              <ul className="space-y-4 mb-8 flex-1">
-                {['Lifetime Access', 'Direct Q&A with Author', 'Downloadable Resources'].map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-3 text-xs font-mono text-neutral-600 dark:text-neutral-400">
-                    <span className="material-symbols-outlined text-sm">check</span> {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/marketplace" className="w-full block text-center bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-xs font-sans py-4 hover:opacity-90 transition-opacity rounded">
-                Explore Courses
-              </Link>
-            </div>
-            <div className="bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 p-8 flex flex-col relative overflow-hidden rounded">
-              <div className="absolute top-4 right-4 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white text-[10px] font-mono px-2 py-1 uppercase border border-neutral-200 dark:border-neutral-700 rounded">
-                Pro Pass
-              </div>
-              <div className="mb-8">
-                <h3 className="text-xs font-mono uppercase tracking-widest opacity-70 mb-2">Subscription</h3>
-                <p className="text-4xl font-serif flex items-baseline gap-1">
-                  $29 <span className="text-lg font-sans opacity-70">/mo</span>
-                </p>
-              </div>
-              <p className="text-sm opacity-70 mb-8 leading-relaxed">
-                Unlock the entire library. Perfect for intense interview preparation sprints.
-              </p>
-              <ul className="space-y-4 mb-8 flex-1">
-                {['All 400+ Courses', 'AI Code Reviews', 'Mock Interview Credits', 'Early Access to New Courses'].map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-3 text-xs font-mono">
-                    <span className="material-symbols-outlined text-primary text-sm">bolt</span> {feature}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/login" className="w-full block text-center bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white text-xs font-mono uppercase py-4 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors rounded">
-                Get Pro Pass
-              </Link>
-            </div>
-          </div>
+      {/* CTA Section */}
+      <section className="py-24 px-6 relative z-10 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-center">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-serif mb-6">Take your career to the next level</h2>
+          <p className="text-lg md:text-xl text-neutral-400 dark:text-neutral-600 mb-10 font-light">
+            Join thousands of learners achieving their goals with top-tier technical courses.
+          </p>
+          <Link to="/signup" className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold py-4 px-10 rounded-lg text-lg transition-colors">
+            Start Learning for Free
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-24 px-6 bg-white dark:bg-neutral-950 border-t border-neutral-200 dark:border-neutral-800 z-10 relative">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-24">
-          <h2 className="text-4xl md:text-5xl font-serif max-w-lg mb-8 md:mb-0">
-            Ready to master <span className="italic font-light">algorithms and ace your interviews?</span>
-          </h2>
-          <Link to="/login" className="inline-flex items-center gap-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-8 py-4 font-mono text-xs uppercase tracking-widest hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors rounded">
-            Join Marketplace <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </Link>
-        </div>
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12 text-xs text-neutral-500 dark:text-neutral-400">
-          <div className="col-span-2 md:col-span-1">
+      <footer className="py-16 px-6 bg-neutral-100 dark:bg-[#0a0a0a] border-t border-neutral-200 dark:border-neutral-800 z-10 relative">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 text-sm text-neutral-600 dark:text-neutral-400 mb-16">
+          <div className="col-span-2">
             <div className="flex items-center gap-2 mb-4 text-neutral-900 dark:text-white">
               <img
                 alt="TrickCode Logo"
-                className="w-6 h-6 object-contain rounded"
+                className="w-8 h-8 object-contain rounded"
                 src={logo}
               />
-              <span className="font-serif font-bold text-lg">Trickcode</span>
+              <span className="font-serif font-bold text-xl">Trickcode</span>
             </div>
-              <p className="max-w-xs leading-relaxed">
-              The premier platform for learning data structures and algorithms. Master DSA and ace your technical interviews.
+            <p className="max-w-xs leading-relaxed mb-6">
+              Empowering developers with world-class curriculum in algorithms, data structures, and competitive programming.
             </p>
           </div>
           <div className="flex flex-col gap-3">
-            <span className="font-mono uppercase text-neutral-900 dark:text-white mb-2">Marketplace</span>
-            <Link to="/marketplace" className="hover:underline">Browse All</Link>
-            <a href="#mentors" className="hover:underline">Instructors</a>
-            <a href="#" className="hover:underline">Become a Mentor</a>
+            <span className="font-bold text-neutral-900 dark:text-white mb-2">Trickcode</span>
+            <a href="#" className="hover:text-orange-500 transition-colors">About</a>
+            <a href="#" className="hover:text-orange-500 transition-colors">Careers</a>
+            <a href="#" className="hover:text-orange-500 transition-colors">Contact</a>
           </div>
           <div className="flex flex-col gap-3">
-            <span className="font-mono uppercase text-neutral-900 dark:text-white mb-2">Resources</span>
-            <a href="#" className="hover:underline">Blog</a>
-            <a href="#" className="hover:underline">Documentation</a>
-            <a href="#" className="hover:underline">Community</a>
+            <span className="font-bold text-neutral-900 dark:text-white mb-2">Learn</span>
+            <Link to="/learn" className="hover:text-orange-500 transition-colors">Browse Courses</Link>
+            <a href="#how-it-works" className="hover:text-orange-500 transition-colors">How It Works</a>
+            <a href="#" className="hover:text-orange-500 transition-colors">Blog</a>
           </div>
           <div className="flex flex-col gap-3">
-            <span className="font-mono uppercase text-neutral-900 dark:text-white mb-2">Legal</span>
-            <a href="#" className="hover:underline">Privacy</a>
-            <a href="#" className="hover:underline">Terms</a>
+            <span className="font-bold text-neutral-900 dark:text-white mb-2">Legal</span>
+            <a href="#" className="hover:text-orange-500 transition-colors">Terms of Use</a>
+            <a href="#" className="hover:text-orange-500 transition-colors">Privacy Policy</a>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-24 pt-8 border-t border-neutral-100 dark:border-neutral-800 flex flex-col md:flex-row justify-between text-[10px] font-mono uppercase text-neutral-400">
-          <span>© 2024 Trickcode Inc.</span>
-          <div className="flex gap-4 mt-4 md:mt-0">
+        <div className="max-w-7xl mx-auto pt-8 border-t border-neutral-200 dark:border-neutral-800 flex flex-col md:flex-row justify-between items-center text-sm text-neutral-500">
+          <span>© 2026 Trickcode, Inc.</span>
+          <div className="flex gap-6 mt-4 md:mt-0">
             <a href="#" className="hover:text-neutral-900 dark:hover:text-white">Twitter</a>
             <a href="#" className="hover:text-neutral-900 dark:hover:text-white">Github</a>
-            <a href="#" className="hover:text-neutral-900 dark:hover:text-white">Linkedin</a>
+            <a href="#" className="hover:text-neutral-900 dark:hover:text-white">LinkedIn</a>
           </div>
         </div>
       </footer>

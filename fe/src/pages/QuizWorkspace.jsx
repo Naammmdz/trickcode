@@ -1,14 +1,56 @@
-import { useState } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import logo from '/logo.png';
 import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
+import { courseService } from '../services/courseService';
 
 const QuizWorkspace = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [lesson, setLesson] = useState(null);
+  const [course, setCourse] = useState(null);
+  const [curriculum, setCurriculum] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [quizData, setQuizData] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [quizResult, setQuizResult] = useState(null);
+  const isReviewMode = location.state?.reviewMode || false;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [lessonData, courseData, curriculumData] = await Promise.all([
+          courseService.getLesson(quizId),
+          courseService.getCourse(courseId),
+          courseService.getCourseCurriculum(courseId)
+        ]);
+        setLesson(lessonData);
+        setCourse(courseData);
+        setCurriculum(curriculumData);
+
+        // Parse quiz config if available
+        if (lessonData.quizConfig) {
+          try {
+            const parsedQuiz = JSON.parse(lessonData.quizConfig);
+            setQuizData(parsedQuiz);
+          } catch (e) {
+            console.error('Failed to parse quiz config:', e);
+          }
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [courseId, quizId]);
 
   const handleAnswerSelect = (questionId, answerId) => {
     setSelectedAnswers(prev => ({
@@ -17,92 +59,103 @@ const QuizWorkspace = () => {
     }));
   };
 
-  const handleSubmit = () => {
-    // Calculate results
-    const questions = [
-      { id: 'q1', correctAnswer: 1 },
-      { id: 'q2', correctAnswer: 0 },
-      { id: 'q3', correctAnswer: 1 },
-      { id: 'q4', correctAnswer: 0 },
-      { id: 'q5', correctAnswer: 0 }
-    ];
+  const handleSubmit = async () => {
+    if (!quizData || !quizData.questions) return;
 
-    const questionData = [
-      {
-        id: 'q1',
-        question: 'What is the space complexity of the memoized Fibonacci solution?',
-        options: ['O(1)', 'O(n)', 'O(2^n)', 'O(n log n)'],
-        correctAnswer: 1,
-        explanation: 'Memoization stores at most n values in the hash map, so space complexity is O(n).'
-      },
-      {
-        id: 'q2',
-        question: 'Which approach uses more stack space?',
-        options: ['Top-Down (Memoization)', 'Bottom-Up (Tabulation)', 'Both use the same amount', 'Neither uses stack space'],
-        correctAnswer: 0,
-        explanation: 'Top-down memoization uses recursion, which requires stack space for the call stack.'
-      },
-      {
-        id: 'q3',
-        question: 'What is the space complexity of bottom-up tabulation for Fibonacci?',
-        options: ['O(1)', 'O(n)', 'O(2^n)', 'O(n²)'],
-        correctAnswer: 1,
-        explanation: 'Tabulation uses an array of size n to store intermediate results.'
-      },
-      {
-        id: 'q4',
-        question: 'Can we optimize the space complexity of Fibonacci tabulation further?',
-        options: ['Yes, to O(1) using only two variables', 'No, we need O(n) space', 'Yes, to O(log n)', 'No, space complexity cannot be optimized'],
-        correctAnswer: 0,
-        explanation: 'We only need the last two values to compute the next Fibonacci number, so we can use just two variables.'
-      },
-      {
-        id: 'q5',
-        question: 'What is the main trade-off between memoization and tabulation?',
-        options: ['Memoization uses more stack space, tabulation uses more heap space', 'Tabulation is always faster', 'Memoization is easier to implement', 'There is no trade-off'],
-        correctAnswer: 0,
-        explanation: 'Memoization uses recursion (stack space) while tabulation uses an array (heap space).'
-      }
-    ];
+    const questions = quizData.questions;
 
-    let correctAnswers = 0;
-    const results = questions.map((q, idx) => {
+    let correctCount = 0;
+    const results = questions.map((q) => {
       const userAnswer = selectedAnswers[q.id];
       const isCorrect = userAnswer === q.correctAnswer;
-      if (isCorrect) correctAnswers++;
-      
-      return {
-        ...questionData[idx],
-        userAnswer: userAnswer !== undefined ? userAnswer : -1,
-        correctAnswer: q.correctAnswer,
-        isCorrect
-      };
+      if (isCorrect) correctCount++;
+      return { ...q, userAnswer: userAnswer !== undefined ? userAnswer : -1, isCorrect };
     });
 
     const totalQuestions = questions.length;
-    const score = Math.round((correctAnswers / totalQuestions) * 100);
+    const score = Math.round((correctCount / totalQuestions) * 100);
+    const passingScore = quizData.passingScore || 60;
+    const passed = score >= passingScore;
 
-    // Navigate to result page with data
-    navigate(`/my-courses/${courseId}/quiz/${quizId}/result`, {
-      state: {
-        results: {
-          totalQuestions,
-          correctAnswers,
-          score,
-          questions: results
-        }
+    // Mark as complete if score passes
+    if (passed && !isReviewMode) {
+      try {
+        await courseService.completeLesson(quizId);
+        console.log('Quiz completed successfully:', quizId);
+      } catch (err) {
+        console.error('Failed to mark quiz as completed', err);
       }
-    });
+    }
+
+    setQuizResult({ totalQuestions, correctCount, score, passingScore, passed, questions: results });
+    setSubmitted(true);
   };
 
   const handleReset = () => {
     setSelectedAnswers({});
+    setSubmitted(false);
+    setQuizResult(null);
   };
+
+  const getLessonRoute = (lessonItem) => {
+    const type = lessonItem.type?.toLowerCase();
+    const baseRoute = isReviewMode ? `/admin/review/${courseId}` : `/my-courses/${courseId}`;
+    if (type === 'quiz') return `${baseRoute}/quiz/${lessonItem.id}`;
+    if (type === 'code') return `${baseRoute}/code/${lessonItem.id}`;
+    return `${baseRoute}/lesson/${lessonItem.id}`;
+  };
+
+  let prevLesson = null;
+  let nextLesson = null;
+  if (curriculum?.sections) {
+    const flattenedLessons = curriculum.sections.flatMap(section => section.lessons || []);
+    const currentIndex = flattenedLessons.findIndex(l => l.id === Number(quizId));
+    if (currentIndex > 0) prevLesson = flattenedLessons[currentIndex - 1];
+    if (currentIndex !== -1 && currentIndex < flattenedLessons.length - 1) nextLesson = flattenedLessons[currentIndex + 1];
+  }
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-hidden selection:bg-primary selection:text-white h-screen flex flex-col">
+      {/* Admin Review Banner */}
+      {isReviewMode && course && (
+        <div className="fixed top-0 left-0 right-0 h-16 bg-neutral-900 text-white z-[60] flex items-center justify-between px-6 shadow-xl">
+          <div className="flex items-center gap-3">
+            <span className="bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded">ADMIN REVIEW MODE</span>
+            <span className="text-sm text-neutral-300">You have full access to this course content.</span>
+            {course.status && (
+              <span className="text-xs text-neutral-400 ml-2">
+                Status: <span className="text-white font-bold">{course.status}</span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Only show approve/reject if status is PENDING or REJECTED */}
+            {course.status && (course.status === 'PENDING' || course.status === 'REJECTED') && (
+              <>
+                <button className="px-4 py-2 border border-red-500/50 text-red-500 hover:bg-red-500/10 rounded text-xs font-bold uppercase tracking-widest transition-colors">
+                  Reject Course
+                </button>
+                <button className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-green-900/20">
+                  Approve & Publish
+                </button>
+              </>
+            )}
+            {/* Show status info if already published */}
+            {course.status === 'PUBLISHED' && (
+              <span className="text-sm text-green-400 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">check_circle</span>
+                Course is already published
+              </span>
+            )}
+            <button onClick={() => navigate('/admin')} className="ml-4 text-neutral-500 hover:text-white">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Navbar */}
-      <nav className="w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 h-16 shrink-0">
+      <nav className={`w-full z-50 bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 h-16 shrink-0 ${isReviewMode ? 'mt-16' : ''}`}>
         <div className="w-full px-6 h-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="relative w-8 h-8 flex items-center justify-center">
@@ -129,11 +182,23 @@ const QuizWorkspace = () => {
         <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-black relative">
           {/* Breadcrumb */}
           <div className="h-12 border-b border-neutral-100 dark:border-neutral-800 flex items-center px-6 gap-2 text-[10px] font-sans uppercase tracking-widest text-neutral-500 overflow-x-auto whitespace-nowrap bg-white dark:bg-neutral-950">
-            <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
-            <span className="text-neutral-300 dark:text-neutral-700">/</span>
-            <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">Dynamic Programming Patterns</Link>
-            <span className="text-neutral-300 dark:text-neutral-700">/</span>
-            <span className="text-neutral-900 dark:text-white font-semibold">Space Complexity Quiz</span>
+            {isReviewMode ? (
+              <>
+                <Link to="/admin" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Admin Dashboard</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <Link to={`/admin/review/${courseId}`} state={{ reviewMode: true }} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Review Course'}</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
+              </>
+            ) : (
+              <>
+                <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Course'}</Link>
+                <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
+              </>
+            )}
           </div>
 
           {/* Quiz Content */}
@@ -158,204 +223,150 @@ const QuizWorkspace = () => {
               </div>
 
               {/* Quiz Questions */}
+              {/* Result Banner */}
+              {submitted && quizResult && (
+                <div className={`mb-8 p-6 rounded-xl border ${quizResult.passed
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/40'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
+                  }`}>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center ${quizResult.passed ? 'bg-emerald-500' : 'bg-red-500'
+                      }`}>
+                      <span className="material-symbols-outlined text-white text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {quizResult.passed ? 'check_circle' : 'cancel'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className={`text-xl font-bold ${quizResult.passed ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                        {quizResult.passed ? 'Quiz Passed!' : 'Quiz Failed'}
+                      </h3>
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                        Score: <span className="font-bold">{quizResult.score}%</span> ({quizResult.correctCount}/{quizResult.totalQuestions} correct) · Passing: {quizResult.passingScore}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Link
+                      to={`/my-courses/${courseId}`}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                      Back to Course
+                    </Link>
+                    {!quizResult.passed && (
+                      <button
+                        onClick={handleReset}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 border border-neutral-300 dark:border-neutral-700 text-sm font-semibold rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">refresh</span>
+                        Retry Quiz
+                      </button>
+                    )}
+                    {quizResult.passed && nextLesson && (
+                      <Link
+                        to={getLessonRoute(nextLesson)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                      >
+                        Next Lesson
+                        <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-8">
                 <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 md:p-8">
-                  {/* Question 1 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">1.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">What is the space complexity of the memoized Fibonacci solution?</p>
-                        <div className="space-y-3">
-                          {['O(1)', 'O(n)', 'O(2^n)', 'O(n log n)'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q1', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q1'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q1" 
-                                checked={selectedAnswers['q1'] === idx}
-                                onChange={() => handleAnswerSelect('q1', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q1'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                  {!quizData ? (
+                    <div className="text-center py-10 text-neutral-500">
+                      No quiz configuration found.
                     </div>
-                  </div>
-
-                  {/* Question 2 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">2.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">Which approach uses more stack space?</p>
-                        <div className="space-y-3">
-                          {['Top-Down (Memoization)', 'Bottom-Up (Tabulation)', 'Both use the same amount', 'Neither uses stack space'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q2', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q2'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q2" 
-                                checked={selectedAnswers['q2'] === idx}
-                                onChange={() => handleAnswerSelect('q2', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q2'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
+                  ) : (
+                    quizData.questions?.map((question, qIdx) => {
+                      const resultQ = submitted && quizResult ? quizResult.questions.find(r => r.id === question.id) : null;
+                      return (
+                        <div key={question.id} className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800 last:border-0 last:mb-0 last:pb-0">
+                          <div className="flex items-start gap-3 mb-4">
+                            <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">{qIdx + 1}.</span>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-4">
+                                <p className="text-base text-neutral-900 dark:text-white">{question.question}</p>
+                                {resultQ && (
+                                  <span className={`material-symbols-outlined text-lg ${resultQ.isCorrect ? 'text-emerald-500' : 'text-red-500'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                                    {resultQ.isCorrect ? 'check_circle' : 'cancel'}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="space-y-3">
+                                {question.options.map((option, oIdx) => {
+                                  let borderClass = 'border-neutral-200 dark:border-neutral-700';
+                                  let bgClass = '';
+                                  if (submitted && resultQ) {
+                                    if (oIdx === question.correctAnswer) {
+                                      borderClass = 'border-emerald-400 dark:border-emerald-600';
+                                      bgClass = 'bg-emerald-50 dark:bg-emerald-900/20';
+                                    } else if (oIdx === selectedAnswers[question.id] && !resultQ.isCorrect) {
+                                      borderClass = 'border-red-400 dark:border-red-600';
+                                      bgClass = 'bg-red-50 dark:bg-red-900/20';
+                                    }
+                                  } else if (selectedAnswers[question.id] === oIdx) {
+                                    borderClass = 'border-orange-400 dark:border-orange-500';
+                                    bgClass = 'bg-orange-50 dark:bg-orange-900/10';
+                                  }
+                                  return (
+                                    <label
+                                      key={oIdx}
+                                      onClick={() => !submitted && handleAnswerSelect(question.id, oIdx)}
+                                      className={`flex items-start gap-3 p-3 border rounded transition-colors ${borderClass} ${bgClass} ${submitted ? 'cursor-default' : 'cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/40'}`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={String(question.id)}
+                                        checked={selectedAnswers[question.id] === oIdx}
+                                        onChange={() => !submitted && handleAnswerSelect(question.id, oIdx)}
+                                        disabled={submitted}
+                                        className="mt-1"
+                                      />
+                                      <span className={`text-sm ${submitted && oIdx === question.correctAnswer
+                                          ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
+                                          : submitted && oIdx === selectedAnswers[question.id] && !resultQ?.isCorrect
+                                            ? 'text-red-600 dark:text-red-400 line-through'
+                                            : selectedAnswers[question.id] === oIdx
+                                              ? 'text-neutral-900 dark:text-white font-medium'
+                                              : 'text-neutral-600 dark:text-neutral-400'
+                                        }`}>{option}</span>
+                                      {submitted && oIdx === question.correctAnswer && (
+                                        <span className="ml-auto text-[10px] uppercase tracking-widest font-bold text-emerald-500">Correct</span>
+                                      )}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
+                      );
+                    })
+                  )}
 
-                  {/* Question 3 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">3.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">What is the space complexity of bottom-up tabulation for Fibonacci?</p>
-                        <div className="space-y-3">
-                          {['O(1)', 'O(n)', 'O(2^n)', 'O(n²)'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q3', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q3'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q3" 
-                                checked={selectedAnswers['q3'] === idx}
-                                onChange={() => handleAnswerSelect('q3', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q3'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                  {/* Submit / Reset Buttons */}
+                  {!submitted && (
+                    <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800">
+                      <button
+                        onClick={handleReset}
+                        className="px-6 py-3 border border-neutral-200 dark:border-neutral-700 text-sm font-sans uppercase tracking-widest text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors rounded"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={!quizData || !quizData.questions || Object.keys(selectedAnswers).length < quizData.questions.length}
+                        className="px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-sans uppercase tracking-widest hover:opacity-90 transition-opacity rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Submit Answers
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Question 4 */}
-                  <div className="mb-8 pb-8 border-b border-neutral-200 dark:border-neutral-800">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">4.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">Can we optimize the space complexity of Fibonacci tabulation further?</p>
-                        <div className="space-y-3">
-                          {['Yes, to O(1) using only two variables', 'No, we need O(n) space', 'Yes, to O(log n)', 'No, space complexity cannot be optimized'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q4', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q4'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q4" 
-                                checked={selectedAnswers['q4'] === idx}
-                                onChange={() => handleAnswerSelect('q4', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q4'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Question 5 */}
-                  <div className="mb-8">
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="text-sm font-serif font-medium text-neutral-900 dark:text-white">5.</span>
-                      <div className="flex-1">
-                        <p className="text-base text-neutral-900 dark:text-white mb-4">What is the main trade-off between memoization and tabulation?</p>
-                        <div className="space-y-3">
-                          {['Memoization uses more stack space, tabulation uses more heap space', 'Tabulation is always faster', 'Memoization is easier to implement', 'There is no trade-off'].map((option, idx) => (
-                            <label 
-                              key={idx}
-                              onClick={() => handleAnswerSelect('q5', idx)}
-                              className={`flex items-start gap-3 p-3 border rounded cursor-pointer transition-colors ${
-                                selectedAnswers['q5'] === idx
-                                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                                  : 'border-neutral-200 dark:border-neutral-700 hover:border-primary dark:hover:border-primary'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name="q5" 
-                                checked={selectedAnswers['q5'] === idx}
-                                onChange={() => handleAnswerSelect('q5', idx)}
-                                className="mt-1"
-                              />
-                              <span className={`text-sm ${
-                                selectedAnswers['q5'] === idx
-                                  ? 'text-neutral-900 dark:text-white font-medium'
-                                  : 'text-neutral-600 dark:text-neutral-400'
-                              }`}>{option}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Submit Button */}
-                  <div className="flex justify-end gap-4 mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800">
-                    <button 
-                      onClick={handleReset}
-                      className="px-6 py-3 border border-neutral-200 dark:border-neutral-700 text-sm font-sans uppercase tracking-widest text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors rounded"
-                    >
-                      Reset
-                    </button>
-                    <button 
-                      onClick={handleSubmit}
-                      disabled={Object.keys(selectedAnswers).length < 5}
-                      className="px-6 py-3 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-sans uppercase tracking-widest hover:opacity-90 transition-opacity rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Submit Answers
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -363,29 +374,33 @@ const QuizWorkspace = () => {
 
           {/* Bottom Navigation */}
           <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg border-t border-neutral-200 dark:border-neutral-800 p-4 md:px-8 flex items-center justify-between z-20 h-20">
-            <Link to={`/my-courses/${courseId}/lesson/2`} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
-              <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-lg">arrow_back</span>
-              </div>
-              <div className="hidden sm:block">
-                <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous Lesson</span>
-                <span className="block text-xs font-medium truncate max-w-[150px]">Fibonacci: Top-Down vs Bottom-Up</span>
-              </div>
-            </Link>
+            {prevLesson ? (
+              <Link to={getLessonRoute(prevLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
+                <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
+                  <span className="material-symbols-outlined text-lg">arrow_back</span>
+                </div>
+                <div className="hidden sm:block">
+                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous Lesson</span>
+                  <span className="block text-xs font-medium truncate max-w-[150px]">{prevLesson.title}</span>
+                </div>
+              </Link>
+            ) : <div className="flex-1" />}
             <div className="flex items-center gap-2">
               <button className="hidden lg:hidden sm:flex items-center gap-2 px-4 py-2 text-xs font-sans uppercase tracking-widest text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded">
                 <span className="material-symbols-outlined text-lg">list</span> View Syllabus
               </button>
             </div>
-            <Link to={`/my-courses/${courseId}/code/4`} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
-              <div className="hidden sm:block">
-                <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next Lesson</span>
-                <span className="block text-xs font-medium truncate max-w-[150px]">Climbing Stairs</span>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </div>
-            </Link>
+            {nextLesson ? (
+              <Link to={getLessonRoute(nextLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
+                <div className="hidden sm:block">
+                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next Lesson</span>
+                  <span className="block text-xs font-medium truncate max-w-[150px]">{nextLesson.title}</span>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                </div>
+              </Link>
+            ) : <div className="flex-1" />}
           </div>
         </main>
       </div>

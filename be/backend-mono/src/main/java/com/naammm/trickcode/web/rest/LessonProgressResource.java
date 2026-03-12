@@ -166,7 +166,19 @@ public class LessonProgressResource {
         LOG.debug("REST request to delete LessonProgress : {}", id);
         lessonProgressService.delete(id);
         return ResponseEntity.noContent()
-            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, true, ENTITY_NAME, id.toString()))
+            .headers(HeaderUtil.createEntityDeletionAlert(applicationName, false, ENTITY_NAME, id.toString()))
             .build();
+    }
+
+    /**
+     * {@code POST  /lessons/:id/complete} : Mark a lesson as completed for current user.
+     *
+     * @param id the id of the lesson.
+     * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the lessonProgress, or with status {@code 404 (Not Found)}.
+     */
+    @PostMapping("/lessons/{id}/complete")
+    public ResponseEntity<LessonProgress> completeLesson(@PathVariable("id") Long id) {
+        LOG.debug("REST request to complete lesson : {}", id);
+        return ResponseUtil.wrapOrNotFound(lessonProgressService.completeLesson(id));
     }
 }

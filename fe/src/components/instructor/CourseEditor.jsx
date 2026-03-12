@@ -1,0 +1,512 @@
+import { useState, useEffect, useRef } from 'react';
+import { courseService } from '../../services/courseService';
+import LessonEditor from './LessonEditor';
+
+const CourseEditor = ({ courseId, onBack }) => {
+    const [course, setCourse] = useState({
+        title: '',
+        description: '',
+        price: 0,
+        thumbnailUrl: '',
+        level: 'BEGINNER',
+        status: 'DRAFT'
+    });
+
+    const [loading, setLoading] = useState(false);
+    const [sections, setSections] = useState([]);
+    const [allCategories, setAllCategories] = useState([]);
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState(new Set());
+
+    // Lesson Editor State
+    const [editingLesson, setEditingLesson] = useState(null); // { sectionId, lessonId }
+    const [isLessonEditorOpen, setIsLessonEditorOpen] = useState(false);
+    const [activeSectionId, setActiveSectionId] = useState(null); // For creating new lesson in a section
+
+    // Thumbnail Upload State
+    const [thumbnailUploading, setThumbnailUploading] = useState(false);
+    const [thumbnailProgress, setThumbnailProgress] = useState(0);
+    const [thumbnailError, setThumbnailError] = useState('');
+    const [thumbnailDragActive, setThumbnailDragActive] = useState(false);
+    const thumbnailInputRef = useRef(null);
+
+    const loadData = async () => {
+        if (!courseId) return;
+        try {
+            setLoading(true);
+            const data = await courseService.getCourseCurriculum(courseId);
+            setCourse(data);
+            setSections(data.sections || []);
+            // init selected categories from loaded course
+            if (data.categories) {
+                setSelectedCategoryIds(new Set(data.categories.map(c => c.id)));
+            }
+        } catch (error) {
+            console.error('Failed to load course', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Load all available categories once
+    useEffect(() => {
+        courseService.getCategories().then(res => setAllCategories(res.content || []));
+    }, []);
+
+    useEffect(() => {
+        if (courseId) {
+            loadData();
+        }
+    }, [courseId]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setCourse(prev => ({ ...prev, [name]: value }));
+    };
+
+    // ─── Thumbnail Upload Handlers ────────────────────────────────────────
+    const handleThumbnailFile = async (file) => {
+        if (!file) return;
+
+        // Validate image type
+        if (!file.type.startsWith('image/')) {
+            setThumbnailError('Only image files are allowed (JPEG, PNG, WebP, GIF)');
+            return;
+        }
+        // Validate size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setThumbnailError('Image must be smaller than 10MB');
+            return;
+        }
+
+        setThumbnailError('');
+        setThumbnailUploading(true);
+        setThumbnailProgress(0);
+
+        try {
+            const result = await courseService.uploadImage(file, (percent) => {
+                setThumbnailProgress(percent);
+            });
+            // Set the imageUrl from the server response
+            setCourse(prev => ({ ...prev, thumbnailUrl: result.imageUrl }));
+        } catch (err) {
+            console.error('Thumbnail upload failed:', err);
+            setThumbnailError(err.response?.data?.error || 'Upload failed. Please try again.');
+        } finally {
+            setThumbnailUploading(false);
+        }
+    };
+
+    const handleThumbnailDrop = (e) => {
+        e.preventDefault();
+        setThumbnailDragActive(false);
+        const file = e.dataTransfer.files?.[0];
+        handleThumbnailFile(file);
+    };
+
+    const handleRemoveThumbnail = () => {
+        setCourse(prev => ({ ...prev, thumbnailUrl: '' }));
+        setThumbnailError('');
+        setThumbnailProgress(0);
+    };
+
+    const handleToggleCategory = (catId) => {
+        setSelectedCategoryIds(prev => {
+            const next = new Set(prev);
+            if (next.has(catId)) next.delete(catId);
+            else next.add(catId);
+            return next;
+        });
+    };
+
+    const handleSaveCourse = async () => {
+        try {
+            const payload = {
+                ...course,
+                categories: Array.from(selectedCategoryIds).map(id => ({ id }))
+            };
+            if (courseId) {
+                await courseService.updateCourse(courseId, payload);
+                loadData(); // Reload to get potential server-side updates
+            } else {
+                const newCourse = await courseService.createCourse(payload);
+                // If created, maybe we should switch mode or notify
+                onBack(); // Simply go back for now
+            }
+        } catch (error) {
+            alert('Failed to save course');
+        }
+    };
+
+    const handleAddSection = async () => {
+        const title = prompt('Enter section title:');
+        if (!title) return;
+
+        try {
+            await courseService.createSection({
+                title,
+                course: { id: courseId },
+                orderIndex: sections.length + 1
+            });
+            loadData();
+        } catch (error) {
+            alert('Failed to add section');
+        }
+    };
+
+    const handleDeleteSection = async (sectionId) => {
+        if (!confirm('Delete this section and all its lessons?')) return;
+        try {
+            await courseService.deleteSection(sectionId);
+            loadData();
+        } catch (error) {
+            alert('Failed to delete section');
+        }
+    };
+
+    const handleOpenLessonEditor = (sectionId, lessonId = null) => {
+        setActiveSectionId(sectionId);
+        setEditingLesson(lessonId);
+        setIsLessonEditorOpen(true);
+    };
+
+    const handleLessonSaved = () => {
+        setIsLessonEditorOpen(false);
+        setEditingLesson(null);
+        setActiveSectionId(null);
+        loadData();
+    };
+
+    const handleDeleteLesson = async (lessonId) => {
+        if (!confirm('Delete this lesson?')) return;
+        try {
+            await courseService.deleteLesson(lessonId);
+            loadData();
+        } catch (error) {
+            alert('Failed to delete lesson');
+        }
+    };
+
+    if (isLessonEditorOpen) {
+        return (
+            <LessonEditor
+                courseId={courseId}
+                sectionId={activeSectionId}
+                lessonId={editingLesson}
+                onSave={handleLessonSaved}
+                onCancel={() => setIsLessonEditorOpen(false)}
+            />
+        );
+    }
+
+    return (
+        <div className="p-8 max-w-6xl space-y-8">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-6 border-b border-neutral-200 dark:border-neutral-800">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={onBack}
+                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-neutral-500">arrow_back</span>
+                    </button>
+                    <div>
+                        <h2 className="text-2xl font-serif text-neutral-900 dark:text-white">
+                            {courseId ? 'Edit Course' : 'Create New Course'}
+                        </h2>
+                        <p className="text-sm text-neutral-500">Basic information and curriculum.</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onBack}
+                        className="px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSaveCourse}
+                        className="px-6 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded text-sm font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+                    >
+                        Save Content
+                    </button>
+                </div>
+            </div>
+
+            {/* Form Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Basic Info */}
+                    <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-6 space-y-4">
+                        <h3 className="font-medium text-neutral-900 dark:text-white mb-4">Basic Information</h3>
+
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Course Title</label>
+                            <input
+                                name="title"
+                                value={course.title}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded focus:outline-none focus:border-neutral-400"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Description</label>
+                            <textarea
+                                name="description"
+                                value={course.description}
+                                onChange={handleChange}
+                                rows={4}
+                                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded focus:outline-none focus:border-neutral-400"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Price ($)</label>
+                                <input
+                                    name="price"
+                                    type="number"
+                                    value={course.price}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded focus:outline-none focus:border-neutral-400"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Level</label>
+                                <select
+                                    name="level"
+                                    value={course.level}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded focus:outline-none focus:border-neutral-400"
+                                >
+                                    <option value="BEGINNER">Beginner</option>
+                                    <option value="INTERMEDIATE">Intermediate</option>
+                                    <option value="ADVANCED">Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Curriculum */}
+                    <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="font-medium text-neutral-900 dark:text-white">Curriculum</h3>
+                            <button
+                                onClick={handleAddSection}
+                                disabled={!courseId} // Must enable course first
+                                className="text-xs font-bold uppercase text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={!courseId ? "Save course to add sections" : ""}
+                            >
+                                + Add Section
+                            </button>
+                        </div>
+
+                        {!courseId ? (
+                            <div className="text-center py-8 text-neutral-500 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded">
+                                Please save the course details first to start adding curriculum.
+                            </div>
+                        ) : sections.length === 0 ? (
+                            <div className="text-center py-8 text-neutral-500 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded">
+                                No sections yet. Add a section to get started.
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {sections.map((section, idx) => (
+                                    <div key={section.id} className="border border-neutral-200 dark:border-neutral-700 rounded-lg overflow-hidden">
+                                        <div className="bg-neutral-50 dark:bg-neutral-800 px-4 py-3 flex justify-between items-center border-b border-neutral-200 dark:border-neutral-700">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xs text-neutral-500 font-mono">#{idx + 1}</span>
+                                                <span className="text-sm font-medium text-neutral-900 dark:text-white">{section.title}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleOpenLessonEditor(section.id)}
+                                                    className="text-xs uppercase font-bold text-neutral-600 dark:text-neutral-400 hover:text-primary mr-2"
+                                                >
+                                                    + Lesson
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteSection(section.id)}
+                                                    className="text-neutral-400 hover:text-red-500"
+                                                >
+                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                                            {section.lessons && section.lessons.length > 0 ? (
+                                                section.lessons.map(lesson => (
+                                                    <div key={lesson.id} className="px-4 py-3 flex justify-between items-center hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="material-symbols-outlined text-neutral-400 text-sm">
+                                                                {lesson.type === 'VIDEO' ? 'play_circle' :
+                                                                    lesson.type === 'QUIZ' ? 'quiz' :
+                                                                        lesson.type === 'CODE' ? 'code' : 'article'}
+                                                            </span>
+                                                            <span className="text-sm text-neutral-700 dark:text-neutral-300">{lesson.title}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 opactiy-0 group-hover:opacity-100">
+                                                            <button
+                                                                onClick={() => handleOpenLessonEditor(section.id, lesson.id)}
+                                                                className="p-1 text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">edit</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteLesson(lesson.id)}
+                                                                className="p-1 text-neutral-400 hover:text-red-500"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">delete</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-3 text-xs text-neutral-400 italic text-center">
+                                                    No lessons in this section
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-6">
+                        <h3 className="font-medium text-neutral-900 dark:text-white mb-4">Thumbnail</h3>
+
+                        {/* Preview or Upload Zone */}
+                        {course.thumbnailUrl ? (
+                            <div className="relative group mb-3">
+                                <div className="aspect-video bg-neutral-100 dark:bg-neutral-800 rounded overflow-hidden">
+                                    <img
+                                        src={courseService.getImageUrl(course.thumbnailUrl)}
+                                        alt="Thumbnail"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                {/* Overlay controls on hover */}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => thumbnailInputRef.current?.click()}
+                                        className="px-3 py-1.5 bg-white/90 text-neutral-900 rounded text-xs font-bold uppercase tracking-wider hover:bg-white transition-colors"
+                                    >
+                                        Replace
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveThumbnail}
+                                        className="px-3 py-1.5 bg-red-500/90 text-white rounded text-xs font-bold uppercase tracking-wider hover:bg-red-500 transition-colors"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                onDragOver={(e) => { e.preventDefault(); setThumbnailDragActive(true); }}
+                                onDragLeave={() => setThumbnailDragActive(false)}
+                                onDrop={handleThumbnailDrop}
+                                onClick={() => thumbnailInputRef.current?.click()}
+                                className={`aspect-video rounded-lg border-2 border-dashed cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
+                                    thumbnailDragActive
+                                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/10'
+                                        : 'border-neutral-300 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-600 bg-neutral-50 dark:bg-neutral-950'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-3xl text-neutral-400">
+                                    {thumbnailDragActive ? 'download' : 'add_photo_alternate'}
+                                </span>
+                                <p className="text-xs text-neutral-500 text-center px-4">
+                                    {thumbnailDragActive
+                                        ? 'Drop image here'
+                                        : 'Click or drag & drop an image'}
+                                </p>
+                                <p className="text-[10px] text-neutral-400">JPEG, PNG, WebP — max 10MB</p>
+                            </div>
+                        )}
+
+                        {/* Upload Progress */}
+                        {thumbnailUploading && (
+                            <div className="mt-3">
+                                <div className="flex justify-between text-xs text-neutral-500 mb-1">
+                                    <span>Uploading...</span>
+                                    <span>{thumbnailProgress}%</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-orange-500 rounded-full transition-all duration-300"
+                                        style={{ width: `${thumbnailProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Error */}
+                        {thumbnailError && (
+                            <p className="mt-2 text-xs text-red-500">{thumbnailError}</p>
+                        )}
+
+                        {/* Hidden file input */}
+                        <input
+                            ref={thumbnailInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handleThumbnailFile(e.target.files?.[0])}
+                        />
+
+                        {/* Fallback external URL input */}
+                        <div className="mt-3">
+                            <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">
+                                Or paste external URL
+                            </label>
+                            <input
+                                name="thumbnailUrl"
+                                value={course.thumbnailUrl}
+                                onChange={handleChange}
+                                placeholder="https://..."
+                                className="w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded focus:outline-none focus:border-neutral-400 text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Categories */}
+                    <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded p-6">
+                        <h3 className="font-medium text-neutral-900 dark:text-white mb-4">Categories</h3>
+                        {allCategories.length === 0 ? (
+                            <p className="text-xs text-neutral-400 italic">No categories found. Create some in admin panel.</p>
+                        ) : (
+                            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                {allCategories.map(cat => (
+                                    <label
+                                        key={cat.id}
+                                        className={`flex items-center gap-3 px-3 py-2 rounded cursor-pointer transition-colors border ${selectedCategoryIds.has(cat.id)
+                                                ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/10'
+                                                : 'border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                                            }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCategoryIds.has(cat.id)}
+                                            onChange={() => handleToggleCategory(cat.id)}
+                                            className="accent-orange-500"
+                                        />
+                                        <span className="text-sm text-neutral-800 dark:text-neutral-200">{cat.name}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default CourseEditor;

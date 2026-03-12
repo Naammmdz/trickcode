@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import logo from '/logo.png';
 import { useAuth } from '../contexts/AuthContext';
 
 const Signup = () => {
+  const [searchParams] = useSearchParams();
+  const registered = searchParams.get('registered') === '1';
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -45,7 +47,7 @@ const Signup = () => {
         email: formData.email,
         password: formData.password,
       });
-      navigate('/');
+      navigate('/signup?registered=1');
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.');
     } finally {
@@ -122,6 +124,15 @@ const Signup = () => {
                 <span className="bg-white dark:bg-[#151518] px-2 text-gray-500 dark:text-gray-500 font-sans">Or register manually</span>
               </div>
             </div>
+
+            {registered && !error && (
+              <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded text-sm text-emerald-600 dark:text-emerald-300 font-mono">
+                Registration successful. Please check your email and click the activation link to finish signup.
+                <div className="mt-2 font-sans text-xs">
+                  Then you can <Link className="underline" to="/login">log in</Link>.
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded text-sm text-red-400 font-mono">

@@ -42,4 +42,10 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long>, J
         "select enrollment from Enrollment enrollment left join fetch enrollment.user left join fetch enrollment.course where enrollment.id =:id"
     )
     Optional<Enrollment> findOneWithToOneRelationships(@Param("id") Long id);
+
+    /**
+     * Check if a user is enrolled in a course
+     */
+    @Query("select case when count(e) > 0 then true else false end from Enrollment e where e.user.login = :login and e.course.id = :courseId")
+    boolean existsByUserLoginAndCourseId(@Param("login") String login, @Param("courseId") Long courseId);
 }

@@ -1,31 +1,147 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import logo from '/logo.png';
 import ThemeToggler from '../components/ui/ThemeToggler';
+import { courseService } from '../services/courseService';
+import { paymentService } from '../services/paymentService';
+import { useAuth } from '../contexts/AuthContext';
 
 const Checkout = () => {
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    cardNumber: '',
-    expiry: '',
-    cvc: '',
-    cardName: '',
-  });
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const courseId = searchParams.get('courseId');
+  
+  const [course, setCourse] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('vnpay');
+  const [bankCode, setBankCode] = useState(null); // VNPAYQR | VNBANK | INTCARD | NCB | null
 
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  useEffect(() => {
+    if (!courseId) {
+      setError('Course ID is required');
+      setLoading(false);
+      return;
+    }
 
-  const handleSubmit = (e) => {
+    // Wait for auth check to complete before redirecting
+    if (authLoading) {
+      return;
+    }
+
+    // Redirect to login if not authenticated
+    if (!user) {
+      navigate(`/login?redirect=/checkout?courseId=${courseId}`);
+      return;
+    }
+
+    const fetchCourse = async () => {
+      try {
+        setLoading(true);
+        const courseData = await courseService.getCourse(courseId);
+        setCourse(courseData);
+      } catch (err) {
+        console.error('Failed to fetch course:', err);
+        setError('Failed to load course details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourse();
+  }, [courseId, user, navigate, authLoading]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle checkout submission
+    
+    // Double check authentication before processing payment
+    if (!user) {
+      setError('Please login to continue with payment');
+      navigate(`/login?redirect=/checkout?courseId=${courseId}`);
+      return;
+    }
+    
+    if (!courseId) {
+      setError('Course ID is required');
+      return;
+    }
+
+    if (paymentMethod === 'vnpay') {
+      try {
+        setProcessing(true);
+        setError(null);
+        
+        const result = await paymentService.createVnPayPayment(parseInt(courseId), bankCode);
+
+        console.group('[VNPay] create payment result');
+        console.log('courseId:', courseId);
+        console.log('orderId:', result?.orderId);
+        console.log('txnRef:', result?.txnRef);
+        console.log('paymentUrl:', result?.paymentUrl);
+        if (result?.paymentUrl) {
+          try {
+            const url = new URL(result.paymentUrl);
+            console.log('paymentUrl host:', url.host);
+            console.log('paymentUrl params:');
+            for (const [k, v] of url.searchParams.entries()) {
+              if (k === 'vnp_SecureHash') {
+                console.log(k + ':', v?.slice(0, 12) + '...');
+              } else {
+                console.log(k + ':', v);
+              }
+            }
+          } catch (e) {
+            console.warn('Failed to parse paymentUrl:', e);
+          }
+        }
+        console.groupEnd();
+        
+        // Redirect to VNPay payment page
+        if (result.paymentUrl) {
+          window.location.href = result.paymentUrl;
+        } else {
+          setError('Failed to create payment URL');
+        }
+      } catch (err) {
+        console.error('Payment creation failed:', err);
+        setError(err.message || 'Failed to create payment. Please try again.');
+        setProcessing(false);
+      }
+    } else {
+      setError('Only VNPay payment is currently supported');
+    }
   };
+
+  // Show loading while checking auth or fetching course
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-neutral-600 dark:text-neutral-400">
+            {authLoading ? 'Checking authentication...' : 'Loading checkout...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !course) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <Link to="/marketplace" className="text-primary hover:underline">Back to Marketplace</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const coursePrice = course?.price || 0;
+  const originalPrice = course?.originalPrice || coursePrice;
+  const discount = originalPrice > coursePrice ? originalPrice - coursePrice : 0;
 
   return (
     <div className="bg-white dark:bg-[#0a0a0a] text-neutral-900 dark:text-neutral-100 font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
@@ -62,196 +178,116 @@ const Checkout = () => {
                 <p className="text-neutral-500 dark:text-neutral-400 font-light">Complete your purchase securely.</p>
               </div>
 
-              <form id="checkout-form" onSubmit={handleSubmit}>
-                {/* Billing Information */}
-                <section>
-                  <h2 className="text-lg font-serif font-medium mb-6 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-sans">1</span>
-                    Billing Information
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="block text-xs font-sans uppercase tracking-widest text-neutral-500" htmlFor="firstName">First Name</label>
-                      <input 
-                        className="w-full bg-gray-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 p-3 text-sm focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white outline-none transition-shadow rounded" 
-                        id="firstName" 
-                        name="firstName"
-                        placeholder="Sarah" 
-                        type="text"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-xs font-sans uppercase tracking-widest text-neutral-500" htmlFor="lastName">Last Name</label>
-                      <input 
-                        className="w-full bg-gray-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 p-3 text-sm focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white outline-none transition-shadow rounded" 
-                        id="lastName" 
-                        name="lastName"
-                        placeholder="Jenkins" 
-                        type="text"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div className="col-span-1 md:col-span-2 space-y-2">
-                      <label className="block text-xs font-sans uppercase tracking-widest text-neutral-500" htmlFor="email">Email Address</label>
-                      <input 
-                        className="w-full bg-gray-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 p-3 text-sm focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white outline-none transition-shadow rounded" 
-                        id="email" 
-                        name="email"
-                        placeholder="sarah@example.com" 
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                </section>
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                </div>
+              )}
 
+              <form id="checkout-form" onSubmit={handleSubmit}>
                 {/* Payment Method */}
                 <section>
                   <h2 className="text-lg font-serif font-medium mb-6 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-sans">2</span>
+                    <span className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-xs font-sans">1</span>
                     Payment Method
                   </h2>
-                  <div className="flex flex-wrap gap-4 mb-8">
+                  <div className="flex flex-wrap gap-4 mb-6">
                     <div className="flex-1">
                       <input 
-                        checked={paymentMethod === 'card'} 
+                        checked={paymentMethod === 'vnpay'} 
                         className="hidden" 
-                        id="card" 
+                        id="vnpay" 
                         name="payment-method" 
                         type="radio"
-                        onChange={() => setPaymentMethod('card')}
+                        onChange={() => setPaymentMethod('vnpay')}
                       />
                       <label 
                         className={`block text-center border py-4 px-2 rounded-lg cursor-pointer transition-colors ${
-                          paymentMethod === 'card'
+                          paymentMethod === 'vnpay'
                             ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
                             : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
                         }`}
-                        htmlFor="card"
+                        htmlFor="vnpay"
                       >
-                        <span className="material-symbols-outlined mb-2">credit_card</span>
-                        <span className="block text-xs font-sans uppercase tracking-widest">Card</span>
-                      </label>
-                    </div>
-                    <div className="flex-1">
-                      <input 
-                        checked={paymentMethod === 'qr'} 
-                        className="hidden" 
-                        id="qr" 
-                        name="payment-method" 
-                        type="radio"
-                        onChange={() => setPaymentMethod('qr')}
-                      />
-                      <label 
-                        className={`block text-center border py-4 px-2 rounded-lg cursor-pointer transition-colors ${
-                          paymentMethod === 'qr'
-                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
-                            : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
-                        }`}
-                        htmlFor="qr"
-                      >
-                        <span className="material-symbols-outlined mb-2">qr_code_scanner</span>
-                        <span className="block text-xs font-sans uppercase tracking-widest">QuickPay</span>
-                      </label>
-                    </div>
-                    <div className="flex-1">
-                      <input 
-                        checked={paymentMethod === 'wallet'} 
-                        className="hidden" 
-                        id="wallet" 
-                        name="payment-method" 
-                        type="radio"
-                        onChange={() => setPaymentMethod('wallet')}
-                      />
-                      <label 
-                        className={`block text-center border py-4 px-2 rounded-lg cursor-pointer transition-colors ${
-                          paymentMethod === 'wallet'
-                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
-                            : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
-                        }`}
-                        htmlFor="wallet"
-                      >
-                        <span className="material-symbols-outlined mb-2">account_balance_wallet</span>
-                        <span className="block text-xs font-sans uppercase tracking-widest">E-Wallet</span>
+                        <span className="material-symbols-outlined mb-2">account_balance</span>
+                        <span className="block text-xs font-sans uppercase tracking-widest">VNPay</span>
                       </label>
                     </div>
                   </div>
 
-                  {paymentMethod === 'card' && (
-                    <div className="space-y-6 p-6 border border-neutral-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 rounded-lg">
-                      <div className="space-y-2">
-                        <label className="block text-xs font-sans uppercase tracking-widest text-neutral-500" htmlFor="cardNumber">Card Number</label>
-                        <div className="relative">
-                          <input 
-                            className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-3 pl-12 text-sm focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white outline-none transition-shadow rounded font-sans" 
-                            id="cardNumber" 
-                            name="cardNumber"
-                            placeholder="0000 0000 0000 0000" 
-                            type="text"
-                            value={formData.cardNumber}
-                            onChange={handleInputChange}
-                            required
-                          />
-                          <span className="material-symbols-outlined absolute left-3 top-3 text-neutral-400 text-lg">credit_card</span>
-                          <div className="absolute right-3 top-3.5 flex gap-2 opacity-50 grayscale">
-                            <span className="text-[10px] font-bold italic font-serif leading-none">VISA</span>
-                            <span className="text-[10px] font-bold leading-none">MC</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="block text-xs font-sans uppercase tracking-widest text-neutral-500" htmlFor="expiry">Expiry Date</label>
-                          <input 
-                            className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-3 text-sm focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white outline-none transition-shadow rounded font-sans" 
-                            id="expiry" 
-                            name="expiry"
-                            placeholder="MM / YY" 
-                            type="text"
-                            value={formData.expiry}
-                            onChange={handleInputChange}
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="block text-xs font-sans uppercase tracking-widest text-neutral-500" htmlFor="cvc">CVC</label>
-                          <div className="relative">
-                            <input 
-                              className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-3 text-sm focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white outline-none transition-shadow rounded font-sans" 
-                              id="cvc" 
-                              name="cvc"
-                              placeholder="123" 
-                              type="text"
-                              value={formData.cvc}
-                              onChange={handleInputChange}
-                              required
-                            />
-                            <span className="material-symbols-outlined absolute right-3 top-3 text-neutral-400 text-sm" title="Security Code">help</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-xs font-sans uppercase tracking-widest text-neutral-500" htmlFor="cardName">Name on Card</label>
-                        <input 
-                          className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-3 text-sm focus:ring-1 focus:ring-neutral-900 dark:focus:ring-white outline-none transition-shadow rounded" 
-                          id="cardName" 
-                          name="cardName"
-                          placeholder="Sarah Jenkins" 
-                          type="text"
-                          value={formData.cardName}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
+                  <div className="space-y-3 p-4 border border-neutral-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-sans uppercase tracking-widest text-neutral-500">VNPay Channel</span>
+                      <span className="text-[10px] font-sans text-neutral-400">Optional</span>
                     </div>
-                  )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setBankCode(null)}
+                        className={`p-3 border rounded text-left transition-colors ${
+                          bankCode === null
+                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
+                            : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
+                        }`}
+                      >
+                        <div className="text-xs font-sans uppercase tracking-widest font-bold">Auto</div>
+                        <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">Choose on VNPay</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBankCode('VNPAYQR')}
+                        className={`p-3 border rounded text-left transition-colors ${
+                          bankCode === 'VNPAYQR'
+                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
+                            : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
+                        }`}
+                      >
+                        <div className="text-xs font-sans uppercase tracking-widest font-bold">QR</div>
+                        <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">VNPAYQR</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBankCode('VNBANK')}
+                        className={`p-3 border rounded text-left transition-colors ${
+                          bankCode === 'VNBANK'
+                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
+                            : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
+                        }`}
+                      >
+                        <div className="text-xs font-sans uppercase tracking-widest font-bold">ATM</div>
+                        <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">VNBANK</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBankCode('INTCARD')}
+                        className={`p-3 border rounded text-left transition-colors ${
+                          bankCode === 'INTCARD'
+                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
+                            : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
+                        }`}
+                      >
+                        <div className="text-xs font-sans uppercase tracking-widest font-bold">Card</div>
+                        <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">INTCARD</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBankCode('NCB')}
+                        className={`p-3 border rounded text-left transition-colors md:col-span-2 ${
+                          bankCode === 'NCB'
+                            ? 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 border-neutral-900 dark:border-white'
+                            : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600'
+                        }`}
+                      >
+                        <div className="text-xs font-sans uppercase tracking-widest font-bold">Test Bank</div>
+                        <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1">NCB (test card)</div>
+                      </button>
+                    </div>
+                  </div>
 
                   <div className="flex items-center gap-6 justify-center md:justify-start pt-4 opacity-60 grayscale">
                     <div className="flex items-center gap-1.5">
@@ -274,52 +310,74 @@ const Checkout = () => {
                   <div className="absolute top-0 left-0 w-full h-1 bg-neutral-900 dark:bg-white"></div>
                   <h3 className="text-xl font-serif mb-8">Order Summary</h3>
                   
-                  <div className="flex gap-4 mb-8">
-                    <div className="w-20 h-20 shrink-0 bg-neutral-100 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 overflow-hidden">
-                      <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700"></div>
-                    </div>
-                    <div>
-                      <h4 className="font-serif font-medium text-lg leading-tight mb-1">Dynamic Programming Patterns</h4>
-                      <p className="text-xs font-sans text-neutral-500 mb-2">Complete Masterclass</p>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-sans uppercase bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 tracking-wider">
-                        Lifetime Access
-                      </span>
-                    </div>
-                  </div>
+                  {course && (
+                    <>
+                      <div className="flex gap-4 mb-8">
+                        <div className="w-20 h-20 shrink-0 bg-neutral-100 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+                          {course.imageUrl ? (
+                            <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-neutral-200 dark:bg-neutral-700"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-serif font-medium text-lg leading-tight mb-1">{course.title}</h4>
+                          <p className="text-xs font-sans text-neutral-500 mb-2">{course.description?.substring(0, 50)}...</p>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-sans uppercase bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 tracking-wider">
+                            Lifetime Access
+                          </span>
+                        </div>
+                      </div>
 
-                  <div className="space-y-4 pt-6 border-t border-neutral-100 dark:border-neutral-800 mb-8">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-neutral-600 dark:text-neutral-400">Original Price</span>
-                      <span className="font-sans line-through text-neutral-400">$89.99</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-primary">
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">local_offer</span>
-                        Discount
-                      </span>
-                      <span className="font-sans">-$50.00</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-neutral-600 dark:text-neutral-400">Taxes</span>
-                      <span className="font-sans text-neutral-400">$0.00</span>
-                    </div>
-                  </div>
+                      <div className="space-y-4 pt-6 border-t border-neutral-100 dark:border-neutral-800 mb-8">
+                        {originalPrice > coursePrice && (
+                          <>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-neutral-600 dark:text-neutral-400">Original Price</span>
+                              <span className="font-sans line-through text-neutral-400">${originalPrice.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm text-primary">
+                              <span className="flex items-center gap-1">
+                                <span className="material-symbols-outlined text-sm">local_offer</span>
+                                Discount
+                              </span>
+                              <span className="font-sans">-${discount.toFixed(2)}</span>
+                            </div>
+                          </>
+                        )}
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-neutral-600 dark:text-neutral-400">Taxes</span>
+                          <span className="font-sans text-neutral-400">$0.00</span>
+                        </div>
+                      </div>
 
-                  <div className="flex justify-between items-end pt-6 border-t border-neutral-200 dark:border-neutral-700 mb-8">
-                    <span className="font-serif text-lg">Total</span>
-                    <div className="text-right">
-                      <span className="block text-3xl font-serif font-bold">$39.99</span>
-                      <span className="text-[10px] font-sans text-neutral-400 uppercase tracking-widest">USD</span>
-                    </div>
-                  </div>
+                      <div className="flex justify-between items-end pt-6 border-t border-neutral-200 dark:border-neutral-700 mb-8">
+                        <span className="font-serif text-lg">Total</span>
+                        <div className="text-right">
+                          <span className="block text-3xl font-serif font-bold">${coursePrice.toFixed(2)}</span>
+                          <span className="text-[10px] font-sans text-neutral-400 uppercase tracking-widest">USD</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <button 
                     type="submit"
                     form="checkout-form"
-                    className="w-full group bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 py-5 px-6 flex items-center justify-between hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors shadow-lg shadow-neutral-900/20 rounded"
+                    disabled={processing || !course}
+                    className="w-full group bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 py-5 px-6 flex items-center justify-between hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors shadow-lg shadow-neutral-900/20 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span className="font-sans text-xs uppercase tracking-widest font-bold">Complete Purchase</span>
-                    <span className="material-symbols-outlined transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                    {processing ? (
+                      <>
+                        <span className="font-sans text-xs uppercase tracking-widest font-bold">Processing...</span>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white dark:border-neutral-900"></div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-sans text-xs uppercase tracking-widest font-bold">Complete Purchase</span>
+                        <span className="material-symbols-outlined transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                      </>
+                    )}
                   </button>
 
                   <div className="mt-6 text-center">

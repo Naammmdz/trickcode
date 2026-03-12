@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -30,14 +31,16 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     }
 
     @Query(
-        value = "select course from Course course left join fetch course.instructor",
-        countQuery = "select count(course) from Course course"
+        value = "select distinct course from Course course left join fetch course.instructor left join fetch course.categories",
+        countQuery = "select count(distinct course) from Course course"
     )
     Page<Course> findAllWithToOneRelationships(Pageable pageable);
 
-    @Query("select course from Course course left join fetch course.instructor")
+    @Query("select distinct course from Course course left join fetch course.instructor left join fetch course.categories")
     List<Course> findAllWithToOneRelationships();
 
-    @Query("select course from Course course left join fetch course.instructor where course.id =:id")
+    @Query("select course from Course course left join fetch course.instructor left join fetch course.categories where course.id =:id")
     Optional<Course> findOneWithToOneRelationships(@Param("id") Long id);
+
+    long countByStatus(CourseStatus status);
 }

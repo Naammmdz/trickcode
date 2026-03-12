@@ -2,10 +2,14 @@ package com.naammm.trickcode.repository;
 
 import com.naammm.trickcode.domain.Order;
 import java.util.List;
+import com.naammm.trickcode.domain.enumeration.OrderStatus;
+import java.math.BigDecimal;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import com.naammm.trickcode.service.dto.ChartDataDTO;
+import java.time.Instant;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +18,8 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
+    Optional<Order> findOneByPaymentTxnRef(String paymentTxnRef);
+
     @Query("select jhiOrder from Order jhiOrder where jhiOrder.user.login = ?#{authentication.name}")
     List<Order> findByUserIsCurrentUser();
 
@@ -40,4 +46,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("select jhiOrder from Order jhiOrder left join fetch jhiOrder.user left join fetch jhiOrder.course where jhiOrder.id =:id")
     Optional<Order> findOneWithToOneRelationships(@Param("id") Long id);
+
+    List<Order> findAllByStatusAndCreatedAtGreaterThanEqual(OrderStatus status, Instant startDate);
+
+
+
+    @Query("select sum(o.totalAmount) from Order o where o.status = :status")
+    Optional<BigDecimal> sumTotalAmountByStatus(@Param("status") OrderStatus status);
+
+    List<Order> findTop5ByOrderByIdDesc();
 }

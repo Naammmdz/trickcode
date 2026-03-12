@@ -5,11 +5,21 @@ const normalizeProfile = (profile) => {
   // JHipster profile: { id, login, firstName, lastName, email, authorities: [...] }
   const isPro = profile?.authorities?.includes('ROLE_PRO_USER'); // Example role check
 
+  // Build name from firstName and lastName
+  let name = profile?.login;
+  if (profile?.firstName) {
+    name = profile.lastName && profile.lastName.trim()
+      ? `${profile.firstName} ${profile.lastName}`.trim()
+      : profile.firstName.trim();
+  }
+
   return {
     id: profile?.id,
     login: profile?.login,
     email: profile?.email,
-    name: profile?.firstName ? `${profile.firstName} ${profile.lastName}` : profile?.login,
+    firstName: profile?.firstName || '',
+    lastName: profile?.lastName || '',
+    name,
     avatarUrl: profile?.imageUrl || null,
     roles: profile?.authorities || [],
     isPro,
@@ -62,7 +72,7 @@ export const authService = {
         login: userData.email, // Use email as login
         email: userData.email,
         password: userData.password,
-        firstName: userData.name || 'User',
+        firstName: userData.fullName || userData.name || 'User',
         lastName: '',
         langKey: 'en'
       };
@@ -74,6 +84,16 @@ export const authService = {
       // Assuming we need to tell user to check email, or I can try logging in.
 
       return { message: "Registration successful. Please check your email to activate." };
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Activate account
+  async activate(key) {
+    try {
+      await apiClient.get(API_ENDPOINTS.AUTH.ACTIVATE, { params: { key } });
+      return { message: 'Account activated' };
     } catch (error) {
       throw error;
     }
@@ -96,6 +116,36 @@ export const authService = {
       const user = normalizeProfile(response.data);
       localStorage.setItem('user', JSON.stringify(user));
       return { user };
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update profile
+  async updateProfile(userData) {
+    try {
+      const payload = {
+        login: userData.email,
+        email: userData.email,
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        langKey: userData.langKey || 'en',
+      };
+      await apiClient.post(API_ENDPOINTS.AUTH.PROFILE, payload);
+      return this.getProfile(); // Fetch updated profile to keep local state synced
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Change password
+  async changePassword(currentPassword, newPassword) {
+    try {
+      await apiClient.post(`${API_ENDPOINTS.AUTH.PROFILE}/change-password`, {
+        currentPassword,
+        newPassword
+      });
+      return { message: 'Password changed successfully' };
     } catch (error) {
       throw error;
     }

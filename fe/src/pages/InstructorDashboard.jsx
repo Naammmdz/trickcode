@@ -3,19 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import InstructorDashboardSidebar from '../components/layout/InstructorDashboardSidebar';
+import InstructorCourses from '../components/instructor/InstructorCourses';
 
 // Placeholder tab components - can be expanded later
 const OverviewTab = () => <div className="p-8">Instructor Overview</div>;
-const CoursesTab = () => <div className="p-8">My Courses CRUD</div>;
 const AnalyticsTab = () => <div className="p-8">Analytics</div>;
 const PayoutsTab = () => <div className="p-8">Payouts</div>;
 const SettingsTab = () => <div className="p-8">Settings</div>;
 
 const InstructorDashboard = () => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading, hasRole } = useAuth();
   const navigate = useNavigate();
 
-  const isInstructor = useMemo(() => user?.roles?.includes('INSTRUCTOR'), [user]);
+  const isInstructor = useMemo(() => hasRole('ROLE_INSTRUCTOR'), [user]);
 
   useEffect(() => {
     if (loading) return; // Wait until auth state is loaded
@@ -33,7 +33,7 @@ const InstructorDashboard = () => {
 
   const content = {
     overview: <OverviewTab />,
-    courses: <CoursesTab />,
+    courses: <InstructorCourses />,
     analytics: <AnalyticsTab />,
     payouts: <PayoutsTab />,
     settings: <SettingsTab />,

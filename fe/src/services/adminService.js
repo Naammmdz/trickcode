@@ -90,7 +90,7 @@ export const adminService = {
   createUser: async (data) => {
     const payload = adaptDraftToBackend(data);
     // JHipster create requires password
-    payload.password = data.password;
+    payload.password = data.password ? data.password : null;
     return apiClient.post(API_ENDPOINTS.ADMIN.USERS.CREATE, payload);
   },
 
