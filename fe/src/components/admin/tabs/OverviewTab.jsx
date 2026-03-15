@@ -32,12 +32,13 @@ const OverviewTab = () => {
     fetchData();
   }, []);
 
-  // Compute summary values for charts
+  const formatUsd = (val) => `$${(Number(val) || 0).toFixed(2)}`;
+
   const revenueSummary = useMemo(() => {
-    if (!chartData?.dailyRevenue?.length) return { total: '$0', subtitle: 'Last 30 days' };
-    const total = chartData.dailyRevenue.reduce((s, d) => s + (d.value || 0), 0);
+    if (!chartData?.dailyRevenue?.length) return { total: '$0.00', subtitle: 'Last 30 days' };
+    const total = chartData.dailyRevenue.reduce((s, d) => s + (Number(d.value) || 0), 0);
     return {
-      total: `$${(total / 100).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+      total: formatUsd(total),
       subtitle: `${chartData.dailyRevenue.length} days tracked`,
     };
   }, [chartData]);
@@ -104,11 +105,36 @@ const OverviewTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
         <StatCard
           title="Total Revenue"
-          value={`$${(stats.totalRevenue || 0).toLocaleString()}`}
+          value={formatUsd(stats.totalRevenue)}
           icon="payments"
           color="green"
-          subtitle="all time"
+          subtitle="all time (USD)"
         />
+        <StatCard
+          title="Platform Revenue"
+          value={formatUsd(stats.platformCommission)}
+          icon="account_balance"
+          color="primary"
+          subtitle="20% course + 100% subscriptions"
+        />
+        <StatCard
+          title="Instructor Payouts"
+          value={formatUsd(stats.instructorPayouts)}
+          icon="groups"
+          color="blue"
+          subtitle="80% of course sales"
+        />
+        <StatCard
+          title="Pro Subscriptions"
+          value={formatUsd(stats.subscriptionRevenue)}
+          icon="workspace_premium"
+          color="yellow"
+          subtitle="subscription revenue"
+        />
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
           title="Total Users"
           value={(stats.totalUsers || 0).toLocaleString()}
@@ -139,7 +165,7 @@ const OverviewTab = () => {
           data={chartData?.dailyRevenue || []}
           dataKey="value"
           color="#10b981"
-          valueFormatter={(value) => `$${(value / 100).toFixed(0)}`}
+          valueFormatter={(value) => formatUsd(value)}
           totalValue={revenueSummary.total}
           subtitle={revenueSummary.subtitle}
         />

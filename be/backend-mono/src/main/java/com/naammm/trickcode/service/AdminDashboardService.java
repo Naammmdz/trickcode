@@ -5,6 +5,7 @@ import com.naammm.trickcode.domain.User;
 import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import com.naammm.trickcode.domain.enumeration.OrderStatus;
 import com.naammm.trickcode.repository.CourseRepository;
+import com.naammm.trickcode.repository.EnrollmentRepository;
 import com.naammm.trickcode.repository.OrderRepository;
 import com.naammm.trickcode.repository.UserRepository;
 import com.naammm.trickcode.service.dto.AdminDashboardStatsDTO;
@@ -27,14 +28,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminDashboardService {
 
+    private static final BigDecimal PLATFORM_COMMISSION_RATE = new BigDecimal("0.20"); // 20%
+
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final OrderRepository orderRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final ProSubscriptionService proSubscriptionService;
 
-    public AdminDashboardService(UserRepository userRepository, CourseRepository courseRepository, OrderRepository orderRepository) {
+    public AdminDashboardService(UserRepository userRepository, CourseRepository courseRepository,
+                                  OrderRepository orderRepository, EnrollmentRepository enrollmentRepository,
+                                  ProSubscriptionService proSubscriptionService) {
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.orderRepository = orderRepository;
+        this.enrollmentRepository = enrollmentRepository;
+        this.proSubscriptionService = proSubscriptionService;
     }
 
     public AdminDashboardStatsDTO getDashboardStats() {
@@ -45,8 +54,35 @@ public class AdminDashboardService {
         stats.setTotalCourses(courseRepository.count());
         stats.setPendingCourses(courseRepository.countByStatus(CourseStatus.PENDING));
 
-        BigDecimal totalRevenue = orderRepository.sumTotalAmountByStatus(OrderStatus.COMPLETED).orElse(BigDecimal.ZERO);
+        // Course Revenue (USD) — calculated from course.price × enrollment count
+        List<Course> allCourses = courseRepository.findAll();
+        BigDecimal courseRevenue = allCourses.stream()
+            .map(course -> {
+                BigDecimal price = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
+                long enrolls = enrollmentRepository.countByCourseId(course.getId());
+                return price.multiply(BigDecimal.valueOf(enrolls));
+            })
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Subscription Revenue (USD) — from completed subscription orders
+        List<Order> completedOrders = orderRepository.findAllByStatusAndCreatedAtGreaterThanEqual(
+            OrderStatus.COMPLETED, java.time.Instant.EPOCH);
+        BigDecimal subscriptionRevenue = completedOrders.stream()
+            .filter(Order::isSubscriptionOrder)
+            .map(order -> proSubscriptionService.getPriceUsd(order.getSubscriptionType()))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Commission: 20% of course revenue + 100% of subscription revenue
+        BigDecimal courseCommission = courseRevenue.multiply(PLATFORM_COMMISSION_RATE);
+        BigDecimal platformCommission = courseCommission.add(subscriptionRevenue);
+        BigDecimal instructorPayouts = courseRevenue.subtract(courseCommission);
+        BigDecimal totalRevenue = courseRevenue.add(subscriptionRevenue);
+
+        stats.setCourseRevenue(courseRevenue);
+        stats.setSubscriptionRevenue(subscriptionRevenue);
         stats.setTotalRevenue(totalRevenue);
+        stats.setPlatformCommission(platformCommission);
+        stats.setInstructorPayouts(instructorPayouts);
 
         // Recent Activity
         List<User> recentUsers = userRepository.findTop5ByOrderByCreatedDateDesc();
@@ -61,16 +97,26 @@ public class AdminDashboardService {
         stats.setRecentOrders(
             recentOrders
                 .stream()
-                .map(order ->
-                    new AdminDashboardStatsDTO.RecentOrderDTO(
+                .map(order -> {
+                    String title;
+                    BigDecimal displayAmount;
+                    if (order.isSubscriptionOrder()) {
+                        title = order.getSubscriptionType().name().replace("_", " ") + " Subscription";
+                        displayAmount = proSubscriptionService.getPriceUsd(order.getSubscriptionType());
+                    } else {
+                        title = order.getCourse() != null ? order.getCourse().getTitle() : "N/A";
+                        displayAmount = order.getCourse() != null && order.getCourse().getPrice() != null
+                            ? order.getCourse().getPrice() : BigDecimal.ZERO;
+                    }
+                    return new AdminDashboardStatsDTO.RecentOrderDTO(
                         order.getId(),
                         order.getUser() != null ? order.getUser().getLogin() : "N/A",
-                        order.getCourse() != null ? order.getCourse().getTitle() : "N/A",
-                        order.getTotalAmount(),
+                        title,
+                        displayAmount,
                         order.getStatus(),
                         order.getCreatedAt()
-                    )
-                )
+                    );
+                })
                 .toList()
         );
 
@@ -82,20 +128,24 @@ public class AdminDashboardService {
         ZoneId zoneId = ZoneId.systemDefault();
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
 
-        // 1. Daily Revenue (Java Aggregation)
-        // Fetch raw orders
+        // 1. Daily Revenue in USD
         List<Order> orders = orderRepository.findAllByStatusAndCreatedAtGreaterThanEqual(OrderStatus.COMPLETED, startDate);
-        
-        // Group by Date and Sum Amount
+
         Map<String, BigDecimal> revenueMap = orders.stream()
             .collect(Collectors.groupingBy(
                 order -> LocalDate.ofInstant(order.getCreatedAt(), zoneId).format(formatter),
-                Collectors.reducing(BigDecimal.ZERO, Order::getTotalAmount, BigDecimal::add)
+                Collectors.reducing(BigDecimal.ZERO, order -> {
+                    if (order.isSubscriptionOrder()) {
+                        return proSubscriptionService.getPriceUsd(order.getSubscriptionType());
+                    } else if (order.getCourse() != null && order.getCourse().getPrice() != null) {
+                        return order.getCourse().getPrice();
+                    }
+                    return BigDecimal.ZERO;
+                }, BigDecimal::add)
             ));
 
-        // Ensure all days are present (optional, but good for charts) -> TreeMap for sorting
         Map<String, BigDecimal> sortedRevenue = new TreeMap<>(revenueMap);
-        
+
         List<ChartDataDTO.DataPoint> dailyRevenue = sortedRevenue.entrySet().stream()
             .map(entry -> new ChartDataDTO.DataPoint(entry.getKey(), entry.getValue()))
             .collect(Collectors.toList());

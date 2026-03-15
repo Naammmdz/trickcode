@@ -4,17 +4,27 @@ import logo from '/logo.png';
 import { useAuth } from '../../contexts/AuthContext';
 import ThemeToggler from '../ui/ThemeToggler';
 import { courseService } from '../../services/courseService';
+import { proSubscriptionService } from '../../services/proService';
 
 const Navbar = ({ simple = false, transparent = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout, isAdmin } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin, hasRole } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [catDropdownOpen, setCatDropdownOpen] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [proStatus, setProStatus] = useState(null);
   const dropdownRef = useRef(null);
   const catDropdownRef = useRef(null);
   const catTimeoutRef = useRef(null);
+
+  // Fetch Pro status
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    proSubscriptionService.getStatus()
+      .then(data => setProStatus(data))
+      .catch(() => setProStatus(null));
+  }, [isAuthenticated]);
 
   // Fetch categories
   useEffect(() => {
@@ -260,6 +270,24 @@ const Navbar = ({ simple = false, transparent = false }) => {
                             <span className="material-symbols-outlined text-[18px]">receipt</span>
                             Transaction History
                           </Link>
+                        )}
+                        {/* Pro Status / Upgrade */}
+                        {!(user?.roles?.includes('ROLE_ADMIN') || user?.authorities?.includes('ROLE_ADMIN')) && (
+                          proStatus?.isPro ? (
+                            <div className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400">
+                              <span className="material-symbols-outlined text-[18px]">verified</span>
+                              Pro Active
+                            </div>
+                          ) : (
+                            <Link
+                              to={`/checkout/pro${hasRole('ROLE_INSTRUCTOR') ? '?plan=INSTRUCTOR_PRO' : '?plan=STUDENT_PRO'}`}
+                              onClick={() => setDropdownOpen(false)}
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">workspace_premium</span>
+                              Upgrade to Pro
+                            </Link>
+                          )
                         )}
                         <Link
                           to="/profile"

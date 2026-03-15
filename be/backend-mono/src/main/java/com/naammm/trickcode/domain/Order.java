@@ -2,6 +2,7 @@ package com.naammm.trickcode.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.naammm.trickcode.domain.enumeration.OrderStatus;
+import com.naammm.trickcode.domain.enumeration.ProPlanType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
@@ -59,6 +60,10 @@ public class Order implements Serializable {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_type", length = 30)
+    private ProPlanType subscriptionType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     private User user;
 
@@ -67,6 +72,10 @@ public class Order implements Serializable {
     private Course course;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
+
+    public ProPlanType getSubscriptionType() { return subscriptionType; }
+    public void setSubscriptionType(ProPlanType subscriptionType) { this.subscriptionType = subscriptionType; }
+    public boolean isSubscriptionOrder() { return subscriptionType != null; }
 
     public Long getId() {
         return this.id;

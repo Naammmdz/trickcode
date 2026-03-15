@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Pagination from '../common/Pagination';
 import apiClient from '../../../services/api';
+import { adminDashboardService } from '../../../services/adminDashboardService';
+import StatCard from '../dashboard/StatCard';
 
 const statusColor = {
   COMPLETED: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
@@ -9,10 +11,13 @@ const statusColor = {
   REFUNDED: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20',
 };
 
+const formatUsd = (val) => `$${(Number(val) || 0).toFixed(2)}`;
+
 const PaymentsTab = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [revenueStats, setRevenueStats] = useState(null);
 
   const [status, setStatus] = useState('');
   const [provider, setProvider] = useState('');
@@ -21,6 +26,12 @@ const PaymentsTab = () => {
   const [page, setPage] = useState(0);
   const [size] = useState(20);
   const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    adminDashboardService.getStats()
+      .then(data => setRevenueStats(data))
+      .catch(() => setRevenueStats(null));
+  }, []);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -66,11 +77,45 @@ const PaymentsTab = () => {
     <div className="space-y-6 p-8">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-serif text-neutral-900 dark:text-white">Payments</h2>
+        <h2 className="text-3xl font-serif text-neutral-900 dark:text-white">Payments & Revenue</h2>
         <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light mt-1">
-          Orders and payment status.
+          Financial overview, orders and transaction details.
         </p>
       </div>
+
+      {/* Revenue Summary */}
+      {revenueStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+          <StatCard
+            title="Total Revenue"
+            value={formatUsd(revenueStats.totalRevenue)}
+            icon="payments"
+            color="green"
+            subtitle={`Course: ${formatUsd(revenueStats.courseRevenue)}`}
+          />
+          <StatCard
+            title="Platform Revenue"
+            value={formatUsd(revenueStats.platformCommission)}
+            icon="account_balance"
+            color="primary"
+            subtitle="20% courses + 100% subscriptions"
+          />
+          <StatCard
+            title="Instructor Payouts"
+            value={formatUsd(revenueStats.instructorPayouts)}
+            icon="groups"
+            color="blue"
+            subtitle="80% of course sales"
+          />
+          <StatCard
+            title="Pro Subscriptions"
+            value={formatUsd(revenueStats.subscriptionRevenue)}
+            icon="workspace_premium"
+            color="yellow"
+            subtitle="monthly subscription revenue"
+          />
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 shadow-sm">
@@ -136,8 +181,8 @@ const PaymentsTab = () => {
           <table className="min-w-full">
             <thead className="bg-neutral-50 dark:bg-neutral-950/50 border-b border-neutral-100 dark:border-neutral-800">
               <tr>
-                {['Order', 'User', 'Course', 'Amount', 'Status', 'Provider', 'TxnRef', 'TransactionNo'].map((c) => (
-                  <th key={c} className={`${c === 'Amount' ? 'text-right' : 'text-left'} px-5 py-3.5 text-[10px] font-sans uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500`}>
+                {['Order', 'User', 'Item', 'Type', 'Amount (USD)', 'Status', 'Provider', 'TxnRef'].map((c) => (
+                  <th key={c} className={`${c === 'Amount (USD)' ? 'text-right' : 'text-left'} px-5 py-3.5 text-[10px] font-sans uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500`}>
                     {c}
                   </th>
                 ))}
@@ -172,22 +217,33 @@ const PaymentsTab = () => {
                   </td>
                 </tr>
               ) : (
-                orders.map((o) => (
-                  <tr key={o.id} className="border-b border-neutral-50 dark:border-neutral-800/50 last:border-b-0 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/20 transition-colors duration-150">
-                    <td className="px-5 py-3.5 font-mono text-xs text-neutral-400 dark:text-neutral-500">#{o.id}</td>
-                    <td className="px-5 py-3.5 text-sm text-neutral-800 dark:text-neutral-200">{o.user?.login || o.user?.email || '-'}</td>
-                    <td className="px-5 py-3.5 text-sm text-neutral-800 dark:text-neutral-200 max-w-[200px] truncate">{o.course?.title || '-'}</td>
-                    <td className="px-5 py-3.5 text-right font-mono text-sm text-neutral-700 dark:text-neutral-200">{o.totalAmount != null ? o.totalAmount.toLocaleString() : '-'}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wide border ${statusColor[o.status] || 'bg-neutral-100 text-neutral-600 border-neutral-200'}`}>
-                        {o.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-neutral-500 dark:text-neutral-400">{o.paymentProvider || o.paymentMethod || '-'}</td>
-                    <td className="px-5 py-3.5 font-mono text-[11px] text-neutral-400 dark:text-neutral-500">{o.paymentTxnRef || '-'}</td>
-                    <td className="px-5 py-3.5 font-mono text-[11px] text-neutral-400 dark:text-neutral-500">{o.vnpayTransactionNo || o.transactionId || '-'}</td>
-                  </tr>
-                ))
+                orders.map((o) => {
+                  const isSub = o.subscriptionType != null;
+                  const itemName = isSub
+                    ? (o.subscriptionType || '').replace(/_/g, ' ') + ' Subscription'
+                    : (o.course?.title || '-');
+                  const priceUsd = isSub ? '-' : (o.course?.price != null ? formatUsd(o.course.price) : '-');
+                  return (
+                    <tr key={o.id} className="border-b border-neutral-50 dark:border-neutral-800/50 last:border-b-0 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/20 transition-colors duration-150">
+                      <td className="px-5 py-3.5 font-mono text-xs text-neutral-400 dark:text-neutral-500">#{o.id}</td>
+                      <td className="px-5 py-3.5 text-sm text-neutral-800 dark:text-neutral-200">{o.user?.login || o.user?.email || '-'}</td>
+                      <td className="px-5 py-3.5 text-sm text-neutral-800 dark:text-neutral-200 max-w-[200px] truncate">{itemName}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide border ${isSub ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20'}`}>
+                          {isSub ? 'Subscription' : 'Course'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right font-mono text-sm text-neutral-700 dark:text-neutral-200">{priceUsd}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium uppercase tracking-wide border ${statusColor[o.status] || 'bg-neutral-100 text-neutral-600 border-neutral-200'}`}>
+                          {o.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-neutral-500 dark:text-neutral-400">{o.paymentProvider || o.paymentMethod || '-'}</td>
+                      <td className="px-5 py-3.5 font-mono text-[11px] text-neutral-400 dark:text-neutral-500">{o.paymentTxnRef || '-'}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

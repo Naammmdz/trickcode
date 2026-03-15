@@ -131,3 +131,8 @@ judge0:
   api-url: ${JUDGE0_API_URL:http://localhost:2358}
   # Max wait time for synchronous execution (seconds)
   wait-timeout: 30
+
+# ─── External API Keys ───────────────────────────────────────────
+# All secrets (GEMINI_API_KEY, JDOODLE_CLIENT_ID, etc.) are loaded
+# from environment variables. See /.env.example for the full list.
+# For local dev: cp .env.example .env && fill in real values at project root.

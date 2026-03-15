@@ -1,9 +1,11 @@
 package com.naammm.trickcode.web.rest;
 
 import com.naammm.trickcode.domain.Order;
+import com.naammm.trickcode.domain.enumeration.ProPlanType;
 import com.naammm.trickcode.repository.OrderRepository;
 import com.naammm.trickcode.service.OrderQueryService;
 import com.naammm.trickcode.service.OrderService;
+import com.naammm.trickcode.service.ProSubscriptionService;
 import com.naammm.trickcode.service.criteria.OrderCriteria;
 import com.naammm.trickcode.web.rest.errors.BadRequestAlertException;
 import jakarta.validation.Valid;
@@ -46,10 +48,13 @@ public class OrderResource {
 
     private final OrderQueryService orderQueryService;
 
-    public OrderResource(OrderService orderService, OrderRepository orderRepository, OrderQueryService orderQueryService) {
+    private final ProSubscriptionService proSubscriptionService;
+
+    public OrderResource(OrderService orderService, OrderRepository orderRepository, OrderQueryService orderQueryService, ProSubscriptionService proSubscriptionService) {
         this.orderService = orderService;
         this.orderRepository = orderRepository;
         this.orderQueryService = orderQueryService;
+        this.proSubscriptionService = proSubscriptionService;
     }
 
     /**
@@ -167,6 +172,39 @@ public class OrderResource {
     public ResponseEntity<Long> countOrders(OrderCriteria criteria) {
         LOG.debug("REST request to count Orders by criteria: {}", criteria);
         return ResponseEntity.ok().body(orderQueryService.countByCriteria(criteria));
+    }
+
+    /**
+     * {@code GET  /orders/my-orders} : get all completed orders for the current user.
+     */
+    @GetMapping("/my-orders")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getMyOrders() {
+        LOG.debug("REST request to get current user's orders");
+        List<Order> orders = orderRepository.findByCurrentUserCompleted();
+        List<java.util.Map<String, Object>> result = orders.stream().map(order -> {
+            java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+            map.put("id", order.getId());
+            map.put("createdAt", order.getCreatedAt());
+            map.put("paidAt", order.getPaidAt());
+            map.put("totalAmountVnd", order.getTotalAmount());
+            map.put("status", order.getStatus());
+            map.put("paymentMethod", order.getPaymentMethod() != null ? order.getPaymentMethod() : "VNPay");
+            map.put("paymentTxnRef", order.getPaymentTxnRef());
+            map.put("vnpayTransactionNo", order.getVnpayTransactionNo());
+            if (order.getCourse() != null) {
+                map.put("courseName", order.getCourse().getTitle());
+                map.put("courseId", order.getCourse().getId());
+                map.put("orderType", "COURSE");
+                map.put("priceUsd", order.getCourse().getPrice());
+            } else if (order.getSubscriptionType() != null) {
+                map.put("courseName", order.getSubscriptionType().name().replace("_", " ") + " Subscription");
+                map.put("orderType", "SUBSCRIPTION");
+                map.put("subscriptionType", order.getSubscriptionType());
+                map.put("priceUsd", proSubscriptionService.getPriceUsd(order.getSubscriptionType()));
+            }
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
     }
 
     /**

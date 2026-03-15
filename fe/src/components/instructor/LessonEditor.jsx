@@ -15,6 +15,7 @@ const LessonEditor = ({ courseId, sectionId, lessonId, onSave, onCancel }) => {
         codeChallengeConfig: ''
     });
 
+    const [courseData, setCourseData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('basic'); // basic, content
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -34,10 +35,17 @@ const LessonEditor = ({ courseId, sectionId, lessonId, onSave, onCancel }) => {
                 }
             };
             loadLesson();
-        } else {
-            // Set default type if provided or defaults
         }
     }, [lessonId]);
+
+    // Fetch course data for AI context
+    useEffect(() => {
+        if (courseId) {
+            courseService.getCourse(courseId)
+                .then(data => setCourseData(data))
+                .catch(err => console.error('Failed to load course for AI context', err));
+        }
+    }, [courseId]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -321,6 +329,9 @@ const LessonEditor = ({ courseId, sectionId, lessonId, onSave, onCancel }) => {
                         <QuizBuilder
                             initialConfig={lesson.quizConfig}
                             onChange={(json) => setLesson(prev => ({ ...prev, quizConfig: json }))}
+                            courseTitle={courseData?.title}
+                            courseDescription={courseData?.description}
+                            lessonTitle={lesson.title}
                         />
                     </div>
                 );
@@ -331,6 +342,9 @@ const LessonEditor = ({ courseId, sectionId, lessonId, onSave, onCancel }) => {
                         <CodeBuilder
                             initialConfig={lesson.codeChallengeConfig}
                             onChange={(json) => setLesson(prev => ({ ...prev, codeChallengeConfig: json }))}
+                            courseTitle={courseData?.title}
+                            courseDescription={courseData?.description}
+                            lessonTitle={lesson.title}
                         />
                     </div>
                 );

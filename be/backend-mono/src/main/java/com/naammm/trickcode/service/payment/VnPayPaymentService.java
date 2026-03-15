@@ -1,16 +1,20 @@
 package com.naammm.trickcode.service.payment;
 
 import com.naammm.trickcode.config.PaymentProperties;
+import com.naammm.trickcode.config.ProSubscriptionProperties;
 import com.naammm.trickcode.config.VnPayProperties;
 import com.naammm.trickcode.domain.Course;
 import com.naammm.trickcode.domain.Enrollment;
 import com.naammm.trickcode.domain.Order;
 import com.naammm.trickcode.domain.User;
 import com.naammm.trickcode.domain.enumeration.OrderStatus;
+import com.naammm.trickcode.domain.enumeration.ProPlanType;
 import com.naammm.trickcode.repository.CourseRepository;
 import com.naammm.trickcode.repository.EnrollmentRepository;
 import com.naammm.trickcode.repository.OrderRepository;
 import com.naammm.trickcode.repository.UserRepository;
+import com.naammm.trickcode.repository.ProSubscriptionRepository;
+import com.naammm.trickcode.service.ProSubscriptionService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -38,28 +42,37 @@ public class VnPayPaymentService {
 
     private final VnPayProperties vnPayProperties;
     private final PaymentProperties paymentProperties;
+    private final ProSubscriptionProperties proSubscriptionProperties;
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final VnPayTransactionClient vnPayTransactionClient;
+    private final ProSubscriptionService proSubscriptionService;
+    private final ProSubscriptionRepository subscriptionRepository;
 
     public VnPayPaymentService(
         VnPayProperties vnPayProperties,
         PaymentProperties paymentProperties,
+        ProSubscriptionProperties proSubscriptionProperties,
         CourseRepository courseRepository,
         UserRepository userRepository,
         OrderRepository orderRepository,
         EnrollmentRepository enrollmentRepository,
-        VnPayTransactionClient vnPayTransactionClient
+        VnPayTransactionClient vnPayTransactionClient,
+        ProSubscriptionService proSubscriptionService,
+        ProSubscriptionRepository subscriptionRepository
     ) {
         this.vnPayProperties = vnPayProperties;
         this.paymentProperties = paymentProperties;
+        this.proSubscriptionProperties = proSubscriptionProperties;
         this.courseRepository = courseRepository;
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.vnPayTransactionClient = vnPayTransactionClient;
+        this.proSubscriptionService = proSubscriptionService;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     public CreatePaymentResult createPaymentForCourse(Long courseId, String clientIp, String bankCode) {
@@ -98,10 +111,38 @@ public class VnPayPaymentService {
             order.setVnpayResponseCode("00");
             order.setVnpayTransactionNo("FREE");
             order = orderRepository.save(order);
-            fulfillEnrollment(order);
+            fulfillOrder(order);
             return new CreatePaymentResult(order.getId(), txnRef, "/my-courses");
         }
 
+        order = orderRepository.save(order);
+
+        String paymentUrl = buildPaymentUrl(order, clientIp, bankCode);
+        return new CreatePaymentResult(order.getId(), txnRef, paymentUrl);
+    }
+
+    /**
+     * Create VNPay payment for Pro subscription purchase.
+     */
+    public CreatePaymentResult createPaymentForSubscription(ProPlanType planType, String clientIp, String bankCode) {
+        User user = getCurrentUser().orElseThrow(() -> new IllegalStateException("Current user not found"));
+
+        BigDecimal priceUsd = proSubscriptionService.getPriceUsd(planType);
+        BigDecimal rate = paymentProperties.getUsdToVndRate() != null ? paymentProperties.getUsdToVndRate() : BigDecimal.valueOf(25000);
+        BigDecimal amountVnd = priceUsd.multiply(rate).setScale(0, java.math.RoundingMode.HALF_UP);
+
+        Order order = new Order();
+        order.setUser(user);
+        order.setCourse(null); // Not a course purchase
+        order.setSubscriptionType(planType);
+        order.setCreatedAt(Instant.now());
+        order.setStatus(OrderStatus.PENDING);
+        order.setPaymentMethod("VNPAY");
+        order.setPaymentProvider("VNPAY");
+        order.setTotalAmount(amountVnd);
+
+        String txnRef = UUID.randomUUID().toString().replace("-", "");
+        order.setPaymentTxnRef(txnRef);
         order = orderRepository.save(order);
 
         String paymentUrl = buildPaymentUrl(order, clientIp, bankCode);
@@ -160,7 +201,7 @@ public class VnPayPaymentService {
             order.setPaidAt(Instant.now());
             orderRepository.save(order);
 
-            fulfillEnrollment(order);
+            fulfillOrder(order);
             return IpnHandleResult.ok();
         }
 
@@ -175,7 +216,7 @@ public class VnPayPaymentService {
         String responseCode = params.get("vnp_ResponseCode");
 
         if (!valid) {
-            return new ReturnResult(false, txnRef, responseCode, null);
+            return new ReturnResult(false, txnRef, responseCode, null, null);
         }
 
         if (txnRef != null && !txnRef.isBlank() && "00".equals(responseCode)) {
@@ -211,7 +252,7 @@ public class VnPayPaymentService {
                                 }
                                 order.setVnpayResponseCode("00");
                                 orderRepository.save(order);
-                                fulfillEnrollment(order);
+                                fulfillOrder(order);
                             }
                         }
                     }
@@ -220,10 +261,38 @@ public class VnPayPaymentService {
         }
 
         OrderStatus status = null;
+        String orderType = null;
         if (txnRef != null && !txnRef.isBlank()) {
-            status = orderRepository.findOneByPaymentTxnRef(txnRef).map(Order::getStatus).orElse(null);
+            Optional<Order> finalOrder = orderRepository.findOneByPaymentTxnRef(txnRef);
+            if (finalOrder.isPresent()) {
+                status = finalOrder.get().getStatus();
+                orderType = finalOrder.get().isSubscriptionOrder()
+                    ? finalOrder.get().getSubscriptionType().name()
+                    : "COURSE";
+            }
         }
-        return new ReturnResult(true, txnRef, responseCode, status);
+        return new ReturnResult(true, txnRef, responseCode, status, orderType);
+    }
+
+    private void fulfillOrder(Order order) {
+        if (order.isSubscriptionOrder()) {
+            fulfillSubscription(order);
+        } else {
+            fulfillEnrollment(order);
+        }
+    }
+
+    private void fulfillSubscription(Order order) {
+        if (order.getUser() == null || order.getSubscriptionType() == null) return;
+        // Eagerly fetch user to avoid LazyInitializationException in IPN context
+        User user = userRepository.findById(order.getUser().getId()).orElse(null);
+        if (user == null) return;
+        // Idempotency: check if this exact order already activated a subscription
+        if (subscriptionRepository.existsByOrderId(order.getId())) {
+            LOG.info("Subscription already activated for order {}, skipping", order.getId());
+            return;
+        }
+        proSubscriptionService.activateSubscription(user, order.getSubscriptionType(), order);
     }
 
     private void fulfillEnrollment(Order order) {
@@ -299,7 +368,7 @@ public class VnPayPaymentService {
 
     public record CreatePaymentResult(Long orderId, String txnRef, String paymentUrl) {}
 
-    public record ReturnResult(boolean signatureValid, String txnRef, String responseCode, OrderStatus orderStatus) {}
+    public record ReturnResult(boolean signatureValid, String txnRef, String responseCode, OrderStatus orderStatus, String orderType) {}
 
     public record IpnHandleResult(String RspCode, String Message) {
         public static IpnHandleResult ok() {

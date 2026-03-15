@@ -346,6 +346,10 @@ const MarketplaceHome = () => {
             <a href="#" className="hover:text-orange-500 transition-colors">About</a>
             <a href="#" className="hover:text-orange-500 transition-colors">Careers</a>
             <a href="#" className="hover:text-orange-500 transition-colors">Contact</a>
+            <Link to="/apply-instructor" className="hover:text-orange-500 transition-colors inline-flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm">school</span>
+              Become an Instructor
+            </Link>
           </div>
           <div className="flex flex-col gap-3">
             <span className="font-bold text-neutral-900 dark:text-white mb-2">Learn</span>

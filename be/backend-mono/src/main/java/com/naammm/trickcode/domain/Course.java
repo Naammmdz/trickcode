@@ -1,6 +1,8 @@
 package com.naammm.trickcode.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.naammm.trickcode.domain.enumeration.CourseLevel;
 import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import jakarta.persistence.*;
@@ -87,6 +89,11 @@ public class Course implements Serializable {
 
     @ManyToOne(fetch = FetchType.LAZY)
     private User instructor;
+
+    @Transient
+    @JsonProperty("enrollmentCount")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    private Long enrollmentCount;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here
 
@@ -324,6 +331,14 @@ public class Course implements Serializable {
     public Course instructor(User user) {
         this.setInstructor(user);
         return this;
+    }
+
+    public Long getEnrollmentCount() {
+        return this.enrollmentCount;
+    }
+
+    public void setEnrollmentCount(Long enrollmentCount) {
+        this.enrollmentCount = enrollmentCount;
     }
 
     // jhipster-needle-entity-add-getters-setters - JHipster will add getters and setters here

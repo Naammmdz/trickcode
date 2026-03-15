@@ -139,4 +139,17 @@ export const API_ENDPOINTS = {
       LIST: '/api/permissions', // Placeholder if we add Permission entity later
     },
   },
+
+  // Instructor Dashboard
+  INSTRUCTOR: {
+    STATISTICS: '/api/instructor/statistics',
+    CHARTS: '/api/instructor/statistics/charts',
+    PAYOUTS: '/api/instructor/payouts',
+  },
+
+  // AI Generation
+  AI: {
+    GENERATE_QUIZ: '/api/ai/generate-quiz',
+    GENERATE_CODE: '/api/ai/generate-code',
+  },
 };

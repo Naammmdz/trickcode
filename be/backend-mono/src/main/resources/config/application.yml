@@ -245,5 +245,15 @@ payment:
   usdToVndRate: ${PAYMENT_USD_TO_VND_RATE:25000}
 
 jdoodle:
-  client-id: ${JDOODLE_CLIENT_ID:dbaa7f26cceabfa2330de0c589c4e425}
-  client-secret: ${JDOODLE_CLIENT_SECRET:72a9359cf954aebf5ea669d5b3685cf4501290a806385e53478047153bd1d256}
+  client-id: ${JDOODLE_CLIENT_ID:}
+  client-secret: ${JDOODLE_CLIENT_SECRET:}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-3.1-flash-lite-preview}
+  api-url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models}
+
+pro-subscription:
+  student-price-usd: ${PRO_STUDENT_PRICE:9.99}
+  instructor-price-usd: ${PRO_INSTRUCTOR_PRICE:19.99}
+  duration-days: ${PRO_DURATION_DAYS:30}

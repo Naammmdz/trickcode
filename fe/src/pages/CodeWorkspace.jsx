@@ -7,6 +7,8 @@ import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
 import { courseService } from '../services/courseService';
 import { codeExecutionService } from '../services/codeExecutionService';
+import AiAssistantPanel from '../components/ai/AiAssistantPanel';
+import { proSubscriptionService } from '../services/proService';
 
 const CodeWorkspace = () => {
   const { courseId, codeId } = useParams();
@@ -65,6 +67,20 @@ const CodeWorkspace = () => {
   const [testResults, setTestResults] = useState(null);
   const [editorTheme, setEditorTheme] = useState('vs-dark');
   const editorRef = useRef(null);
+
+  // AI Assistant states
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [selectedFailedTest, setSelectedFailedTest] = useState(null);
+
+  // Check Pro subscription status
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    proSubscriptionService.getStatus()
+      .then(data => setIsPro(data.isStudentPro || false))
+      .catch(() => setIsPro(false));
+  }, []);
 
   // Resize states
   const [problemWidth, setProblemWidth] = useState(33.33); // 1/3 of width
@@ -639,10 +655,11 @@ const CodeWorkspace = () => {
                           {testResults.tests.map((test, idx) => (
                             <div
                               key={idx}
-                              className={`p-3 rounded border text-xs ${test.passed
+                              onClick={() => !test.passed && setSelectedFailedTest({ input: test.input, expected: test.expected, actual: test.actual })}
+                              className={`p-3 rounded border text-xs ${!test.passed ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : ''} ${test.passed
                                 ? 'border-green-200 dark:border-green-900/30 bg-green-50/50 dark:bg-green-900/10'
                                 : 'border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10'
-                                }`}
+                                } ${selectedFailedTest?.input === test.input && !test.passed ? 'ring-2 ring-primary/50' : ''}`}
                             >
                               <div className="flex items-start gap-2">
                                 <span className={`material-symbols-outlined text-sm shrink-0 ${test.passed ? 'text-green-500' : 'text-red-500'
@@ -706,17 +723,34 @@ const CodeWorkspace = () => {
       </div>
 
       {/* AI Assistant Button */}
-      <button className="fixed bottom-24 right-8 z-50 group">
-        <div className="absolute inset-0 bg-primary/40 rounded-full blur-xl group-hover:bg-primary/60 transition-colors animate-pulse duration-1000"></div>
+      <button onClick={() => setAiPanelOpen(!aiPanelOpen)} className="fixed bottom-24 right-8 z-50 group">
+        <div className={`absolute inset-0 rounded-full blur-xl transition-colors animate-pulse duration-1000 ${aiPanelOpen ? 'bg-primary/60' : 'bg-primary/40 group-hover:bg-primary/60'}`}></div>
         <div className="relative bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 h-14 w-14 rounded-full flex items-center justify-center shadow-2xl border border-white/10 dark:border-neutral-200 overflow-hidden hover:scale-105 transition-transform duration-300">
-          <span className="material-symbols-outlined text-2xl">smart_toy</span>
+          <span className="material-symbols-outlined text-2xl">{aiPanelOpen ? 'close' : 'smart_toy'}</span>
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent"></div>
+          {isPro && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white dark:border-neutral-900"></span>}
         </div>
-        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white px-4 py-2 rounded-lg text-[10px] font-sans uppercase tracking-widest shadow-xl border border-neutral-100 dark:border-neutral-700 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 whitespace-nowrap pointer-events-none">
-          AI Assistant
-          <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-white dark:bg-neutral-800 rotate-45 border-t border-r border-neutral-100 dark:border-neutral-700"></span>
-        </span>
+        {!aiPanelOpen && (
+          <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white px-4 py-2 rounded-lg text-[10px] font-sans uppercase tracking-widest shadow-xl border border-neutral-100 dark:border-neutral-700 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 whitespace-nowrap pointer-events-none">
+            AI Assistant {!isPro && '🔒'}
+            <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-white dark:bg-neutral-800 rotate-45 border-t border-r border-neutral-100 dark:border-neutral-700"></span>
+          </span>
+        )}
       </button>
+
+      {/* AI Assistant Panel */}
+      <AiAssistantPanel
+        isOpen={aiPanelOpen}
+        onClose={() => setAiPanelOpen(false)}
+        isPro={isPro}
+        mode="code"
+        context={{
+          sourceCode: code,
+          language,
+          problemDescription: codeData?.problemDescription,
+          failedTest: selectedFailedTest,
+        }}
+      />
     </div>
   );
 };

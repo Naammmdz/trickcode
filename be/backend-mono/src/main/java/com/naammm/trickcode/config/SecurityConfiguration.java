@@ -97,6 +97,8 @@ public class SecurityConfiguration {
                     // VNPay callbacks (public, but verified by signature)
                     .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/payments/vnpay/return")).permitAll()
                     .requestMatchers(mvc.pattern(HttpMethod.POST, "/api/payments/vnpay/ipn")).permitAll()
+                    // Pro subscription plans (public so pricing is visible before login)
+                    .requestMatchers(mvc.pattern(HttpMethod.GET, "/api/subscriptions/plans")).permitAll()
                     // Code execution endpoints (authenticated users)
                     .requestMatchers(mvc.pattern("/api/code/**")).authenticated()
                     .requestMatchers(mvc.pattern("/api/admin/**")).hasAuthority(AuthoritiesConstants.ADMIN)

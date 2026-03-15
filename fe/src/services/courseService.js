@@ -512,4 +512,30 @@ export const courseService = {
         const baseURL = apiClient.defaults.baseURL || '';
         return baseURL + imageUrlOrPath;
     },
+
+    // ─── AI Generation APIs ──────────────────────────────────────────────────
+
+    generateQuiz: async ({ courseTitle, courseDescription, lessonTitle, customPrompt, questionCount, language = 'vi' }) => {
+        const response = await apiClient.post(API_ENDPOINTS.AI.GENERATE_QUIZ, {
+            courseTitle,
+            courseDescription,
+            lessonTitle,
+            customPrompt,
+            questionCount,
+            language,
+        });
+        return response.data;
+    },
+
+    generateCode: async ({ courseTitle, courseDescription, lessonTitle, customPrompt, testCaseCount, language = 'vi' }) => {
+        const response = await apiClient.post(API_ENDPOINTS.AI.GENERATE_CODE, {
+            courseTitle,
+            courseDescription,
+            lessonTitle,
+            customPrompt,
+            testCaseCount,
+            language,
+        });
+        return response.data;
+    },
 };

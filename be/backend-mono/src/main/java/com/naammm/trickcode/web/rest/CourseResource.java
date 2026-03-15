@@ -4,6 +4,7 @@ import com.naammm.trickcode.domain.Course;
 import com.naammm.trickcode.domain.User;
 import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import com.naammm.trickcode.repository.CourseRepository;
+import com.naammm.trickcode.repository.EnrollmentRepository;
 import com.naammm.trickcode.repository.UserRepository;
 import com.naammm.trickcode.service.CourseAccessService;
 import com.naammm.trickcode.service.CourseQueryService;
@@ -60,13 +61,16 @@ public class CourseResource {
 
     private final com.naammm.trickcode.service.LessonProgressService lessonProgressService;
 
+    private final EnrollmentRepository enrollmentRepository;
+
     public CourseResource(
         CourseService courseService, 
         CourseRepository courseRepository, 
         CourseQueryService courseQueryService, 
         UserRepository userRepository, 
         CourseAccessService courseAccessService,
-        com.naammm.trickcode.service.LessonProgressService lessonProgressService
+        com.naammm.trickcode.service.LessonProgressService lessonProgressService,
+        EnrollmentRepository enrollmentRepository
     ) {
         this.courseService = courseService;
         this.courseRepository = courseRepository;
@@ -74,6 +78,7 @@ public class CourseResource {
         this.userRepository = userRepository;
         this.courseAccessService = courseAccessService;
         this.lessonProgressService = lessonProgressService;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
     /**
@@ -347,6 +352,8 @@ public class CourseResource {
         criteria.getStatus().setEquals(CourseStatus.PUBLISHED);
         
         Page<Course> page = courseQueryService.findByCriteriaWithEagerRelationships(criteria, pageable);
+        // Populate enrollment count for each course
+        page.getContent().forEach(course -> course.setEnrollmentCount(enrollmentRepository.countByCourseId(course.getId())));
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
@@ -379,6 +386,8 @@ public class CourseResource {
         criteria.getInstructorId().setEquals(user.get().getId());
         
         Page<Course> page = courseQueryService.findByCriteriaWithEagerRelationships(criteria, pageable);
+        // Populate enrollment count for each course
+        page.getContent().forEach(course -> course.setEnrollmentCount(enrollmentRepository.countByCourseId(course.getId())));
         HttpHeaders headers = PaginationUtil.generatePaginationHttpHeaders(ServletUriComponentsBuilder.fromCurrentRequest(), page);
         return ResponseEntity.ok().headers(headers).body(page.getContent());
     }
