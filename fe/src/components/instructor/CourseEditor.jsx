@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { courseService } from '../../services/courseService';
 import LessonEditor from './LessonEditor';
+import toast from 'react-hot-toast';
 
 const CourseEditor = ({ courseId, onBack }) => {
     const [course, setCourse] = useState({
@@ -21,6 +22,11 @@ const CourseEditor = ({ courseId, onBack }) => {
     const [editingLesson, setEditingLesson] = useState(null); // { sectionId, lessonId }
     const [isLessonEditorOpen, setIsLessonEditorOpen] = useState(false);
     const [activeSectionId, setActiveSectionId] = useState(null); // For creating new lesson in a section
+
+    // Section Modal State
+    const [showSectionModal, setShowSectionModal] = useState(false);
+    const [newSectionTitle, setNewSectionTitle] = useState('');
+    const [savingSectionLoading, setSavingSectionLoading] = useState(false);
 
     // Thumbnail Upload State
     const [thumbnailUploading, setThumbnailUploading] = useState(false);
@@ -126,30 +132,35 @@ const CourseEditor = ({ courseId, onBack }) => {
             };
             if (courseId) {
                 await courseService.updateCourse(courseId, payload);
-                loadData(); // Reload to get potential server-side updates
+                loadData();
+                toast.success('Course saved successfully!');
             } else {
-                const newCourse = await courseService.createCourse(payload);
-                // If created, maybe we should switch mode or notify
-                onBack(); // Simply go back for now
+                await courseService.createCourse(payload);
+                toast.success('Course created!');
+                onBack();
             }
         } catch (error) {
-            alert('Failed to save course');
+            toast.error('Failed to save course. Please try again.');
         }
     };
 
     const handleAddSection = async () => {
-        const title = prompt('Enter section title:');
-        if (!title) return;
-
+        if (!newSectionTitle.trim()) return;
         try {
+            setSavingSectionLoading(true);
             await courseService.createSection({
-                title,
+                title: newSectionTitle.trim(),
                 course: { id: courseId },
                 orderIndex: sections.length + 1
             });
+            setShowSectionModal(false);
+            setNewSectionTitle('');
             loadData();
+            toast.success('Section added!');
         } catch (error) {
-            alert('Failed to add section');
+            toast.error('Failed to add section.');
+        } finally {
+            setSavingSectionLoading(false);
         }
     };
 
@@ -158,8 +169,9 @@ const CourseEditor = ({ courseId, onBack }) => {
         try {
             await courseService.deleteSection(sectionId);
             loadData();
+            toast.success('Section deleted.');
         } catch (error) {
-            alert('Failed to delete section');
+            toast.error('Failed to delete section.');
         }
     };
 
@@ -181,8 +193,9 @@ const CourseEditor = ({ courseId, onBack }) => {
         try {
             await courseService.deleteLesson(lessonId);
             loadData();
+            toast.success('Lesson deleted.');
         } catch (error) {
-            alert('Failed to delete lesson');
+            toast.error('Failed to delete lesson.');
         }
     };
 
@@ -292,8 +305,8 @@ const CourseEditor = ({ courseId, onBack }) => {
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-medium text-neutral-900 dark:text-white">Curriculum</h3>
                             <button
-                                onClick={handleAddSection}
-                                disabled={!courseId} // Must enable course first
+                                onClick={() => { setNewSectionTitle(''); setShowSectionModal(true); }}
+                                disabled={!courseId}
                                 className="text-xs font-bold uppercase text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
                                 title={!courseId ? "Save course to add sections" : ""}
                             >
@@ -505,6 +518,46 @@ const CourseEditor = ({ courseId, onBack }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Section Create Modal */}
+            {showSectionModal && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSectionModal(false)}>
+                    <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-md border border-neutral-200 dark:border-neutral-800" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+                            <h3 className="font-serif text-lg text-neutral-900 dark:text-white">New Section</h3>
+                            <button onClick={() => setShowSectionModal(false)} className="text-neutral-400 hover:text-neutral-700 dark:hover:text-white">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-xs font-bold uppercase text-neutral-500 mb-2">Section Title</label>
+                            <input
+                                autoFocus
+                                value={newSectionTitle}
+                                onChange={(e) => setNewSectionTitle(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && newSectionTitle.trim()) handleAddSection(); }}
+                                placeholder="e.g. Introduction to Arrays"
+                                className="w-full px-4 py-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 text-sm transition-all"
+                            />
+                        </div>
+                        <div className="px-6 py-4 border-t border-neutral-100 dark:border-neutral-800 flex justify-end gap-3 bg-neutral-50 dark:bg-neutral-950/50 rounded-b-xl">
+                            <button
+                                onClick={() => setShowSectionModal(false)}
+                                className="px-4 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAddSection}
+                                disabled={!newSectionTitle.trim() || savingSectionLoading}
+                                className="px-6 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 rounded-lg text-sm font-bold uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-40"
+                            >
+                                {savingSectionLoading ? 'Creating...' : 'Create Section'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -239,6 +239,7 @@ public class CourseResource {
     public ResponseEntity<Course> getCourse(@PathVariable("id") Long id) {
         LOG.debug("REST request to get Course : {}", id);
         Optional<Course> course = courseService.findOne(id);
+        course.ifPresent(c -> c.setEnrollmentCount(enrollmentRepository.countByCourseId(c.getId())));
         return ResponseUtil.wrapOrNotFound(course);
     }
 

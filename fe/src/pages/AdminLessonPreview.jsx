@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { courseService } from '../services/courseService';
 import VideoPlayer from '../components/ui/VideoPlayer';
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
 
 const AdminLessonPreview = ({ lessonId, onClose }) => {
     const [lesson, setLesson] = useState(null);
@@ -157,8 +158,12 @@ const AdminLessonPreview = ({ lessonId, onClose }) => {
                         </div>
                         <div>
                             <label className="block text-xs font-bold uppercase text-neutral-500 mb-1.5">Transcript / Notes</label>
-                            <div className="text-sm text-neutral-800 dark:text-neutral-200 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded border border-neutral-200 dark:border-neutral-700 whitespace-pre-wrap font-mono min-h-[150px]">
-                                {lesson.markdownContent || <span className="text-neutral-400 italic font-sans">No transcript provided</span>}
+                            <div className="text-sm p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded border border-neutral-200 dark:border-neutral-700 min-h-[150px]">
+                                {lesson.markdownContent ? (
+                                    <MarkdownRenderer content={lesson.markdownContent} />
+                                ) : (
+                                    <span className="text-neutral-400 italic font-sans">No transcript provided</span>
+                                )}
                             </div>
                         </div>
                     </div>

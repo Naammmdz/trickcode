@@ -5,13 +5,13 @@ import java.util.List;
 public class ChartDataDTO {
 
     private List<DataPoint> dailyRevenue;
-    private List<DataPoint> dailySignups;
+    private List<DataPoint> dailyActivity;
     private List<DataPoint> coursesByLevel;
     private List<DataPoint> coursesByStatus;
 
-    public ChartDataDTO(List<DataPoint> dailyRevenue, List<DataPoint> dailySignups, List<DataPoint> coursesByLevel, List<DataPoint> coursesByStatus) {
+    public ChartDataDTO(List<DataPoint> dailyRevenue, List<DataPoint> dailyActivity, List<DataPoint> coursesByLevel, List<DataPoint> coursesByStatus) {
         this.dailyRevenue = dailyRevenue;
-        this.dailySignups = dailySignups;
+        this.dailyActivity = dailyActivity;
         this.coursesByLevel = coursesByLevel;
         this.coursesByStatus = coursesByStatus;
     }
@@ -24,12 +24,12 @@ public class ChartDataDTO {
         this.dailyRevenue = dailyRevenue;
     }
 
-    public List<DataPoint> getDailySignups() {
-        return dailySignups;
+    public List<DataPoint> getDailyActivity() {
+        return dailyActivity;
     }
 
-    public void setDailySignups(List<DataPoint> dailySignups) {
-        this.dailySignups = dailySignups;
+    public void setDailyActivity(List<DataPoint> dailyActivity) {
+        this.dailyActivity = dailyActivity;
     }
 
     public List<DataPoint> getCoursesByLevel() {
@@ -50,20 +50,20 @@ public class ChartDataDTO {
 
     public static class DataPoint {
 
-        private String date;
+        private String label;
         private Number value;
 
-        public DataPoint(String date, Number value) {
-            this.date = date;
+        public DataPoint(String label, Number value) {
+            this.label = label;
             this.value = value;
         }
 
-        public String getDate() {
-            return date;
+        public String getLabel() {
+            return label;
         }
 
-        public void setDate(String date) {
-            this.date = date;
+        public void setLabel(String label) {
+            this.label = label;
         }
 
         public Number getValue() {

@@ -1,11 +1,11 @@
 package com.naammm.trickcode.service;
 
+import com.naammm.trickcode.config.PaymentProperties;
 import com.naammm.trickcode.domain.Order;
 import com.naammm.trickcode.domain.User;
 import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import com.naammm.trickcode.domain.enumeration.OrderStatus;
 import com.naammm.trickcode.repository.CourseRepository;
-import com.naammm.trickcode.repository.EnrollmentRepository;
 import com.naammm.trickcode.repository.OrderRepository;
 import com.naammm.trickcode.repository.UserRepository;
 import com.naammm.trickcode.service.dto.AdminDashboardStatsDTO;
@@ -18,7 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+
 import java.util.stream.Collectors;
 import com.naammm.trickcode.domain.Course;
 import org.springframework.stereotype.Service;
@@ -33,17 +33,27 @@ public class AdminDashboardService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final OrderRepository orderRepository;
-    private final EnrollmentRepository enrollmentRepository;
     private final ProSubscriptionService proSubscriptionService;
+    private final BigDecimal vndToUsdRate;
 
     public AdminDashboardService(UserRepository userRepository, CourseRepository courseRepository,
-                                  OrderRepository orderRepository, EnrollmentRepository enrollmentRepository,
-                                  ProSubscriptionService proSubscriptionService) {
+                                  OrderRepository orderRepository,
+                                  ProSubscriptionService proSubscriptionService,
+                                  PaymentProperties paymentProperties) {
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.orderRepository = orderRepository;
-        this.enrollmentRepository = enrollmentRepository;
         this.proSubscriptionService = proSubscriptionService;
+        BigDecimal usdToVnd = paymentProperties.getUsdToVndRate() != null
+            ? paymentProperties.getUsdToVndRate() : BigDecimal.valueOf(25000);
+        this.vndToUsdRate = BigDecimal.ONE.divide(usdToVnd, 10, java.math.RoundingMode.HALF_UP);
+    }
+
+    /** Convert order VND amount back to USD */
+    private BigDecimal toUsd(Order order) {
+        BigDecimal amount = order.getTotalAmount();
+        if (amount == null) return BigDecimal.ZERO;
+        return amount.multiply(vndToUsdRate).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     public AdminDashboardStatsDTO getDashboardStats() {
@@ -54,19 +64,17 @@ public class AdminDashboardService {
         stats.setTotalCourses(courseRepository.count());
         stats.setPendingCourses(courseRepository.countByStatus(CourseStatus.PENDING));
 
-        // Course Revenue (USD) — calculated from course.price × enrollment count
-        List<Course> allCourses = courseRepository.findAll();
-        BigDecimal courseRevenue = allCourses.stream()
-            .map(course -> {
-                BigDecimal price = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
-                long enrolls = enrollmentRepository.countByCourseId(course.getId());
-                return price.multiply(BigDecimal.valueOf(enrolls));
-            })
+        // All completed orders — single source of truth for revenue
+        List<Order> completedOrders = orderRepository.findAllByStatusAndCreatedAtGreaterThanEqual(
+            OrderStatus.COMPLETED, Instant.EPOCH);
+
+        // Course Revenue (USD) — from completed course orders (stored in VND, convert back)
+        BigDecimal courseRevenue = completedOrders.stream()
+            .filter(order -> !order.isSubscriptionOrder())
+            .map(this::toUsd)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Subscription Revenue (USD) — from completed subscription orders
-        List<Order> completedOrders = orderRepository.findAllByStatusAndCreatedAtGreaterThanEqual(
-            OrderStatus.COMPLETED, java.time.Instant.EPOCH);
         BigDecimal subscriptionRevenue = completedOrders.stream()
             .filter(Order::isSubscriptionOrder)
             .map(order -> proSubscriptionService.getPriceUsd(order.getSubscriptionType()))
@@ -123,8 +131,8 @@ public class AdminDashboardService {
         return stats;
     }
 
-    public ChartDataDTO getChartData() {
-        Instant startDate = Instant.now().minus(30, ChronoUnit.DAYS);
+    public ChartDataDTO getChartData(int days) {
+        Instant startDate = Instant.now().minus(days, ChronoUnit.DAYS);
         ZoneId zoneId = ZoneId.systemDefault();
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -134,36 +142,21 @@ public class AdminDashboardService {
         Map<String, BigDecimal> revenueMap = orders.stream()
             .collect(Collectors.groupingBy(
                 order -> LocalDate.ofInstant(order.getCreatedAt(), zoneId).format(formatter),
-                Collectors.reducing(BigDecimal.ZERO, order -> {
-                    if (order.isSubscriptionOrder()) {
-                        return proSubscriptionService.getPriceUsd(order.getSubscriptionType());
-                    } else if (order.getCourse() != null && order.getCourse().getPrice() != null) {
-                        return order.getCourse().getPrice();
-                    }
-                    return BigDecimal.ZERO;
-                }, BigDecimal::add)
+                Collectors.reducing(BigDecimal.ZERO, this::toUsd, BigDecimal::add)
             ));
 
-        Map<String, BigDecimal> sortedRevenue = new TreeMap<>(revenueMap);
+        List<ChartDataDTO.DataPoint> dailyRevenue = fillMissingDates(revenueMap, days, zoneId, formatter);
 
-        List<ChartDataDTO.DataPoint> dailyRevenue = sortedRevenue.entrySet().stream()
-            .map(entry -> new ChartDataDTO.DataPoint(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
-
-        // 2. Daily Signups (Java Aggregation)
+        // 2. Daily Signups
         List<User> users = userRepository.findAllByCreatedDateGreaterThanEqual(startDate);
-        
+
         Map<String, Long> signupsMap = users.stream()
             .collect(Collectors.groupingBy(
                 user -> LocalDate.ofInstant(user.getCreatedDate(), zoneId).format(formatter),
                 Collectors.counting()
             ));
 
-        Map<String, Long> sortedSignups = new TreeMap<>(signupsMap);
-
-        List<ChartDataDTO.DataPoint> dailySignups = sortedSignups.entrySet().stream()
-            .map(entry -> new ChartDataDTO.DataPoint(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
+        List<ChartDataDTO.DataPoint> dailyActivity = fillMissingDates(signupsMap, days, zoneId, formatter);
 
         // 3. Courses by Level
         List<Course> allCourses = courseRepository.findAll();
@@ -184,6 +177,23 @@ public class AdminDashboardService {
             .map(entry -> new ChartDataDTO.DataPoint(entry.getKey(), entry.getValue()))
             .collect(Collectors.toList());
 
-        return new ChartDataDTO(dailyRevenue, dailySignups, coursesByLevel, coursesByStatus);
+        return new ChartDataDTO(dailyRevenue, dailyActivity, coursesByLevel, coursesByStatus);
+    }
+
+    /**
+     * Fill missing dates in a time-series map, producing a continuous DataPoint list.
+     */
+    private <V extends Number> List<ChartDataDTO.DataPoint> fillMissingDates(
+        Map<String, V> dataMap, int days, ZoneId zoneId, DateTimeFormatter formatter
+    ) {
+        LocalDate today = LocalDate.now(zoneId);
+        LocalDate start = today.minusDays(days);
+        List<ChartDataDTO.DataPoint> result = new java.util.ArrayList<>();
+        for (LocalDate d = start; !d.isAfter(today); d = d.plusDays(1)) {
+            String key = d.format(formatter);
+            V val = dataMap.get(key);
+            result.add(new ChartDataDTO.DataPoint(key, val != null ? val : 0));
+        }
+        return result;
     }
 }

@@ -1,5 +1,6 @@
 package com.naammm.trickcode.service;
 
+import com.naammm.trickcode.config.PaymentProperties;
 import com.naammm.trickcode.domain.Course;
 import com.naammm.trickcode.domain.Enrollment;
 import com.naammm.trickcode.domain.Order;
@@ -19,7 +20,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
+
 import java.util.stream.Collectors;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -34,11 +35,23 @@ public class InstructorDashboardService {
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final OrderRepository orderRepository;
+    private final BigDecimal vndToUsdRate;
 
-    public InstructorDashboardService(CourseRepository courseRepository, EnrollmentRepository enrollmentRepository, OrderRepository orderRepository) {
+    public InstructorDashboardService(CourseRepository courseRepository, EnrollmentRepository enrollmentRepository,
+                                      OrderRepository orderRepository, PaymentProperties paymentProperties) {
         this.courseRepository = courseRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.orderRepository = orderRepository;
+        BigDecimal usdToVnd = paymentProperties.getUsdToVndRate() != null
+            ? paymentProperties.getUsdToVndRate() : BigDecimal.valueOf(25000);
+        this.vndToUsdRate = BigDecimal.ONE.divide(usdToVnd, 10, java.math.RoundingMode.HALF_UP);
+    }
+
+    /** Convert order VND amount back to USD */
+    private BigDecimal toUsd(Order order) {
+        BigDecimal amount = order.getTotalAmount();
+        if (amount == null) return BigDecimal.ZERO;
+        return amount.multiply(vndToUsdRate).setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     private String getCurrentUserLogin() {
@@ -80,16 +93,13 @@ public class InstructorDashboardService {
         // Fetch instructor's courses
         List<Course> courses = courseRepository.findAllByInstructorLogin(login);
 
-        // Total gross revenue (course price * enrollments)
-        BigDecimal grossRevenue = courses.stream()
-            .map(course -> {
-                BigDecimal price = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
-                long enrolls = enrollmentRepository.countByCourseId(course.getId());
-                return price.multiply(BigDecimal.valueOf(enrolls));
-            })
+        // Total revenue — Order-based, convert VND back to USD
+        List<Order> completedOrders = orderRepository.findByCourseIdInAndStatusOrderByCreatedAtDesc(courseIds, OrderStatus.COMPLETED);
+        BigDecimal grossRevenueUsd = completedOrders.stream()
+            .map(this::toUsd)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
         // Instructor net revenue (80%)
-        stats.setTotalRevenue(grossRevenue.multiply(INSTRUCTOR_SHARE));
+        stats.setTotalRevenue(grossRevenueUsd.multiply(INSTRUCTOR_SHARE));
 
         // Recent enrollments (last 10)
         List<Enrollment> recentEnrollments = enrollmentRepository.findByCourseIdInOrderByEnrolledAtDesc(courseIds);
@@ -106,12 +116,20 @@ public class InstructorDashboardService {
                 .toList()
         );
 
-        // Per-course stats
+        // Per-course stats — Order-based revenue per course
+        Map<Long, BigDecimal> courseRevenueMap = completedOrders.stream()
+            .filter(o -> o.getCourse() != null)
+            .collect(Collectors.groupingBy(
+                o -> o.getCourse().getId(),
+                Collectors.reducing(BigDecimal.ZERO,
+                    o -> toUsd(o).multiply(INSTRUCTOR_SHARE),
+                    BigDecimal::add)
+            ));
+
         stats.setCourseStats(
             courses.stream().map(course -> {
                 long enrollCount = enrollmentRepository.countByCourseId(course.getId());
-                BigDecimal price = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
-                BigDecimal courseRevenue = price.multiply(BigDecimal.valueOf(enrollCount)).multiply(INSTRUCTOR_SHARE);
+                BigDecimal courseRevenue = courseRevenueMap.getOrDefault(course.getId(), BigDecimal.ZERO);
                 return new InstructorDashboardStatsDTO.CourseStatDTO(
                     course.getId(),
                     course.getTitle(),
@@ -128,11 +146,11 @@ public class InstructorDashboardService {
         return stats;
     }
 
-    public ChartDataDTO getChartData() {
+    public ChartDataDTO getChartData(int days) {
         String login = getCurrentUserLogin();
         List<Long> courseIds = getInstructorCourseIds(login);
 
-        Instant startDate = Instant.now().minus(30, ChronoUnit.DAYS);
+        Instant startDate = Instant.now().minus(days, ChronoUnit.DAYS);
         ZoneId zoneId = ZoneId.systemDefault();
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
 
@@ -145,35 +163,29 @@ public class InstructorDashboardService {
             );
         }
 
-        // 1. Daily Revenue (calculated from course price * enrollments per day)
-        List<Course> courses = courseRepository.findAllByInstructorLogin(login);
-        List<Enrollment> allEnrollments = enrollmentRepository.findByCourseIdInAndEnrolledAtGreaterThanEqual(courseIds, startDate);
-        Map<Long, BigDecimal> coursePriceMap = courses.stream()
-            .collect(Collectors.toMap(Course::getId, c -> c.getPrice() != null ? c.getPrice() : BigDecimal.ZERO));
-        Map<String, BigDecimal> revenueMap = allEnrollments.stream()
+        // 1. Daily Revenue — Order-based (single source of truth)
+        List<Order> completedOrders = orderRepository.findByCourseIdInAndStatusAndCreatedAtGreaterThanEqual(
+            courseIds, OrderStatus.COMPLETED, startDate);
+        Map<String, BigDecimal> revenueMap = completedOrders.stream()
             .collect(Collectors.groupingBy(
-                e -> LocalDate.ofInstant(e.getEnrolledAt(), zoneId).format(formatter),
+                o -> LocalDate.ofInstant(o.getCreatedAt(), zoneId).format(formatter),
                 Collectors.reducing(BigDecimal.ZERO,
-                    e -> coursePriceMap.getOrDefault(e.getCourse() != null ? e.getCourse().getId() : 0L, BigDecimal.ZERO).multiply(INSTRUCTOR_SHARE),
+                    o -> toUsd(o).multiply(INSTRUCTOR_SHARE),
                     BigDecimal::add)
             ));
-        Map<String, BigDecimal> sortedRevenue = new TreeMap<>(revenueMap);
-        List<ChartDataDTO.DataPoint> dailyRevenue = sortedRevenue.entrySet().stream()
-            .map(entry -> new ChartDataDTO.DataPoint(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
+        List<ChartDataDTO.DataPoint> dailyRevenue = fillMissingDates(revenueMap, days, zoneId, formatter);
 
         // 2. Daily Enrollments
+        List<Enrollment> allEnrollments = enrollmentRepository.findByCourseIdInAndEnrolledAtGreaterThanEqual(courseIds, startDate);
         Map<String, Long> enrollmentMap = allEnrollments.stream()
             .collect(Collectors.groupingBy(
                 e -> LocalDate.ofInstant(e.getEnrolledAt(), zoneId).format(formatter),
                 Collectors.counting()
             ));
-        Map<String, Long> sortedEnrollments = new TreeMap<>(enrollmentMap);
-        List<ChartDataDTO.DataPoint> dailyEnrollments = sortedEnrollments.entrySet().stream()
-            .map(entry -> new ChartDataDTO.DataPoint(entry.getKey(), entry.getValue()))
-            .collect(Collectors.toList());
+        List<ChartDataDTO.DataPoint> dailyEnrollments = fillMissingDates(enrollmentMap, days, zoneId, formatter);
 
         // 3. Courses by Level
+        List<Course> courses = courseRepository.findAllByInstructorLogin(login);
         Map<String, Long> levelMap = courses.stream()
             .filter(c -> c.getLevel() != null)
             .collect(Collectors.groupingBy(c -> c.getLevel().name(), Collectors.counting()));
@@ -190,6 +202,23 @@ public class InstructorDashboardService {
             .collect(Collectors.toList());
 
         return new ChartDataDTO(dailyRevenue, dailyEnrollments, coursesByLevel, coursesByStatus);
+    }
+
+    /**
+     * Fill missing dates in a time-series map, producing a continuous DataPoint list.
+     */
+    private <V extends Number> List<ChartDataDTO.DataPoint> fillMissingDates(
+        Map<String, V> dataMap, int days, ZoneId zoneId, DateTimeFormatter formatter
+    ) {
+        LocalDate today = LocalDate.now(zoneId);
+        LocalDate start = today.minusDays(days);
+        List<ChartDataDTO.DataPoint> result = new java.util.ArrayList<>();
+        for (LocalDate d = start; !d.isAfter(today); d = d.plusDays(1)) {
+            String key = d.format(formatter);
+            V val = dataMap.get(key);
+            result.add(new ChartDataDTO.DataPoint(key, val != null ? val : 0));
+        }
+        return result;
     }
 
     /**
