@@ -220,6 +220,14 @@ const CodeWorkspace = () => {
 
       if (result.testsPassed === result.testsTotal) {
         setOutput(`✓ All ${result.testsTotal} test cases passed! (${result.executionTime}s, ${result.memoryUsed}KB)`);
+        // Mark lesson as complete when all tests pass
+        if (!isReviewMode) {
+          try {
+            await courseService.completeLesson(codeId);
+          } catch (e) {
+            console.error('Failed to mark code lesson as completed:', e);
+          }
+        }
       } else {
         setOutput(`✗ ${result.testsTotal - result.testsPassed} of ${result.testsTotal} test cases failed.`);
       }

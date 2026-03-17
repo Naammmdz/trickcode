@@ -254,7 +254,7 @@ const QuizWorkspace = () => {
               {/* Quiz Header */}
               <div className="mb-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <h1 className="text-3xl md:text-4xl font-serif font-medium text-neutral-900 dark:text-white">Space Complexity Quiz</h1>
+                  <h1 className="text-3xl md:text-4xl font-serif font-medium text-neutral-900 dark:text-white">{lesson?.title || 'Quiz'}</h1>
                   <div className="flex gap-2">
                     <button className="p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-neutral-200 dark:border-neutral-800 rounded hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
                       <span className="material-symbols-outlined text-lg">bookmark</span>
@@ -265,7 +265,7 @@ const QuizWorkspace = () => {
                   </div>
                 </div>
                 <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-3xl font-light">
-                  Test your understanding of space complexity in Dynamic Programming solutions. Answer all 5 questions to complete the quiz.
+                  {quizData?.description || `Answer all ${quizData?.questions?.length || ''} questions to complete the quiz.`}
                 </p>
               </div>
 
