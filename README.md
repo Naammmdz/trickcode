@@ -75,10 +75,11 @@ trickcode/
 ### 1. Environment Setup
 
 **Backend (`be/backend-mono/src/main/resources/config/application.yml`):**
-Ensure your application properties have the correct database connections and inject your JDoodle keys into your environment.
+Ensure your application properties have the correct database connections and inject your JDoodle & Google Gemini keys into your environment.
 ```bash
 export JDOODLE_CLIENT_ID="your_client_id"
 export JDOODLE_CLIENT_SECRET="your_client_secret"
+export GOOGLE_AI_API_KEY="your_gemini_api_key"
 ```
 
 **Frontend (`fe/.env`):**
