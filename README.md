@@ -41,14 +41,41 @@ With premium design, integrated payment gateways for seamless course transaction
 
 ## 🏗️ Architecture Design
 
-TrickCode follows a robust client-server architecture with real-time capabilities.
+TrickCode is built on a robust **Layered Architecture**, ensuring separation of concerns, scalability, and ease of maintenance.
 
 ```mermaid
 graph TD
-    Client[React Frontend + Three.js] -->|REST API| Backend(Spring Boot Backend)
-    Client <-->|WebSockets| Socket(Socket.IO Server)
-    Backend -->|Run Code| JDoodle[JDoodle Execution Engine]
-    Backend -.-> DB[(PostgreSQL Database)]
+    subgraph Presentation Layer [Frontend - fe]
+        React[React 18 + Vite]
+        ThreeJS[Three.js & WebGL]
+    end
+
+    subgraph Application Layer [Backend - be]
+        API[Spring Boot REST API]
+        Auth[Security & Identity]
+        WS[Socket.IO Real-time Server]
+    end
+
+    subgraph Data & Storage Layer
+        DB[(PostgreSQL)]
+        MinIO[(MinIO Object Storage)]
+    end
+
+    subgraph External Services
+        JDoodle[JDoodle Code Execution]
+        Gemini[Google Gemini AI]
+        VNPay[VNPay Payment Gateway]
+    end
+
+    %% Flow connections
+    React -->|HTTP Requests| API
+    ThreeJS -.-> React
+    React <-->|WebSockets| WS
+    API -->|Read/Write| DB
+    API -->|Objects/Media| MinIO
+    API -->|Execute Code| JDoodle
+    API -->|Prompts| Gemini
+    API -->|Transactions| VNPay
 ```
 
 ## 📁 Project Structure
