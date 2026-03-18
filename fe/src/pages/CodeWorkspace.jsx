@@ -173,7 +173,7 @@ const CodeWorkspace = () => {
     setTestResults(null);
 
     try {
-      const data = await codeExecutionService.runCode(code, language);
+      const data = await codeExecutionService.runCode(code, language, '', Number(codeId));
 
       if (data.error) {
         setOutput(`Error: ${data.error}`);

@@ -115,23 +115,6 @@ const InstructorOverview = ({ onTabChange }) => {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Period Selector */}
-                    <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
-                        {PERIOD_OPTIONS.map((opt) => (
-                            <button
-                                key={opt.value}
-                                onClick={() => setSelectedDays(opt.value)}
-                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                                    selectedDays === opt.value
-                                        ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
-                                        : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
-                                }`}
-                            >
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
-                    {/* Export Buttons */}
                     <button
                         onClick={async () => {
                             setExporting(true);
@@ -201,26 +184,46 @@ const InstructorOverview = ({ onTabChange }) => {
             </div>
 
             {/* Charts: Revenue + Enrollments */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <DashboardChart
-                    title="Daily Revenue"
-                    data={chartData?.dailyRevenue || []}
-                    dataKey="value"
-                    color="#10b981"
-                    valueFormatter={(value) => `$${Number(value).toFixed(2)}`}
-                    totalValue={revenueSummary.total}
-                    subtitle={revenueSummary.subtitle}
-                />
-                <DashboardChart
-                    title="New Enrollments"
-                    data={chartData?.dailyActivity || []}
-                    dataKey="value"
-                    color="#3b82f6"
-                    valueFormatter={(value) => value.toLocaleString()}
-                    chartType="bar"
-                    totalValue={enrollmentSummary.total}
-                    subtitle={enrollmentSummary.subtitle}
-                />
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-sans uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">Activity Over Time</h3>
+                    <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
+                        {PERIOD_OPTIONS.map((opt) => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setSelectedDays(opt.value)}
+                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                                    selectedDays === opt.value
+                                        ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
+                                        : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <DashboardChart
+                        title="Daily Revenue"
+                        data={chartData?.dailyRevenue || []}
+                        dataKey="value"
+                        color="#10b981"
+                        valueFormatter={(value) => `$${Number(value).toFixed(2)}`}
+                        totalValue={revenueSummary.total}
+                        subtitle={revenueSummary.subtitle}
+                    />
+                    <DashboardChart
+                        title="New Enrollments"
+                        data={chartData?.dailyActivity || []}
+                        dataKey="value"
+                        color="#3b82f6"
+                        valueFormatter={(value) => value.toLocaleString()}
+                        chartType="bar"
+                        totalValue={enrollmentSummary.total}
+                        subtitle={enrollmentSummary.subtitle}
+                    />
+                </div>
             </div>
 
             {/* Distribution Charts */}

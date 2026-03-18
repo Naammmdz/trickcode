@@ -74,6 +74,8 @@ public class OrderQueryService extends QueryService<Order> {
                 buildRangeSpecification(criteria.getCreatedAt(), Order_.createdAt),
                 buildStringSpecification(criteria.getPaymentMethod(), Order_.paymentMethod),
                 buildStringSpecification(criteria.getTransactionId(), Order_.transactionId),
+                buildStringSpecification(criteria.getPaymentProvider(), Order_.paymentProvider),
+                buildStringSpecification(criteria.getPaymentTxnRef(), Order_.paymentTxnRef),
                 buildSpecification(criteria.getUserId(), root -> root.join(Order_.user, JoinType.LEFT).get(User_.id)),
                 buildSpecification(criteria.getCourseId(), root -> root.join(Order_.course, JoinType.LEFT).get(Course_.id))
             );

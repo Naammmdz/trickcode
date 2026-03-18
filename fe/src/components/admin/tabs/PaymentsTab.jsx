@@ -222,7 +222,10 @@ const PaymentsTab = () => {
                   const itemName = isSub
                     ? (o.subscriptionType || '').replace(/_/g, ' ') + ' Subscription'
                     : (o.course?.title || '-');
-                  const priceUsd = isSub ? '-' : (o.course?.price != null ? formatUsd(o.course.price) : '-');
+                  const subPriceMap = { STUDENT_PRO: 9.99, INSTRUCTOR_PRO: 19.99 };
+                  const priceUsd = isSub
+                    ? formatUsd(subPriceMap[o.subscriptionType] ?? 0)
+                    : (o.course?.price != null ? formatUsd(o.course.price) : '-');
                   return (
                     <tr key={o.id} className="border-b border-neutral-50 dark:border-neutral-800/50 last:border-b-0 hover:bg-neutral-50/50 dark:hover:bg-neutral-800/20 transition-colors duration-150">
                       <td className="px-5 py-3.5 font-mono text-xs text-neutral-400 dark:text-neutral-500">#{o.id}</td>

@@ -117,37 +117,19 @@ const OverviewTab = () => {
             A quick glance at your platform's key metrics and recent activity.
           </p>
         </div>
-        {/* Export Button */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
-            {PERIOD_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setSelectedDays(opt.value)}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-                  selectedDays === opt.value
-                    ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
-                    : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={async () => {
-              setExporting(true);
-              try { await adminDashboardService.exportExcel(selectedDays); }
-              catch (e) { console.error('Export failed:', e); }
-              finally { setExporting(false); }
-            }}
-            disabled={exporting}
-            className="flex items-center gap-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-sm">{exporting ? 'hourglass_top' : 'download'}</span>
-            {exporting ? 'Exporting...' : 'Export Excel'}
-          </button>
-        </div>
+        <button
+          onClick={async () => {
+            setExporting(true);
+            try { await adminDashboardService.exportExcel(selectedDays); }
+            catch (e) { console.error('Export failed:', e); }
+            finally { setExporting(false); }
+          }}
+          disabled={exporting}
+          className="flex items-center gap-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          <span className="material-symbols-outlined text-sm">{exporting ? 'hourglass_top' : 'download'}</span>
+          {exporting ? 'Exporting...' : 'Export Excel'}
+        </button>
       </div>
 
       {/* Stat Cards */}
@@ -208,26 +190,46 @@ const OverviewTab = () => {
       </div>
 
       {/* Revenue + Signups Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <DashboardChart
-          title="Daily Revenue"
-          data={chartData?.dailyRevenue || []}
-          dataKey="value"
-          color="#10b981"
-          valueFormatter={(value) => formatUsd(value)}
-          totalValue={revenueSummary.total}
-          subtitle={revenueSummary.subtitle}
-        />
-        <DashboardChart
-          title="New Users"
-          data={chartData?.dailyActivity || []}
-          dataKey="value"
-          color="#3b82f6"
-          valueFormatter={(value) => value.toLocaleString()}
-          chartType="bar"
-          totalValue={signupSummary.total}
-          subtitle={signupSummary.subtitle}
-        />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-sans uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">Activity Over Time</h3>
+          <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSelectedDays(opt.value)}
+                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                  selectedDays === opt.value
+                    ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
+                    : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <DashboardChart
+            title="Daily Revenue"
+            data={chartData?.dailyRevenue || []}
+            dataKey="value"
+            color="#10b981"
+            valueFormatter={(value) => formatUsd(value)}
+            totalValue={revenueSummary.total}
+            subtitle={revenueSummary.subtitle}
+          />
+          <DashboardChart
+            title="New Users"
+            data={chartData?.dailyActivity || []}
+            dataKey="value"
+            color="#3b82f6"
+            valueFormatter={(value) => value.toLocaleString()}
+            chartType="bar"
+            totalValue={signupSummary.total}
+            subtitle={signupSummary.subtitle}
+          />
+        </div>
       </div>
 
       {/* Distribution Charts */}
