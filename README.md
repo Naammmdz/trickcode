@@ -1,13 +1,14 @@
 # 🚀 TrickCode
 
-**The all-in-one platform to master algorithms, ace technical interviews, and build the future with a community of elite developers.**
+**The premier platform to master algorithms, ace technical interviews, and a comprehensive marketplace for buying and selling programming courses.**
 
 ## 📋 Overview
-💡 Why "TrickCode"? It's not just another coding platform. TrickCode combines the rigor of technical interviews with a premium, engaging user experience. 
-This platform provides an interactive environment where users can practice algorithms, compete in weekly contests, and experience mock interviews powered by AI and real-time collaboration. 
-Instead of a simple code editor, TrickCode immerses you in a "frontier" aesthetic featuring 3D graphics, real-time leaderboards, and a supportive community of thousands of developers.
+💡 What is "TrickCode"? TrickCode is a groundbreaking EdTech platform combining an advanced algorithm learning environment with an interactive course marketplace. 
+Whether you're a student looking to master data structures, a developer preparing for technical interviews, or an instructor looking to monetize your programming expertise through course sales—TrickCode has you covered.
+With premium design, integrated payment gateways for seamless course transactions, and a robust AI assistant, TrickCode provides a "frontier" learning experience that sets standard coding environments apart.
 
 ## 🌟 Core Features
+- 🛒 **E-Learning Marketplace**: A fully-fledged system for instructors to create, publish, and sell programming courses. Students can easily browse, purchase (via VNPay), and learn interactively.
 - 🤖 **Interactive AI Assistant**: AI-powered features for generating code challenges, explaining test failures, and guiding users through mock interviews.
 - ⚡ **JDoodle Code Execution**: Robust algorithm testing environment supporting automated test cases and real-time execution feedback.
 - 👥 **Real-time Collaboration**: Multi-user cursor synchronization (Socket.IO) allowing developers to pair-program and debug together seamlessly.
