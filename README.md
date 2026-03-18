@@ -24,7 +24,7 @@
 - 💡 Terminal-inspired design language
 
 ---
-
+##
 ## 🌟 Core Modules
 
 ### 1️⃣ **Problems** - Algorithm Challenges
