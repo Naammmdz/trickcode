@@ -1,5 +1,16 @@
 # 🚀 TrickCode
 
+<div align="center">
+
+![React](https://img.shields.io/badge/React-18.3.1-007acc?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6.2.0-8a2be2?logo=vite&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.6-6db33f?logo=spring-boot&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-336791?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ed?logo=docker&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google_Gemini-AI-ff6f00?logo=google&logoColor=white)
+
+</div>
+
 **The premier platform to master algorithms, ace technical interviews, and a comprehensive marketplace for buying and selling programming courses.**
 
 ## 📋 Overview
