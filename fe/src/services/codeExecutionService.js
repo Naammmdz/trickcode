@@ -9,13 +9,12 @@ export const codeExecutionService = {
      * @param {string} sourceCode
      * @param {string} language - python | javascript | java
      * @param {string} stdin - optional stdin input
+     * @param {number} lessonId - optional lesson ID for auto-wrapping LeetCode-style code
      */
-    async runCode(sourceCode, language, stdin = '') {
-        const { data } = await apiClient.post('/api/code/run', {
-            sourceCode,
-            language,
-            stdin,
-        });
+    async runCode(sourceCode, language, stdin = '', lessonId = null) {
+        const body = { sourceCode, language, stdin };
+        if (lessonId != null) body.lessonId = lessonId;
+        const { data } = await apiClient.post('/api/code/run', body);
         return data;
     },
 

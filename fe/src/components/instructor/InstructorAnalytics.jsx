@@ -122,8 +122,8 @@ const InstructorAnalytics = () => {
                 {[
                     { label: 'TOTAL COURSES', value: totals.courses, icon: 'menu_book', color: 'text-sky-500' },
                     { label: 'PUBLISHED', value: totals.published, icon: 'check_circle', color: 'text-emerald-500' },
-                    { label: 'TOTAL STUDENTS', value: totals.students, icon: 'group', color: 'text-amber-500' },
-                    { label: 'AVG STUDENTS/COURSE', value: totals.avgStudents, icon: 'trending_up', color: 'text-rose-500' },
+                    { label: 'TOTAL ENROLLMENTS', value: totals.students, icon: 'group', color: 'text-amber-500' },
+                    { label: 'AVG ENROLLMENTS/COURSE', value: totals.avgStudents, icon: 'trending_up', color: 'text-rose-500' },
                 ].map((card) => (
                     <div key={card.label} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 hover:shadow-md transition-shadow">
                         <div className="flex items-center gap-2 mb-3">
@@ -139,7 +139,7 @@ const InstructorAnalytics = () => {
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <DashboardChart
                     title="New Enrollments (30 days)"
-                    data={chartData?.dailySignups || []}
+                    data={chartData?.dailyActivity || []}
                     dataKey="value"
                     color="#3b82f6"
                     valueFormatter={(v) => v.toLocaleString()}

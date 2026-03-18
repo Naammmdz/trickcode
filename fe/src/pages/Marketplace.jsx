@@ -395,7 +395,7 @@ const Marketplace = () => {
                         </div>
                         <span className="text-xs text-neutral-400 flex items-center gap-1">
                           <span className="material-symbols-outlined text-[13px]">group</span>
-                          {course.studentCount || 0}
+                          {course.enrollmentCount || 0}
                         </span>
                         <span className="ml-auto font-bold text-neutral-900 dark:text-white">
                           {course.price === 0 || !course.price ? <span className="text-emerald-500">Free</span> : `$${course.price}`}
@@ -483,7 +483,7 @@ const Marketplace = () => {
                       <div className="flex items-center gap-3 text-[11px] text-neutral-400 dark:text-neutral-500">
                         <span className="flex items-center gap-1">
                           <span className="material-symbols-outlined text-[13px]">group</span>
-                          {course.studentCount || 0}
+                          {course.enrollmentCount || 0}
                         </span>
                         {course.categories && course.categories.length > 0 && (
                           <span className="flex items-center gap-1 truncate max-w-[100px]">

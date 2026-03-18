@@ -50,6 +50,15 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long>, J
     @Query("select case when count(e) > 0 then true else false end from Enrollment e where e.user.login = :login and e.course.id = :courseId")
     boolean existsByUserLoginAndCourseId(@Param("login") String login, @Param("courseId") Long courseId);
 
+    /**
+     * Find enrollments by current user with eager-loaded course (paginated)
+     */
+    @Query(
+        value = "select e from Enrollment e left join fetch e.user left join fetch e.course where e.user.login = ?#{authentication.name}",
+        countQuery = "select count(e) from Enrollment e where e.user.login = ?#{authentication.name}"
+    )
+    Page<Enrollment> findByCurrentUserWithCourse(Pageable pageable);
+
     long countByCourseId(Long courseId);
 
     @Query("select e from Enrollment e left join fetch e.user left join fetch e.course where e.course.id in :courseIds order by e.enrolledAt desc")

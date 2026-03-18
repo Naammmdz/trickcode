@@ -5,22 +5,27 @@ import ActivityFeed from '../admin/dashboard/ActivityFeed';
 import DashboardChart from '../admin/dashboard/DashboardChart';
 import DashboardPieChart from '../admin/dashboard/DashboardPieChart';
 
+const PERIOD_OPTIONS = [
+    { label: '7D', value: 7 },
+    { label: '30D', value: 30 },
+    { label: '90D', value: 90 },
+    { label: '1Y', value: 365 },
+];
+
 const InstructorOverview = ({ onTabChange }) => {
     const [stats, setStats] = useState(null);
     const [chartData, setChartData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedDays, setSelectedDays] = useState(30);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchStats = async () => {
             try {
                 setLoading(true);
-                const [statsData, chartsData] = await Promise.all([
-                    instructorDashboardService.getStats(),
-                    instructorDashboardService.getChartData(),
-                ]);
+                const statsData = await instructorDashboardService.getStats();
                 setStats(statsData);
-                setChartData(chartsData);
             } catch (err) {
                 setError('Failed to load dashboard data.');
                 console.error(err);
@@ -28,8 +33,20 @@ const InstructorOverview = ({ onTabChange }) => {
                 setLoading(false);
             }
         };
-        fetchData();
+        fetchStats();
     }, []);
+
+    useEffect(() => {
+        const fetchCharts = async () => {
+            try {
+                const chartsData = await instructorDashboardService.getChartData(selectedDays);
+                setChartData(chartsData);
+            } catch (err) {
+                console.error('Failed to load chart data:', err);
+            }
+        };
+        fetchCharts();
+    }, [selectedDays]);
 
     const formatCurrency = (val) => {
         const num = Number(val) || 0;
@@ -46,11 +63,11 @@ const InstructorOverview = ({ onTabChange }) => {
     }, [chartData]);
 
     const enrollmentSummary = useMemo(() => {
-        if (!chartData?.dailySignups?.length) return { total: '0', subtitle: 'Last 30 days' };
-        const total = chartData.dailySignups.reduce((s, d) => s + (d.value || 0), 0);
+        if (!chartData?.dailyActivity?.length) return { total: '0', subtitle: 'Last 30 days' };
+        const total = chartData.dailyActivity.reduce((s, d) => s + (d.value || 0), 0);
         return {
             total: total.toLocaleString(),
-            subtitle: `${chartData.dailySignups.length} days tracked`,
+            subtitle: `${chartData.dailyActivity.length} days tracked`,
         };
     }, [chartData]);
 
@@ -94,16 +111,44 @@ const InstructorOverview = ({ onTabChange }) => {
                 <div>
                     <h2 className="text-3xl font-serif text-neutral-900 dark:text-white">Instructor Dashboard</h2>
                     <p className="text-sm text-neutral-500 dark:text-neutral-400 font-light">
-                        Overview of your courses, students, and earnings.
+                        Overview of your courses, enrollments, and earnings.
                     </p>
                 </div>
-                <button
-                    onClick={() => onTabChange?.('courses')}
-                    className="flex items-center gap-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
-                >
-                    <span className="material-symbols-outlined text-sm">add</span>
-                    New Course
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={async () => {
+                            setExporting(true);
+                            try { await instructorDashboardService.exportExcel(selectedDays); }
+                            catch (e) { console.error('Export failed:', e); }
+                            finally { setExporting(false); }
+                        }}
+                        disabled={exporting}
+                        className="flex items-center gap-1.5 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50 text-neutral-700 dark:text-neutral-300"
+                    >
+                        <span className="material-symbols-outlined text-sm">table_chart</span>
+                        Excel
+                    </button>
+                    <button
+                        onClick={async () => {
+                            setExporting(true);
+                            try { await instructorDashboardService.exportPdf(); }
+                            catch (e) { console.error('Export failed:', e); }
+                            finally { setExporting(false); }
+                        }}
+                        disabled={exporting}
+                        className="flex items-center gap-1.5 border border-neutral-200 dark:border-neutral-700 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50 text-neutral-700 dark:text-neutral-300"
+                    >
+                        <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                        PDF
+                    </button>
+                    <button
+                        onClick={() => onTabChange?.('courses')}
+                        className="flex items-center gap-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-opacity"
+                    >
+                        <span className="material-symbols-outlined text-sm">add</span>
+                        New Course
+                    </button>
+                </div>
             </div>
 
             {/* Stat Cards */}
@@ -116,11 +161,11 @@ const InstructorOverview = ({ onTabChange }) => {
                     subtitle={`${stats.publishedCourses || 0} published`}
                 />
                 <StatCard
-                    title="Total Students"
+                    title="Total Enrollments"
                     value={(stats.totalStudents || 0).toLocaleString()}
                     icon="group"
                     color="green"
-                    subtitle="enrolled"
+                    subtitle="across all courses"
                 />
                 <StatCard
                     title="Net Earnings"
@@ -139,26 +184,46 @@ const InstructorOverview = ({ onTabChange }) => {
             </div>
 
             {/* Charts: Revenue + Enrollments */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <DashboardChart
-                    title="Daily Revenue"
-                    data={chartData?.dailyRevenue || []}
-                    dataKey="value"
-                    color="#10b981"
-                    valueFormatter={(value) => `$${Number(value).toFixed(2)}`}
-                    totalValue={revenueSummary.total}
-                    subtitle={revenueSummary.subtitle}
-                />
-                <DashboardChart
-                    title="New Enrollments"
-                    data={chartData?.dailySignups || []}
-                    dataKey="value"
-                    color="#3b82f6"
-                    valueFormatter={(value) => value.toLocaleString()}
-                    chartType="bar"
-                    totalValue={enrollmentSummary.total}
-                    subtitle={enrollmentSummary.subtitle}
-                />
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-sans uppercase tracking-[0.15em] text-neutral-400 dark:text-neutral-500">Activity Over Time</h3>
+                    <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg p-1">
+                        {PERIOD_OPTIONS.map((opt) => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setSelectedDays(opt.value)}
+                                className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                                    selectedDays === opt.value
+                                        ? 'bg-white dark:bg-neutral-700 shadow-sm text-neutral-900 dark:text-white'
+                                        : 'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300'
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <DashboardChart
+                        title="Daily Revenue"
+                        data={chartData?.dailyRevenue || []}
+                        dataKey="value"
+                        color="#10b981"
+                        valueFormatter={(value) => `$${Number(value).toFixed(2)}`}
+                        totalValue={revenueSummary.total}
+                        subtitle={revenueSummary.subtitle}
+                    />
+                    <DashboardChart
+                        title="New Enrollments"
+                        data={chartData?.dailyActivity || []}
+                        dataKey="value"
+                        color="#3b82f6"
+                        valueFormatter={(value) => value.toLocaleString()}
+                        chartType="bar"
+                        totalValue={enrollmentSummary.total}
+                        subtitle={enrollmentSummary.subtitle}
+                    />
+                </div>
             </div>
 
             {/* Distribution Charts */}

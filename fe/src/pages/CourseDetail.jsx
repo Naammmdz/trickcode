@@ -170,7 +170,7 @@ const CourseDetail = () => {
   const isFree = course.price === 0 || !course.price;
   const hasAccess = courseAccess?.hasAccess;
   const isEnrolled = courseAccess?.isEnrolled || hasAccess;
-  const studentCount = course.studentCount || 0;
+  const studentCount = course.enrollmentCount || 0;
 
   // Compute smart continue URL: first uncompleted lesson, or first lesson overall
   const getContinueUrl = () => {

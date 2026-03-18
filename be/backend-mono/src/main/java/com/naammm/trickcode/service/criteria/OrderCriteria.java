@@ -52,6 +52,10 @@ public class OrderCriteria implements Serializable, Criteria {
 
     private StringFilter transactionId;
 
+    private StringFilter paymentProvider;
+
+    private StringFilter paymentTxnRef;
+
     private LongFilter userId;
 
     private LongFilter courseId;
@@ -67,6 +71,8 @@ public class OrderCriteria implements Serializable, Criteria {
         this.createdAt = other.optionalCreatedAt().map(InstantFilter::copy).orElse(null);
         this.paymentMethod = other.optionalPaymentMethod().map(StringFilter::copy).orElse(null);
         this.transactionId = other.optionalTransactionId().map(StringFilter::copy).orElse(null);
+        this.paymentProvider = other.optionalPaymentProvider().map(StringFilter::copy).orElse(null);
+        this.paymentTxnRef = other.optionalPaymentTxnRef().map(StringFilter::copy).orElse(null);
         this.userId = other.optionalUserId().map(LongFilter::copy).orElse(null);
         this.courseId = other.optionalCourseId().map(LongFilter::copy).orElse(null);
         this.distinct = other.distinct;
@@ -191,6 +197,44 @@ public class OrderCriteria implements Serializable, Criteria {
         this.transactionId = transactionId;
     }
 
+    public StringFilter getPaymentProvider() {
+        return paymentProvider;
+    }
+
+    public Optional<StringFilter> optionalPaymentProvider() {
+        return Optional.ofNullable(paymentProvider);
+    }
+
+    public StringFilter paymentProvider() {
+        if (paymentProvider == null) {
+            setPaymentProvider(new StringFilter());
+        }
+        return paymentProvider;
+    }
+
+    public void setPaymentProvider(StringFilter paymentProvider) {
+        this.paymentProvider = paymentProvider;
+    }
+
+    public StringFilter getPaymentTxnRef() {
+        return paymentTxnRef;
+    }
+
+    public Optional<StringFilter> optionalPaymentTxnRef() {
+        return Optional.ofNullable(paymentTxnRef);
+    }
+
+    public StringFilter paymentTxnRef() {
+        if (paymentTxnRef == null) {
+            setPaymentTxnRef(new StringFilter());
+        }
+        return paymentTxnRef;
+    }
+
+    public void setPaymentTxnRef(StringFilter paymentTxnRef) {
+        this.paymentTxnRef = paymentTxnRef;
+    }
+
     public LongFilter getUserId() {
         return userId;
     }
@@ -264,6 +308,8 @@ public class OrderCriteria implements Serializable, Criteria {
             Objects.equals(createdAt, that.createdAt) &&
             Objects.equals(paymentMethod, that.paymentMethod) &&
             Objects.equals(transactionId, that.transactionId) &&
+            Objects.equals(paymentProvider, that.paymentProvider) &&
+            Objects.equals(paymentTxnRef, that.paymentTxnRef) &&
             Objects.equals(userId, that.userId) &&
             Objects.equals(courseId, that.courseId) &&
             Objects.equals(distinct, that.distinct)
@@ -272,7 +318,7 @@ public class OrderCriteria implements Serializable, Criteria {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, totalAmount, status, createdAt, paymentMethod, transactionId, userId, courseId, distinct);
+        return Objects.hash(id, totalAmount, status, createdAt, paymentMethod, transactionId, paymentProvider, paymentTxnRef, userId, courseId, distinct);
     }
 
     // prettier-ignore
@@ -285,6 +331,8 @@ public class OrderCriteria implements Serializable, Criteria {
             optionalCreatedAt().map(f -> "createdAt=" + f + ", ").orElse("") +
             optionalPaymentMethod().map(f -> "paymentMethod=" + f + ", ").orElse("") +
             optionalTransactionId().map(f -> "transactionId=" + f + ", ").orElse("") +
+            optionalPaymentProvider().map(f -> "paymentProvider=" + f + ", ").orElse("") +
+            optionalPaymentTxnRef().map(f -> "paymentTxnRef=" + f + ", ").orElse("") +
             optionalUserId().map(f -> "userId=" + f + ", ").orElse("") +
             optionalCourseId().map(f -> "courseId=" + f + ", ").orElse("") +
             optionalDistinct().map(f -> "distinct=" + f + ", ").orElse("") +

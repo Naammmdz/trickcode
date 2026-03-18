@@ -1,260 +1,119 @@
-# TrickCode - Engineered for the Frontier
+# 🚀 TrickCode
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.4.0-orange)
-![React](https://img.shields.io/badge/React-18.x-blue)
-![Vite](https://img.shields.io/badge/Vite-6.x-purple)
-![Three.js](https://img.shields.io/badge/Three.js-WebGL-red)
-
-**The all-in-one platform to master algorithms, ace technical interviews, and build the future with a community of elite developers.**
-
-[Live Demo](https://trickcode.vercel.app) · [Report Bug](https://github.com/yourusername/trickcode/issues) · [Request Feature](https://github.com/yourusername/trickcode/issues)
+![React](https://img.shields.io/badge/React-18.3.1-007acc?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6.2.0-8a2be2?logo=vite&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.6-6db33f?logo=spring-boot&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-336791?logo=postgresql&logoColor=white)
+![MinIO](https://img.shields.io/badge/MinIO-Enabled-c7202c?logo=minio&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ed?logo=docker&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google_Gemini-AI-ff6f00?logo=google&logoColor=white)
 
 </div>
 
----
+**The premier platform to master algorithms, ace technical interviews, and a comprehensive marketplace for buying and selling programming courses.**
 
-## 🎯 Project Vision
+## 📋 Overview
+💡 What is "TrickCode"? TrickCode is a groundbreaking EdTech platform combining an advanced algorithm learning environment with an interactive course marketplace. 
+Whether you're a student looking to master data structures, a developer preparing for technical interviews, or an instructor looking to monetize your programming expertise through course sales—TrickCode has you covered.
+With premium design, integrated payment gateways for seamless course transactions, and a robust AI assistant, TrickCode provides a "frontier" learning experience that sets standard coding environments apart.
 
-**TrickCode** is a comprehensive learning and coding practice platform, designed with a "frontier/tech-forward" aesthetic featuring:
-- ✨ Professional dark theme interface
-- 🎨 Stunning 3D WebGL effects
-- 🚀 Smooth animations with scroll reveal
-- 💡 Terminal-inspired design language
+## 🌟 Core Features
+- 🛒 **E-Learning Marketplace**: A fully-fledged system for instructors to create, publish, and sell programming courses. Students can easily browse, purchase (via VNPay), and learn interactively.
+- 🤖 **Interactive AI Assistant**: AI-powered features for generating code challenges, explaining test failures, and guiding users through mock interviews.
+- ⚡ **JDoodle Code Execution**: Robust algorithm testing environment supporting automated test cases and real-time execution feedback.
+- 👥 **Real-time Collaboration**: Multi-user cursor synchronization (Socket.IO) allowing developers to pair-program and debug together seamlessly.
+- 🏆 **Competitive Contests**: Live programming competitions with real-time scoring and global leaderboards.
+- 🎨 **Premium 3D Aesthetics**: Futuristic, terminal-inspired interface built with Three.js WebGL and scroll-reveal animations.
 
----
-##
-## 🌟 Core Modules
+## 🚀 Tech Stack
 
-### 1️⃣ **Problems** - Algorithm Challenges
-```bash
-$ solve_algorithm --difficulty=medium
-```
-- 📚 Diverse coding challenges repository
-- 🧠 Practice algorithms & data structures
-- ⚡ Automated test case system
-- 📊 Real-time performance feedback
+### 🎨 Frontend (fe)
+- **Core**: React 18, Vite 6
+- **UI & Animation**: Tailwind CSS, Three.js (`@react-three/fiber`), Framer Motion
+- **Routing & Fetching**: React Router, Axios
 
-### 2️⃣ **Contests** - Programming Competitions
-```bash
-$ join_contest --event=weekly
-```
-- 🏆 Real-time competitive events
-- 🌍 Global leaderboard rankings
-- ⏱️ Scoring based on accuracy and speed
-- 📅 Weekly scheduled events
+### ⚙️ Backend Services (be)
+- **Core**: Spring Boot (Java Mono-repo)
+- **Storage**: PostgreSQL database
+- **Integrations**: JDoodle API (Code Execution), Next-Auth (Security), Socket.IO (Real-time)
 
-### 3️⃣ **Interview Prep** - Technical Interview Preparation
-```bash
-$ mock_interview --company=FAANG
-```
-- 💼 Curated questions from top tech companies
-- 🎥 Realistic interview environment simulation
-- 🤖 AI-driven feedback for soft skills
-- 📹 Video interview simulation
+## 🏗️ Architecture Design
 
-### 4️⃣ **News Feed** - Tech News & Updates
-```bash
-$ read_latest --category=tech
-```
-- 📰 Latest technology trends and updates
-- 👥 Developer community news
-- 💬 Knowledge and experience sharing
+TrickCode follows a robust client-server architecture with real-time capabilities.
 
----
-
-## 🚀 Key Features
-
-### ⚙️ Automated Testing
-Run your solutions against comprehensive test cases with instant feedback on edge cases and runtime performance metrics.
-
-### 👥 Real-time Collaboration
-Multi-user cursor support. Share your editor environment with peers to debug and refactor code simultaneously.
-
-### 🎭 Mock Interview Environments
-Simulate real interview scenarios with video questions and AI-driven feedback loops to improve soft skills.
-
----
-
-## 🛠️ Technical Stack
-
-### **Core Technologies**
-| Technology | Purpose |
-|-----------|---------|
-| 🔧 **JDoodle API** | Code execution engine |
-| 📹 **Jitsi Meet** | Video protocol for collaboration |
-| ⚡ **Socket.IO** | Real-time synchronization |
-| 🔒 **Next-Auth** | Security & authentication |
-
-### **Frontend Stack**
-```json
-{
-  "framework": "React 18",
-  "build": "Vite 6",
-  "styling": "TailwindCSS",
-  "3d-graphics": "Three.js + @react-three/fiber + @react-three/drei",
-  "routing": "React Router",
-  "fonts": {
-    "serif": "DM Serif Display",
-    "sans": "Plus Jakarta Sans",
-    "mono": "Fira Code"
-  }
-}
+```mermaid
+graph TD
+    Client[React Frontend + Three.js] -->|REST API| Backend(Spring Boot Backend)
+    Client <-->|WebSockets| Socket(Socket.IO Server)
+    Backend -->|Run Code| JDoodle[JDoodle Execution Engine]
+    Backend -.-> DB[(PostgreSQL Database)]
 ```
 
----
+## 📁 Project Structure
 
-## 🎨 Design Philosophy
-
-### Color Palette
-```css
---frontier-black: #050505   /* Deep black base */
---frontier-dark: #0A0A0A    /* Secondary background */
---frontier-card: #121214    /* Card background */
---primary: #F97316          /* Frontier Orange */
---terminal-green: #4ade80   /* Success indicator */
-```
-
-### System Flow
-```
-Init_Profile() → Select_Path() → Execute_Code() → Update_Rank()
-```
-
----
-
-## 📦 Installation
-
-```bash
-# Clone repository
-git clone https://github.com/yourusername/trickcode.git
-cd trickcode
-
-# Install dependencies
-npm install
-
-# Install 3D graphics dependencies
-npm install three @react-three/fiber @react-three/drei
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Deploy to GitHub Pages
-npm run deploy
-```
-
----
-
-## 🎯 Project Structure
-
-```
+```text
 trickcode/
-├── src/
-│   ├── components/
-│   │   ├── Beams.jsx              # 3D WebGL background
-│   │   ├── Hero.jsx               # Landing section
-│   │   ├── SystemArchitecture.jsx # System execution flow
-│   │   ├── CoreTechnologies.jsx   # Tech stack display
-│   │   ├── Modules.jsx            # Main features
-│   │   ├── PlatformCapabilities.jsx
-│   │   ├── DeveloperLogs.jsx      # Testimonials
-│   │   ├── FAQ.jsx
-│   │   ├── CTA.jsx
-│   │   └── Footer.jsx
-│   ├── pages/
-│   │   ├── Learn.jsx
-│   │   ├── NewsFeed.jsx
-│   │   ├── Problems.jsx
-│   │   └── Login.jsx
-│   └── App.jsx                    # Main app with routing
-└── README.md
+├── docker-compose.yml       # Docker deployment configs
+├── fe/                      # Frontend Application (React/Vite)
+│   ├── src/components/      # UI Components & 3D Beams
+│   └── src/pages/           # Main Views (Learn, Contests, Profile)
+└── be/
+    └── backend-mono/        # Core Spring Boot Application
+        ├── src/main/java/   # Business Logic & Controllers
+        └── src/main/resources/ # Configurations
 ```
 
----
+## 🛠️ Quick Start (Local)
 
-## 🎬 Features Showcase
+### Prerequisites
+- Node.js (v18+)
+- Java 17+
+- JDoodle API Credentials
 
-### 3D Animated Background
-```jsx
-<Beams 
-  beamWidth={2}
-  beamHeight={15}
-  beamNumber={16}
-  lightColor="#f97316"
-  speed={1.5}
-  rotation={25}
-/>
+### 1. Environment Setup
+
+**Backend (`be/backend-mono/src/main/resources/config/application.yml`):**
+Ensure your application properties have the correct database connections and inject your JDoodle & Google Gemini keys into your environment.
+```bash
+export JDOODLE_CLIENT_ID="your_client_id"
+export JDOODLE_CLIENT_SECRET="your_client_secret"
+export GOOGLE_AI_API_KEY="your_gemini_api_key"
 ```
 
-### Scroll Reveal Animations
-Smooth fade-in and slide-up effects using Intersection Observer API with staggered delays.
+**Frontend (`fe/.env`):**
+```env
+VITE_API_URL=http://localhost:8080
+```
 
----
+### 2. Launch Backend
+Navigate to the backend directory and start the Spring Boot application:
+```bash
+cd be/backend-mono
+./mvnw spring-boot:run
+```
 
-## 👥 Target Audience
+### 3. Launch Frontend
+In a new terminal, start the Vite development server:
+```bash
+cd fe
+npm install
+npm run dev
+```
 
-- 🎓 **CS Students** preparing for technical interviews
-- 👨‍💻 **Junior Developers** looking to level up their skills
-- 🏅 **Competitive Programmers** participating in contests
-- 💼 **Tech Professionals** maintaining algorithmic thinking
-
----
-
-## 💎 Unique Selling Points
-
-1. **All-in-one Platform** - Combines learning, practice, and competition
-2. **Real-time Collaboration** - Effective group learning with multi-cursor support
-3. **AI-powered Feedback** - Improves both hard and soft skills
-4. **Premium Aesthetics** - Professional interface with WebGL effects
-5. **Community-driven** - 2,000+ active developers
-
----
-
-## 📈 Monetization Strategy
-
-| Tier | Features |
-|------|----------|
-| 🆓 **Free** | Basic problems, weekly contests |
-| 💎 **Premium** | Advanced interview prep, video mocks, exclusive content |
-| 🏢 **Enterprise** | Team collaboration tools for companies |
-
----
+### 4. Access the Application
+Once both servers are running:
+- **Frontend App**: http://localhost:5173
+- **Backend API**: http://localhost:8080
 
 ## 🤝 Contributing
-
 Contributions are welcome! Please feel free to submit a Pull Request.
-
 1. Fork the Project
 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
----
-
 ## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 📧 Contact
-
-Email: [tagiangnamttg@gmail.com](mailto:tagiangnamttg@gmail.com)
-
-Project Link: [https://github.com/naammmdz/trickcode](https://github.com/naammmdz/trickcode)
-
----
-
-<div align="center">
-
-**© 2025 TrickCode Inc. All rights reserved. System V.2.4.0**
-
-Made with ❤️ and ☕ by passionate developers
-
-[Website]() · [GitHub](https://github.com/naammmdz/trickcode)
-
-</div>
+This project is licensed under the MIT License - see the LICENSE file for details.

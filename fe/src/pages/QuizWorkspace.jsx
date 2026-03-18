@@ -5,6 +5,8 @@ import UserAvatar from '../components/layout/UserAvatar';
 import ThemeToggler from '../components/ui/ThemeToggler';
 import CourseSyllabus from '../components/course/CourseSyllabus';
 import { courseService } from '../services/courseService';
+import AiAssistantPanel from '../components/ai/AiAssistantPanel';
+import { proSubscriptionService } from '../services/proService';
 
 const QuizWorkspace = () => {
   const { courseId, quizId } = useParams();
@@ -20,6 +22,20 @@ const QuizWorkspace = () => {
   const [submitted, setSubmitted] = useState(false);
   const [quizResult, setQuizResult] = useState(null);
   const isReviewMode = location.state?.reviewMode || false;
+
+  // AI Assistant states
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [isPro, setIsPro] = useState(false);
+  const [aiQuestionContext, setAiQuestionContext] = useState(null);
+
+  // Check Pro subscription
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+    proSubscriptionService.getStatus()
+      .then(data => setIsPro(data.isStudentPro || false))
+      .catch(() => setIsPro(false));
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -180,34 +196,65 @@ const QuizWorkspace = () => {
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-black relative">
-          {/* Breadcrumb */}
-          <div className="h-12 border-b border-neutral-100 dark:border-neutral-800 flex items-center px-6 gap-2 text-[10px] font-sans uppercase tracking-widest text-neutral-500 overflow-x-auto whitespace-nowrap bg-white dark:bg-neutral-950">
-            {isReviewMode ? (
-              <>
-                <Link to="/admin" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Admin Dashboard</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <Link to={`/admin/review/${courseId}`} state={{ reviewMode: true }} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Review Course'}</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
-              </>
-            ) : (
-              <>
-                <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Course'}</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
-              </>
-            )}
+          {/* Breadcrumb + Nav */}
+          <div className="h-12 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between px-6 bg-white dark:bg-neutral-950 shrink-0">
+            <div className="flex items-center gap-2 text-[10px] font-sans uppercase tracking-widest text-neutral-500 overflow-x-auto whitespace-nowrap">
+              {isReviewMode ? (
+                <>
+                  <Link to="/admin" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Admin Dashboard</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <Link to={`/admin/review/${courseId}`} state={{ reviewMode: true }} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Review Course'}</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
+                </>
+              ) : (
+                <>
+                  <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Course'}</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Quiz'}</span>
+                </>
+              )}
+            </div>
+            {/* Prev / Next */}
+            <div className="flex items-center gap-1 shrink-0 ml-4">
+              {prevLesson ? (
+                <Link
+                  to={getLessonRoute(prevLesson)}
+                  state={isReviewMode ? { reviewMode: true } : undefined}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                  title={`Previous: ${prevLesson.title}`}
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  <span className="text-[10px] uppercase tracking-widest font-medium hidden lg:block">Prev</span>
+                </Link>
+              ) : (
+                <span className="w-8" />
+              )}
+              {nextLesson ? (
+                <Link
+                  to={getLessonRoute(nextLesson)}
+                  state={isReviewMode ? { reviewMode: true } : undefined}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all"
+                  title={`Next: ${nextLesson.title}`}
+                >
+                  <span className="text-[10px] uppercase tracking-widest font-medium hidden lg:block">Next</span>
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </Link>
+              ) : (
+                <span className="w-8" />
+              )}
+            </div>
           </div>
 
           {/* Quiz Content */}
-          <div className="flex-1 overflow-y-auto scroll-smooth pb-20 mb-20">
+          <div className="flex-1 overflow-y-auto scroll-smooth">
             <div className="max-w-5xl mx-auto p-6 md:p-8 lg:p-10 pb-8">
               {/* Quiz Header */}
               <div className="mb-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                  <h1 className="text-3xl md:text-4xl font-serif font-medium text-neutral-900 dark:text-white">Space Complexity Quiz</h1>
+                  <h1 className="text-3xl md:text-4xl font-serif font-medium text-neutral-900 dark:text-white">{lesson?.title || 'Quiz'}</h1>
                   <div className="flex gap-2">
                     <button className="p-2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white border border-neutral-200 dark:border-neutral-800 rounded hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
                       <span className="material-symbols-outlined text-lg">bookmark</span>
@@ -218,7 +265,7 @@ const QuizWorkspace = () => {
                   </div>
                 </div>
                 <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed max-w-3xl font-light">
-                  Test your understanding of space complexity in Dynamic Programming solutions. Answer all 5 questions to complete the quiz.
+                  {quizData?.description || `Answer all ${quizData?.questions?.length || ''} questions to complete the quiz.`}
                 </p>
               </div>
 
@@ -342,6 +389,23 @@ const QuizWorkspace = () => {
                                   );
                                 })}
                               </div>
+                              {/* Ask AI button — shown after submit */}
+                              {submitted && resultQ && (
+                                <button
+                                  onClick={() => {
+                                    setAiQuestionContext({
+                                      question: question.question,
+                                      studentAnswer: question.options[selectedAnswers[question.id]] || 'No answer',
+                                      correctAnswer: question.options[question.correctAnswer],
+                                    });
+                                    setAiPanelOpen(true);
+                                  }}
+                                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-widest font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-white border border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500 rounded-md transition-all"
+                                >
+                                  <span className="material-symbols-outlined text-sm">smart_toy</span>
+                                  Ask AI
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -372,51 +436,38 @@ const QuizWorkspace = () => {
             </div>
           </div>
 
-          {/* Bottom Navigation */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg border-t border-neutral-200 dark:border-neutral-800 p-4 md:px-8 flex items-center justify-between z-20 h-20">
-            {prevLesson ? (
-              <Link to={getLessonRoute(prevLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
-                <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
-                  <span className="material-symbols-outlined text-lg">arrow_back</span>
-                </div>
-                <div className="hidden sm:block">
-                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous Lesson</span>
-                  <span className="block text-xs font-medium truncate max-w-[150px]">{prevLesson.title}</span>
-                </div>
-              </Link>
-            ) : <div className="flex-1" />}
-            <div className="flex items-center gap-2">
-              <button className="hidden lg:hidden sm:flex items-center gap-2 px-4 py-2 text-xs font-sans uppercase tracking-widest text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded">
-                <span className="material-symbols-outlined text-lg">list</span> View Syllabus
-              </button>
-            </div>
-            {nextLesson ? (
-              <Link to={getLessonRoute(nextLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
-                <div className="hidden sm:block">
-                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next Lesson</span>
-                  <span className="block text-xs font-medium truncate max-w-[150px]">{nextLesson.title}</span>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                </div>
-              </Link>
-            ) : <div className="flex-1" />}
-          </div>
+
         </main>
       </div>
 
       {/* AI Assistant Button */}
-      <button className="fixed bottom-24 right-8 z-50 group">
-        <div className="absolute inset-0 bg-primary/40 rounded-full blur-xl group-hover:bg-primary/60 transition-colors animate-pulse duration-1000"></div>
+      <button onClick={() => setAiPanelOpen(!aiPanelOpen)} className="fixed bottom-6 right-8 z-50 group">
+        <div className={`absolute inset-0 rounded-full blur-xl transition-colors animate-pulse duration-1000 ${aiPanelOpen ? 'bg-primary/60' : 'bg-primary/40 group-hover:bg-primary/60'}`}></div>
         <div className="relative bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 h-14 w-14 rounded-full flex items-center justify-center shadow-2xl border border-white/10 dark:border-neutral-200 overflow-hidden hover:scale-105 transition-transform duration-300">
-          <span className="material-symbols-outlined text-2xl">smart_toy</span>
+          <span className="material-symbols-outlined text-2xl">{aiPanelOpen ? 'close' : 'smart_toy'}</span>
           <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-transparent"></div>
+          {isPro && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white dark:border-neutral-900"></span>}
         </div>
-        <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white px-4 py-2 rounded-lg text-[10px] font-sans uppercase tracking-widest shadow-xl border border-neutral-100 dark:border-neutral-700 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 whitespace-nowrap pointer-events-none">
-          AI Assistant
-          <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-white dark:bg-neutral-800 rotate-45 border-t border-r border-neutral-100 dark:border-neutral-700"></span>
-        </span>
+        {!aiPanelOpen && (
+          <span className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white px-4 py-2 rounded-lg text-[10px] font-sans uppercase tracking-widest shadow-xl border border-neutral-100 dark:border-neutral-700 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 whitespace-nowrap pointer-events-none">
+            AI Assistant {!isPro && '🔒'}
+            <span className="absolute right-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-white dark:bg-neutral-800 rotate-45 border-t border-r border-neutral-100 dark:border-neutral-700"></span>
+          </span>
+        )}
       </button>
+
+      {/* AI Assistant Panel */}
+      <AiAssistantPanel
+        isOpen={aiPanelOpen}
+        onClose={() => setAiPanelOpen(false)}
+        isPro={isPro}
+        mode="quiz"
+        context={{
+          quizQuestion: aiQuestionContext?.question || '',
+          studentAnswer: aiQuestionContext?.studentAnswer || '',
+          correctAnswer: aiQuestionContext?.correctAnswer || '',
+        }}
+      />
     </div>
   );
 };

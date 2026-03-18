@@ -30,7 +30,7 @@ const CodeBuilder = ({ initialConfig, onChange, courseTitle, courseDescription, 
     // Sync to parent
     useEffect(() => {
         onChange(JSON.stringify(config, null, 2));
-    }, [config, onChange]);
+    }, [config]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const updateInitialCode = (lang, code) => {
         setConfig(prev => ({

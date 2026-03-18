@@ -49,4 +49,6 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     long countByInstructorLogin(String login);
 
     List<Course> findAllByInstructorLogin(String login);
+
+    List<Course> findAllByStatus(CourseStatus status);
 }

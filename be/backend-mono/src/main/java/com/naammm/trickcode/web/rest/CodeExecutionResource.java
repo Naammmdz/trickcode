@@ -30,18 +30,26 @@ public class CodeExecutionResource {
      */
     @PostMapping("/run")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, Object>> runCode(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, Object>> runCode(@RequestBody Map<String, Object> request) {
         LOG.debug("REST request to run code");
-        String sourceCode = request.get("sourceCode");
-        String language = request.getOrDefault("language", "python");
-        String stdin = request.getOrDefault("stdin", "");
+        String sourceCode = (String) request.get("sourceCode");
+        String language = request.getOrDefault("language", "python").toString();
+        String stdin = request.getOrDefault("stdin", "").toString();
+        Object lessonIdObj = request.get("lessonId");
 
         if (sourceCode == null || sourceCode.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "sourceCode is required"));
         }
 
+        Long lessonId = null;
+        if (lessonIdObj != null) {
+            try {
+                lessonId = Long.valueOf(lessonIdObj.toString());
+            } catch (NumberFormatException ignored) {}
+        }
+
         try {
-            Map<String, Object> result = codeExecutionService.runCode(sourceCode, language, stdin);
+            Map<String, Object> result = codeExecutionService.runCode(sourceCode, language, stdin, lessonId);
             return ResponseEntity.ok(result);
         } catch (IllegalStateException e) {
             LOG.error("Code run failed: {}", e.getMessage());

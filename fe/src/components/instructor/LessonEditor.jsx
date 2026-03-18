@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { courseService } from '../../services/courseService';
 import QuizBuilder from './QuizBuilder';
 import CodeBuilder from './CodeBuilder';
+import toast from 'react-hot-toast';
 
 const LessonEditor = ({ courseId, sectionId, lessonId, onSave, onCancel }) => {
     const [lesson, setLesson] = useState({
@@ -65,9 +66,10 @@ const LessonEditor = ({ courseId, sectionId, lessonId, onSave, onCancel }) => {
             } else {
                 await courseService.createLesson(payload);
             }
+            toast.success(lessonId ? 'Lesson updated!' : 'Lesson created!');
             onSave();
         } catch (error) {
-            alert('Failed to save lesson: ' + error.message);
+            toast.error('Failed to save lesson: ' + error.message);
         } finally {
             setLoading(false);
         }

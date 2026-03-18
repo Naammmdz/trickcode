@@ -173,7 +173,7 @@ const CodeWorkspace = () => {
     setTestResults(null);
 
     try {
-      const data = await codeExecutionService.runCode(code, language);
+      const data = await codeExecutionService.runCode(code, language, '', Number(codeId));
 
       if (data.error) {
         setOutput(`Error: ${data.error}`);
@@ -220,6 +220,14 @@ const CodeWorkspace = () => {
 
       if (result.testsPassed === result.testsTotal) {
         setOutput(`✓ All ${result.testsTotal} test cases passed! (${result.executionTime}s, ${result.memoryUsed}KB)`);
+        // Mark lesson as complete when all tests pass
+        if (!isReviewMode) {
+          try {
+            await courseService.completeLesson(codeId);
+          } catch (e) {
+            console.error('Failed to mark code lesson as completed:', e);
+          }
+        }
       } else {
         setOutput(`✗ ${result.testsTotal - result.testsPassed} of ${result.testsTotal} test cases failed.`);
       }
@@ -373,25 +381,56 @@ const CodeWorkspace = () => {
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0 bg-white dark:bg-black relative">
-          {/* Breadcrumb */}
-          <div className="h-12 border-b border-neutral-100 dark:border-neutral-800 flex items-center px-6 gap-2 text-[10px] font-sans uppercase tracking-widest text-neutral-500 overflow-x-auto whitespace-nowrap bg-white dark:bg-neutral-950">
-            {isReviewMode ? (
-              <>
-                <Link to="/admin" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Admin Dashboard</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <Link to={`/admin/review/${courseId}`} state={{ reviewMode: true }} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Review Course'}</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Coding Challenge'}</span>
-              </>
-            ) : (
-              <>
-                <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Course'}</Link>
-                <span className="text-neutral-300 dark:text-neutral-700">/</span>
-                <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Coding Challenge'}</span>
-              </>
-            )}
+          {/* Breadcrumb + Nav */}
+          <div className="h-12 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between px-6 bg-white dark:bg-neutral-950 shrink-0">
+            <div className="flex items-center gap-2 text-[10px] font-sans uppercase tracking-widest text-neutral-500 overflow-x-auto whitespace-nowrap">
+              {isReviewMode ? (
+                <>
+                  <Link to="/admin" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Admin Dashboard</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <Link to={`/admin/review/${courseId}`} state={{ reviewMode: true }} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Review Course'}</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Coding Challenge'}</span>
+                </>
+              ) : (
+                <>
+                  <Link to="/my-courses" className="hover:text-neutral-900 dark:hover:text-white transition-colors">My Courses</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <Link to={`/my-courses/${courseId}`} className="hover:text-neutral-900 dark:hover:text-white transition-colors">{course?.title || 'Course'}</Link>
+                  <span className="text-neutral-300 dark:text-neutral-700">/</span>
+                  <span className="text-neutral-900 dark:text-white font-semibold">{lesson?.title || 'Coding Challenge'}</span>
+                </>
+              )}
+            </div>
+            {/* Prev / Next */}
+            <div className="flex items-center gap-1 shrink-0 ml-4">
+              {prevLesson ? (
+                <Link
+                  to={getLessonRoute(prevLesson)}
+                  state={isReviewMode ? { reviewMode: true } : undefined}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all group"
+                  title={`Previous: ${prevLesson.title}`}
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                  <span className="text-[10px] uppercase tracking-widest font-medium hidden lg:block">Prev</span>
+                </Link>
+              ) : (
+                <span className="w-8" />
+              )}
+              {nextLesson ? (
+                <Link
+                  to={getLessonRoute(nextLesson)}
+                  state={isReviewMode ? { reviewMode: true } : undefined}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all group"
+                  title={`Next: ${nextLesson.title}`}
+                >
+                  <span className="text-[10px] uppercase tracking-widest font-medium hidden lg:block">Next</span>
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </Link>
+              ) : (
+                <span className="w-8" />
+              )}
+            </div>
           </div>
 
           {/* Main Content: Problem Left, Code Right */}
@@ -655,8 +694,7 @@ const CodeWorkspace = () => {
                           {testResults.tests.map((test, idx) => (
                             <div
                               key={idx}
-                              onClick={() => !test.passed && setSelectedFailedTest({ input: test.input, expected: test.expected, actual: test.actual })}
-                              className={`p-3 rounded border text-xs ${!test.passed ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : ''} ${test.passed
+                              className={`p-3 rounded border text-xs ${test.passed
                                 ? 'border-green-200 dark:border-green-900/30 bg-green-50/50 dark:bg-green-900/10'
                                 : 'border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10'
                                 } ${selectedFailedTest?.input === test.input && !test.passed ? 'ring-2 ring-primary/50' : ''}`}
@@ -676,6 +714,19 @@ const CodeWorkspace = () => {
                                       <div>Got: <span className="font-mono text-red-600 dark:text-red-400">{test.actual}</span></div>
                                     )}
                                   </div>
+                                  {/* Ask AI button for failed tests */}
+                                  {!test.passed && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedFailedTest({ input: test.input, expected: test.expected, actual: test.actual });
+                                        setAiPanelOpen(true);
+                                      }}
+                                      className="mt-2 inline-flex items-center gap-1 px-2 py-1 text-[10px] uppercase tracking-widest font-medium text-neutral-500 hover:text-neutral-900 dark:hover:text-white border border-neutral-200 dark:border-neutral-700 hover:border-neutral-400 dark:hover:border-neutral-500 rounded transition-all"
+                                    >
+                                      <span className="material-symbols-outlined text-xs">smart_toy</span>
+                                      Ask AI
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -689,41 +740,12 @@ const CodeWorkspace = () => {
             </div>
           </div>
 
-          {/* Bottom Navigation */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg border-t border-neutral-200 dark:border-neutral-800 p-4 md:px-8 flex items-center justify-between z-20 h-20">
-            {prevLesson ? (
-              <Link to={getLessonRoute(prevLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors group text-left">
-                <div className="w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 flex items-center justify-center group-hover:border-neutral-900 dark:group-hover:border-white transition-colors shadow-sm">
-                  <span className="material-symbols-outlined text-lg">arrow_back</span>
-                </div>
-                <div className="hidden sm:block">
-                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Previous</span>
-                  <span className="block text-xs font-medium truncate max-w-[150px]">{prevLesson.title}</span>
-                </div>
-              </Link>
-            ) : <div className="flex-1" />}
-            <div className="flex items-center gap-2">
-              <button className="hidden lg:hidden sm:flex items-center gap-2 px-4 py-2 text-xs font-sans uppercase tracking-widest text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded">
-                <span className="material-symbols-outlined text-lg">list</span> View Syllabus
-              </button>
-            </div>
-            {nextLesson ? (
-              <Link to={getLessonRoute(nextLesson)} state={isReviewMode ? { reviewMode: true } : undefined} className="flex items-center gap-4 text-neutral-900 dark:text-white group text-right">
-                <div className="hidden sm:block">
-                  <span className="block text-[10px] uppercase font-sans tracking-widest text-neutral-400 mb-0.5">Next</span>
-                  <span className="block text-xs font-medium truncate max-w-[150px]">{nextLesson.title}</span>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                </div>
-              </Link>
-            ) : <div className="flex-1" />}
-          </div>
+
         </main>
       </div>
 
       {/* AI Assistant Button */}
-      <button onClick={() => setAiPanelOpen(!aiPanelOpen)} className="fixed bottom-24 right-8 z-50 group">
+      <button onClick={() => setAiPanelOpen(!aiPanelOpen)} className="fixed bottom-6 right-8 z-50 group">
         <div className={`absolute inset-0 rounded-full blur-xl transition-colors animate-pulse duration-1000 ${aiPanelOpen ? 'bg-primary/60' : 'bg-primary/40 group-hover:bg-primary/60'}`}></div>
         <div className="relative bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 h-14 w-14 rounded-full flex items-center justify-center shadow-2xl border border-white/10 dark:border-neutral-200 overflow-hidden hover:scale-105 transition-transform duration-300">
           <span className="material-symbols-outlined text-2xl">{aiPanelOpen ? 'close' : 'smart_toy'}</span>

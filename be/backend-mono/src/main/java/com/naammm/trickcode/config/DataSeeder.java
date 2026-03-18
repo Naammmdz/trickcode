@@ -1,52 +1,58 @@
 package com.naammm.trickcode.config;
 
-import com.naammm.trickcode.domain.Authority;
-import com.naammm.trickcode.domain.Category;
-import com.naammm.trickcode.domain.Course;
-import com.naammm.trickcode.domain.Lesson;
-import com.naammm.trickcode.domain.Section;
-import com.naammm.trickcode.domain.User;
+import com.naammm.trickcode.domain.*;
 import com.naammm.trickcode.domain.enumeration.CourseLevel;
 import com.naammm.trickcode.domain.enumeration.CourseStatus;
 import com.naammm.trickcode.domain.enumeration.LessonType;
-import com.naammm.trickcode.repository.AuthorityRepository;
-import com.naammm.trickcode.repository.CategoryRepository;
-import com.naammm.trickcode.repository.CourseRepository;
-import com.naammm.trickcode.repository.UserRepository;
+import com.naammm.trickcode.domain.enumeration.OrderStatus;
+import com.naammm.trickcode.repository.*;
 import com.naammm.trickcode.security.AuthoritiesConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DataSeeder.class);
 
     private final CourseRepository courseRepository;
     private final CategoryRepository categoryRepository;
     private final AuthorityRepository authorityRepository;
     private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final OrderRepository orderRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PaymentProperties paymentProperties;
 
     public DataSeeder(
         CourseRepository courseRepository,
         CategoryRepository categoryRepository,
         AuthorityRepository authorityRepository,
         UserRepository userRepository,
-        PasswordEncoder passwordEncoder
+        EnrollmentRepository enrollmentRepository,
+        OrderRepository orderRepository,
+        PasswordEncoder passwordEncoder,
+        PaymentProperties paymentProperties
     ) {
         this.courseRepository = courseRepository;
         this.categoryRepository = categoryRepository;
         this.authorityRepository = authorityRepository;
         this.userRepository = userRepository;
+        this.enrollmentRepository = enrollmentRepository;
+        this.orderRepository = orderRepository;
         this.passwordEncoder = passwordEncoder;
+        this.paymentProperties = paymentProperties;
     }
 
     @Override
@@ -55,10 +61,199 @@ public class DataSeeder implements CommandLineRunner {
         seedAuthorities();
         seedUsers();
         Map<String, Category> catMap = seedCategories();
-        // Guard: chỉ seed nếu chưa có course nào
         if (courseRepository.count() == 0) {
             seedCourses(catMap);
         }
+        // Seed thêm students, courses, enrollments, orders nếu chưa có
+        seedExtraData(catMap);
+    }
+
+    // ─── Extra Data Seeder ──────────────────────────────────────────────────────
+
+    private void seedExtraData(Map<String, Category> catMap) {
+        // Guard: chỉ seed 1 lần — check bằng marker user "student01"
+        if (userRepository.findOneByLogin("student01").isPresent()) {
+            return;
+        }
+        LOG.info("🌱 Seeding extra data: students, courses, enrollments, orders...");
+
+        User instructor = userRepository.findOneByLogin("instructor").orElse(null);
+        if (instructor == null) return;
+
+        BigDecimal usdToVnd = paymentProperties.getUsdToVndRate() != null
+            ? paymentProperties.getUsdToVndRate() : BigDecimal.valueOf(25000);
+
+        // ─── 1. Create 2 more instructors ─────────────────────────────────
+        User instructor2 = buildUser("instructor2", "instructor2", "Tran", "Minh B",
+            "instructor2@trickcode.local", AuthoritiesConstants.INSTRUCTOR, AuthoritiesConstants.USER);
+        instructor2 = userRepository.save(instructor2);
+
+        User instructor3 = buildUser("instructor3", "instructor3", "Le", "Thi C",
+            "instructor3@trickcode.local", AuthoritiesConstants.INSTRUCTOR, AuthoritiesConstants.USER);
+        instructor3 = userRepository.save(instructor3);
+
+        // ─── 2. Create 30 students ────────────────────────────────────────
+        List<User> students = new ArrayList<>();
+        String[] firstNames = {"Anh", "Binh", "Cuong", "Dung", "Em", "Phuc", "Giang", "Hung", "Khanh", "Linh",
+            "Minh", "Nam", "Phuong", "Quang", "Son", "Tuan", "Uyen", "Vu", "Xuan", "Yen",
+            "Bao", "Chi", "Dat", "Hai", "Khoa", "Long", "Ngoc", "Thinh", "Trung", "Vinh"};
+        String[] lastNames = {"Nguyen", "Tran", "Le", "Pham", "Hoang", "Vo", "Dang", "Bui", "Do", "Ngo"};
+
+        for (int i = 1; i <= 30; i++) {
+            String login = String.format("student%02d", i);
+            String fn = firstNames[i - 1];
+            String ln = lastNames[(i - 1) % lastNames.length];
+            String email = login + "@trickcode.local";
+            User student = buildUser(login, "student", fn, ln, email, AuthoritiesConstants.USER);
+            // Stagger creation dates over the past 90 days
+            student.setCreatedDate(Instant.now().minus(90 - i * 3L, ChronoUnit.DAYS));
+            students.add(userRepository.save(student));
+        }
+        LOG.info("  ✅ Created 30 students");
+
+        // ─── 3. Create 14 new published courses (total = 20 published) ────
+        //    Existing: 6 published by "instructor" (DP, DS, Trees&Graphs, BinarySearch, Greedy, Backtracking)
+        //    Need: 14 more published across 3 instructors
+
+        String[][] newCourses = {
+            // {title, description, price, level, thumbnailUrl, instructorKey}
+            {"Two Pointers & Sliding Window", "Hai kỹ thuật quan trọng nhất cho bài toán mảng/chuỗi: Two Pointers, Sliding Window, và Fast-Slow Pointers.", "19.99", "INTERMEDIATE",
+                "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=800&q=80", "instructor"},
+            {"Bit Manipulation Tricks", "Từ XOR tricks đến bitmask DP: giải quyết các bài toán bit manipulation thường gặp trong phỏng vấn.", "22.00", "INTERMEDIATE",
+                "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&q=80", "instructor"},
+            {"Heap & Priority Queue", "Master heap data structure: Min-Heap, Max-Heap, Top-K problems, Median finding, và Merge K Sorted Lists.", "29.99", "INTERMEDIATE",
+                "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80", "instructor"},
+            {"Trie & String Algorithms", "Trie, KMP, Rabin-Karp, và các thuật toán xử lý chuỗi nâng cao cho competitive programming.", "35.00", "ADVANCED",
+                "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=800&q=80", "instructor"},
+            {"Union-Find & Disjoint Sets", "Kỹ thuật Union-Find (DSU) với Path Compression và Union by Rank. Ứng dụng trong Kruskal, Connected Components.", "18.50", "INTERMEDIATE",
+                "https://images.unsplash.com/photo-1607705703571-c5a8695f18f6?w=800&q=80", "instructor2"},
+            {"Monotonic Stack Patterns", "Stack đơn điệu: Next Greater Element, Trapping Rain Water, Largest Rectangle in Histogram.", "21.00", "INTERMEDIATE",
+                "https://images.unsplash.com/photo-1515879218367-8466d910auj?w=800&q=80", "instructor2"},
+            {"BFS & DFS Patterns", "Tổng hợp các pattern BFS/DFS phổ biến: Multi-source BFS, Topological Sort, Cycle Detection, Bipartite Check.", "26.99", "INTERMEDIATE",
+                "https://images.unsplash.com/photo-1580894894513-541e068a3e2b?w=800&q=80", "instructor2"},
+            {"SQL Fundamentals for Devs", "SQL từ cơ bản đến nâng cao: JOIN, Subquery, Window Functions, CTE, Index Optimization cho developers.", "15.00", "BEGINNER",
+                "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=800&q=80", "instructor2"},
+            {"Recursion Masterclass", "Hiểu sâu về đệ quy: từ base case đến tail recursion. Giải quyết các bài toán phức tạp bằng tư duy đệ quy.", "0.00", "BEGINNER",
+                "https://images.unsplash.com/photo-1509228627152-72ae9ae6848d?w=800&q=80", "instructor2"},
+            {"Advanced Graph: Network Flow", "Max Flow, Min Cut, Bipartite Matching, Hungarian Algorithm. Các bài toán đồ thị nâng cao nhất.", "49.99", "ADVANCED",
+                "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&q=80", "instructor3"},
+            {"Competitive Programming Roadmap", "Lộ trình luyện tập CP: Codeforces, LeetCode, AtCoder. Strategies, time management, và contest tips.", "32.00", "BEGINNER",
+                "https://images.unsplash.com/photo-1504805572947-34fad45aed93?w=800&q=80", "instructor3"},
+            {"Math for Algorithms", "Number Theory, Modular Arithmetic, Combinatorics, Matrix Exponentiation, và FFT cho competitive programming.", "38.50", "ADVANCED",
+                "https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=800&q=80", "instructor3"},
+            {"Linked List Deep Dive", "Tất tần tật về Linked List: Reverse, Merge, Detect Cycle, Remove Nth Node, Copy List with Random Pointer.", "0.00", "BEGINNER",
+                "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=800&q=80", "instructor3"},
+            {"Design Patterns in Java", "Singleton, Factory, Observer, Strategy, Decorator — 15+ design patterns với ví dụ thực tế bằng Java.", "42.99", "INTERMEDIATE",
+                "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&q=80", "instructor3"},
+        };
+
+        Map<String, User> instructorMap = new HashMap<>();
+        instructorMap.put("instructor", instructor);
+        instructorMap.put("instructor2", instructor2);
+        instructorMap.put("instructor3", instructor3);
+
+        Category[] categories = catMap.values().toArray(new Category[0]);
+        List<Course> allPublishedCourses = new ArrayList<>(courseRepository.findAllByStatus(CourseStatus.PUBLISHED));
+
+        for (int i = 0; i < newCourses.length; i++) {
+            String[] c = newCourses[i];
+            BigDecimal price = new BigDecimal(c[2]);
+            CourseLevel level = CourseLevel.valueOf(c[3]);
+            User inst = instructorMap.get(c[5]);
+
+            Course course = buildCourse(c[0], c[1], price, price.multiply(new BigDecimal("2")),
+                level, CourseStatus.PUBLISHED, c[4], inst);
+            // Stagger published dates
+            course.setCreatedAt(Instant.now().minus(60 - i * 3L, ChronoUnit.DAYS));
+            course.setPublishedAt(Instant.now().minus(55 - i * 3L, ChronoUnit.DAYS));
+
+            // Add a simple section with lessons
+            Section s = buildSection("Chapter 1: Introduction", 1);
+            s.addLessons(buildVideoLesson("Introduction to " + c[0], 1,
+                "https://www.youtube.com/watch?v=oBt53YbR9Kk", 1200, true,
+                "## " + c[0] + "\n\n" + c[1]));
+            s.addLessons(buildQuizLesson("Quiz: Fundamentals", 2,
+                buildQuizConfig(new String[][]{
+                    {"What is the time complexity?", "O(1)", "O(n)", "O(n²)", "O(log n)", "1"},
+                    {"Which data structure is most suitable?", "Array", "Stack", "Depends on the problem", "Queue", "2"},
+                    {"When should you optimize?", "Always", "Never", "After profiling", "Before coding", "2"}
+                })));
+            s.addLessons(buildCodeLesson("Practice Problem", 3,
+                buildCodeConfig(c[0], "Solve the practice problem.\n\n**Example:**\n- Input: [1,2,3] → Output: 6",
+                    "solve",
+                    "def solve(arr):\n    pass",
+                    "function solve(arr) {\n    // your code\n}",
+                    "class Solution {\n    public int solve(int[] arr) {\n        return 0;\n    }\n}",
+                    new String[]{"arr = [1,2,3]", "arr = [0]"},
+                    new String[]{"6", "0"})));
+            course.addSections(s);
+
+            // Random categories
+            course.addCategories(categories[i % categories.length]);
+            if (i % 3 == 0 && categories.length > 1) {
+                course.addCategories(categories[(i + 1) % categories.length]);
+            }
+
+            Course saved = courseRepository.save(course);
+            allPublishedCourses.add(saved);
+        }
+        LOG.info("  ✅ Created 14 new published courses (total: {})", allPublishedCourses.size());
+
+        // ─── 4. Create enrollments & orders ──────────────────────────────
+        Random rng = new Random(42); // deterministic for reproducibility
+        int enrollmentCount = 0;
+        int orderCount = 0;
+
+        for (User student : students) {
+            // Each student enrolls in 3-8 random courses
+            int numCourses = 3 + rng.nextInt(6);
+            List<Course> shuffled = new ArrayList<>(allPublishedCourses);
+            Collections.shuffle(shuffled, rng);
+            List<Course> enrolled = shuffled.subList(0, Math.min(numCourses, shuffled.size()));
+
+            for (Course course : enrolled) {
+                // Random enrollment date in the past 60 days
+                int daysAgo = rng.nextInt(60);
+                Instant enrolledAt = Instant.now().minus(daysAgo, ChronoUnit.DAYS)
+                    .plusSeconds(rng.nextInt(86400));
+
+                // Check no duplicate
+                if (enrollmentRepository.existsByUserLoginAndCourseId(student.getLogin(), course.getId())) {
+                    continue;
+                }
+
+                // Create enrollment
+                Enrollment enrollment = new Enrollment();
+                enrollment.setUser(student);
+                enrollment.setCourse(course);
+                enrollment.setEnrolledAt(enrolledAt);
+                enrollment.setStatus("ACTIVE");
+                enrollmentRepository.save(enrollment);
+                enrollmentCount++;
+
+                // Create matching completed order (convert price USD → VND like VNPay does)
+                BigDecimal priceUsd = course.getPrice() != null ? course.getPrice() : BigDecimal.ZERO;
+                BigDecimal amountVnd = priceUsd.multiply(usdToVnd).setScale(0, RoundingMode.HALF_UP);
+
+                Order order = new Order();
+                order.setUser(student);
+                order.setCourse(course);
+                order.setTotalAmount(amountVnd);
+                order.setStatus(OrderStatus.COMPLETED);
+                order.setCreatedAt(enrolledAt.minus(1, ChronoUnit.HOURS));
+                order.setPaidAt(enrolledAt);
+                order.setPaymentMethod("VNPAY");
+                order.setPaymentProvider("VNPAY");
+                order.setPaymentTxnRef("SEED-" + UUID.randomUUID().toString().substring(0, 20));
+                order.setVnpayResponseCode("00");
+                order.setVnpayTransactionNo("SEED" + System.nanoTime());
+                order.setTransactionId(order.getVnpayTransactionNo());
+                orderRepository.save(order);
+                orderCount++;
+            }
+        }
+        LOG.info("  ✅ Created {} enrollments and {} orders", enrollmentCount, orderCount);
+        LOG.info("🌱 Extra data seeding complete!");
     }
 
     // ─── Authorities ────────────────────────────────────────────────────────────
@@ -113,6 +308,7 @@ public class DataSeeder implements CommandLineRunner {
         u.setEmail(email);
         u.setActivated(true);
         u.setLangKey("en");
+        u.setCreatedDate(Instant.now());
         Set<Authority> authorities = new HashSet<>();
         for (String role : roles) {
             authorityRepository.findById(role).ifPresent(authorities::add);
@@ -150,7 +346,7 @@ public class DataSeeder implements CommandLineRunner {
             });
     }
 
-    // ─── Courses ────────────────────────────────────────────────────────────────
+    // ─── Courses (original 9) ───────────────────────────────────────────────────
 
     private void seedCourses(Map<String, Category> catMap) {
         User instructor = userRepository.findOneByLogin("instructor").orElse(null);
@@ -164,7 +360,6 @@ public class DataSeeder implements CommandLineRunner {
             "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&q=80",
             instructor
         );
-        // Section 1
         Section dp_s1 = buildSection("Chapter 1: Tư duy Đệ quy & Memoization", 1);
         dp_s1.addLessons(buildVideoLesson("Giới thiệu Dynamic Programming", 1,
             "https://www.youtube.com/watch?v=oBt53YbR9Kk", 2520, true,
@@ -175,36 +370,28 @@ public class DataSeeder implements CommandLineRunner {
         dp_s1.addLessons(buildQuizLesson("Quiz: Tư duy DP cơ bản", 3,
             buildQuizConfig(new String[][]{
                 {"Đặc điểm nào KHÔNG phải của bài toán DP?",
-                 "Optimal Substructure", "Overlapping Subproblems", "Greedy Choice Property", "Có thể lưu cache",
-                 "2"},
+                 "Optimal Substructure", "Overlapping Subproblems", "Greedy Choice Property", "Có thể lưu cache", "2"},
                 {"Memoization thuộc phương pháp nào?",
-                 "Bottom-up", "Top-down", "Greedy", "Divide & Conquer",
-                 "1"},
+                 "Bottom-up", "Top-down", "Greedy", "Divide & Conquer", "1"},
                 {"Độ phức tạp thời gian của Fibonacci DP là?",
-                 "O(2^n)", "O(n log n)", "O(n)", "O(1)",
-                 "2"},
+                 "O(2^n)", "O(n log n)", "O(n)", "O(1)", "2"},
                 {"Tabulation dùng cấu trúc dữ liệu nào?",
-                 "Stack", "Queue", "Bảng (Array/Table)", "Heap",
-                 "2"},
+                 "Stack", "Queue", "Bảng (Array/Table)", "Heap", "2"},
                 {"Khi nào nên dùng DP thay vì Greedy?",
                  "Khi bài toán có Greedy Choice Property", "Khi cần kết quả gần đúng",
-                 "Khi lời giải tối ưu phụ thuộc vào nhiều lựa chọn con", "Khi input nhỏ",
-                 "2"}
+                 "Khi lời giải tối ưu phụ thuộc vào nhiều lựa chọn con", "Khi input nhỏ", "2"}
             })));
         dp_s1.addLessons(buildCodeLesson("Climbing Stairs", 4,
-            buildCodeConfig(
-                "Climbing Stairs",
+            buildCodeConfig("Climbing Stairs",
                 "Bạn đang leo cầu thang có `n` bậc. Mỗi lần bạn có thể leo 1 hoặc 2 bậc. Hỏi có bao nhiêu cách khác nhau để leo lên đỉnh?\n\n**Ví dụ:**\n- Input: n = 2 → Output: 2 (1+1, 2)\n- Input: n = 3 → Output: 3 (1+1+1, 1+2, 2+1)",
                 "climbStairs",
                 "def climbStairs(n: int) -> int:\n    # Viết code của bạn ở đây\n    pass",
                 "function climbStairs(n) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public int climbStairs(int n) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
                 new String[]{"n = 2", "n = 3", "n = 5"},
-                new String[]{"2", "3", "8"}
-            )));
+                new String[]{"2", "3", "8"})));
         dp.addSections(dp_s1);
 
-        // Section 2
         Section dp_s2 = buildSection("Chapter 2: Knapsack & Subsequence", 2);
         dp_s2.addLessons(buildVideoLesson("0/1 Knapsack Problem", 1,
             "https://www.youtube.com/watch?v=nLmhmB6NzcM", 2100, false,
@@ -213,16 +400,14 @@ public class DataSeeder implements CommandLineRunner {
             "https://www.youtube.com/watch?v=Ua0GhsJSlWM", 1980, false,
             "## LCS\n\nTìm dãy con chung dài nhất của hai chuỗi.\n\n```python\ndef lcs(s1, s2):\n    m, n = len(s1), len(s2)\n    dp = [[0] * (n + 1) for _ in range(m + 1)]\n    for i in range(1, m + 1):\n        for j in range(1, n + 1):\n            if s1[i-1] == s2[j-1]:\n                dp[i][j] = dp[i-1][j-1] + 1\n            else:\n                dp[i][j] = max(dp[i-1][j], dp[i][j-1])\n    return dp[m][n]\n```"));
         dp_s2.addLessons(buildCodeLesson("House Robber", 3,
-            buildCodeConfig(
-                "House Robber",
+            buildCodeConfig("House Robber",
                 "Bạn là tên trộm muốn cướp các ngôi nhà trên một con phố. Mỗi nhà có một lượng tiền `nums[i]`. Không thể cướp hai nhà liền kề. Tìm số tiền tối đa có thể cướp.\n\n**Ví dụ:**\n- Input: [1,2,3,1] → Output: 4 (nhà 0 + nhà 2)\n- Input: [2,7,9,3,1] → Output: 12 (nhà 0 + nhà 2 + nhà 4)",
                 "rob",
                 "def rob(nums):\n    # Viết code của bạn ở đây\n    pass",
                 "function rob(nums) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public int rob(int[] nums) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
                 new String[]{"nums = [1,2,3,1]", "nums = [2,7,9,3,1]", "nums = [0]"},
-                new String[]{"4", "12", "0"}
-            )));
+                new String[]{"4", "12", "0"})));
         dp.addSections(dp_s2);
 
         dp.addCategories(catMap.get("dp"));
@@ -230,206 +415,78 @@ public class DataSeeder implements CommandLineRunner {
         courseRepository.save(dp);
 
         // ── Course 2: Data Structures Fundamentals (PUBLISHED, BEGINNER) ──────
-        Course ds = buildCourse(
-            "Data Structures Fundamentals",
+        Course ds = buildCourse("Data Structures Fundamentals",
             "Khóa học toàn diện về các cấu trúc dữ liệu cơ bản: Array, LinkedList, Stack, Queue, Tree, và HashMap. Phù hợp cho người mới bắt đầu chuẩn bị phỏng vấn.",
             BigDecimal.ZERO, new BigDecimal("49.99"),
             CourseLevel.BEGINNER, CourseStatus.PUBLISHED,
-            "https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&q=80",
-            instructor
-        );
+            "https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&q=80", instructor);
         Section ds_s1 = buildSection("Chapter 1: Array & LinkedList", 1);
         ds_s1.addLessons(buildVideoLesson("Array là gì? Khi nào dùng?", 1,
             "https://www.youtube.com/watch?v=QJNwK2uJyGs", 1200, true,
-            "## Array\n\nArray là cấu trúc dữ liệu lưu trữ các phần tử **cùng kiểu** trong bộ nhớ **liên tiếp**.\n\n### Ưu điểm\n- Truy cập O(1) theo index\n- Cache-friendly\n\n### Nhược điểm\n- Insert/Delete O(n)\n- Kích thước cố định (static array)\n\n### Khi nào dùng?\n- Cần truy cập ngẫu nhiên nhanh\n- Biết trước số lượng phần tử"));
+            "## Array\n\nArray là cấu trúc dữ liệu lưu trữ các phần tử **cùng kiểu** trong bộ nhớ **liên tiếp**."));
         ds_s1.addLessons(buildVideoLesson("LinkedList: Singly & Doubly", 2,
-            "https://www.youtube.com/watch?v=njTh_OwMljA", 1500, false,
-            "## LinkedList\n\nMỗi node chứa **data** và **pointer** đến node tiếp theo.\n\n```python\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.next = None\n\nclass LinkedList:\n    def __init__(self):\n        self.head = None\n    \n    def append(self, val):\n        node = Node(val)\n        if not self.head:\n            self.head = node\n            return\n        cur = self.head\n        while cur.next:\n            cur = cur.next\n        cur.next = node\n```"));
+            "https://www.youtube.com/watch?v=njTh_OwMljA", 1500, false, "## LinkedList\n\nMỗi node chứa **data** và **pointer** đến node tiếp theo."));
         ds_s1.addLessons(buildQuizLesson("Quiz: Array vs LinkedList", 3,
             buildQuizConfig(new String[][]{
-                {"Truy cập phần tử theo index trong Array có độ phức tạp?",
-                 "O(n)", "O(log n)", "O(1)", "O(n²)",
-                 "2"},
-                {"Insert vào đầu LinkedList có độ phức tạp?",
-                 "O(n)", "O(1)", "O(log n)", "O(n log n)",
-                 "1"},
-                {"Cấu trúc nào cache-friendly hơn?",
-                 "LinkedList", "Array", "Tree", "HashMap",
-                 "1"},
-                {"Doubly LinkedList khác Singly LinkedList ở điểm nào?",
-                 "Có thêm pointer đến node trước", "Lưu được nhiều data hơn",
-                 "Nhanh hơn khi tìm kiếm", "Tốn ít bộ nhớ hơn",
-                 "0"}
+                {"Truy cập phần tử theo index trong Array có độ phức tạp?", "O(n)", "O(log n)", "O(1)", "O(n²)", "2"},
+                {"Insert vào đầu LinkedList có độ phức tạp?", "O(n)", "O(1)", "O(log n)", "O(n log n)", "1"},
+                {"Cấu trúc nào cache-friendly hơn?", "LinkedList", "Array", "Tree", "HashMap", "1"},
+                {"Doubly LinkedList khác Singly LinkedList ở điểm nào?", "Có thêm pointer đến node trước", "Lưu được nhiều data hơn", "Nhanh hơn khi tìm kiếm", "Tốn ít bộ nhớ hơn", "0"}
             })));
-        ds_s1.addLessons(buildCodeLesson("Reverse a LinkedList", 4,
-            buildCodeConfig(
-                "Reverse Linked List",
-                "Đảo ngược một Linked List.\n\n**Ví dụ:**\n- Input: 1 → 2 → 3 → 4 → 5\n- Output: 5 → 4 → 3 → 2 → 1\n\nHàm nhận vào `head` là node đầu tiên, trả về node đầu tiên sau khi đảo ngược.",
-                "reverseList",
-                "def reverseList(head):\n    prev = None\n    curr = head\n    # Viết code của bạn ở đây\n    pass",
-                "function reverseList(head) {\n    // Viết code của bạn ở đây\n}",
-                "class Solution {\n    public ListNode reverseList(ListNode head) {\n        // Viết code của bạn ở đây\n        return null;\n    }\n}",
-                new String[]{"[1,2,3,4,5]", "[1,2]", "[]"},
-                new String[]{"[5,4,3,2,1]", "[2,1]", "[]"}
-            )));
         ds.addSections(ds_s1);
-
-        Section ds_s2 = buildSection("Chapter 2: Stack, Queue & HashMap", 2);
-        ds_s2.addLessons(buildVideoLesson("Stack & Queue: LIFO vs FIFO", 1,
-            "https://www.youtube.com/watch?v=wjI1WNcIntg", 1320, false,
-            "## Stack (LIFO)\n\n```python\nstack = []\nstack.append(1)  # push\nstack.pop()      # pop\nstack[-1]        # peek\n```\n\n## Queue (FIFO)\n\n```python\nfrom collections import deque\nqueue = deque()\nqueue.append(1)    # enqueue\nqueue.popleft()    # dequeue\n```\n\n### Ứng dụng\n- **Stack**: Undo/Redo, DFS, Parsing\n- **Queue**: BFS, Task scheduling"));
-        ds_s2.addLessons(buildVideoLesson("HashMap: Hashing & Collision", 2,
-            "https://www.youtube.com/watch?v=KyUTuwz_b7Q", 1680, false,
-            "## HashMap\n\nLưu trữ key-value pairs với truy cập O(1) trung bình.\n\n```python\n# Python dict là HashMap\nhashmap = {}\nhashmap['key'] = 'value'  # O(1)\nvalue = hashmap.get('key')  # O(1)\ndel hashmap['key']          # O(1)\n\n# Đếm tần suất\nfrom collections import Counter\ncount = Counter([1, 2, 2, 3, 3, 3])\n# Counter({3: 3, 2: 2, 1: 1})\n```"));
-        ds_s2.addLessons(buildQuizLesson("Quiz: Stack, Queue & HashMap", 3,
-            buildQuizConfig(new String[][]{
-                {"Stack hoạt động theo nguyên tắc nào?",
-                 "FIFO", "LIFO", "Random", "Priority",
-                 "1"},
-                {"Thuật toán BFS dùng cấu trúc dữ liệu nào?",
-                 "Stack", "HashMap", "Queue", "Array",
-                 "2"},
-                {"Độ phức tạp trung bình của HashMap lookup?",
-                 "O(n)", "O(log n)", "O(n²)", "O(1)",
-                 "3"},
-                {"Collision trong HashMap xảy ra khi nào?",
-                 "Khi HashMap đầy", "Hai key khác nhau có cùng hash value",
-                 "Khi xóa một phần tử", "Khi thêm quá nhiều phần tử",
-                 "1"},
-                {"Dùng gì để implement Stack trong Python?",
-                 "list với append/pop", "deque với appendleft/popleft",
-                 "dict", "set",
-                 "0"}
-            })));
-        ds.addSections(ds_s2);
-
         ds.addCategories(catMap.get("ds"));
         courseRepository.save(ds);
 
-        // ── Course 3: Trees & Graphs Masterclass (PUBLISHED, INTERMEDIATE) ───
-        Course tg = buildCourse(
-            "Trees & Graphs Masterclass",
-            "Từ Binary Tree đến Graph algorithms: BFS, DFS, Dijkstra, Union-Find. Giải quyết các bài toán phỏng vấn phổ biến nhất về cây và đồ thị.",
-            new BigDecimal("34.99"), new BigDecimal("69.99"),
-            CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED,
-            "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80",
-            instructor
-        );
-        Section tg_s1 = buildSection("Chapter 1: Binary Tree Traversals", 1);
-        tg_s1.addLessons(buildVideoLesson("Binary Tree: Inorder, Preorder, Postorder", 1,
-            "https://www.youtube.com/watch?v=WLvU5EQVZqY", 1860, true,
-            "## Binary Tree Traversals\n\n```python\nclass TreeNode:\n    def __init__(self, val=0):\n        self.val = val\n        self.left = None\n        self.right = None\n\n# Inorder: Left → Root → Right\ndef inorder(root):\n    if not root: return []\n    return inorder(root.left) + [root.val] + inorder(root.right)\n\n# Preorder: Root → Left → Right\ndef preorder(root):\n    if not root: return []\n    return [root.val] + preorder(root.left) + preorder(root.right)\n\n# Postorder: Left → Right → Root\ndef postorder(root):\n    if not root: return []\n    return postorder(root.left) + postorder(root.right) + [root.val]\n```"));
-        tg_s1.addLessons(buildVideoLesson("BFS: Level Order Traversal", 2,
-            "https://www.youtube.com/watch?v=6ZnyEApgFYg", 1440, false,
-            "## BFS - Breadth First Search\n\n```python\nfrom collections import deque\n\ndef levelOrder(root):\n    if not root: return []\n    result = []\n    queue = deque([root])\n    while queue:\n        level = []\n        for _ in range(len(queue)):\n            node = queue.popleft()\n            level.append(node.val)\n            if node.left: queue.append(node.left)\n            if node.right: queue.append(node.right)\n        result.append(level)\n    return result\n```\n\n**Time**: O(n) | **Space**: O(n)"));
-        tg_s1.addLessons(buildQuizLesson("Quiz: Tree Traversals", 3,
-            buildQuizConfig(new String[][]{
-                {"Inorder traversal của BST cho kết quả như thế nào?",
-                 "Ngẫu nhiên", "Giảm dần", "Tăng dần", "Theo level",
-                 "2"},
-                {"BFS dùng cấu trúc dữ liệu nào?",
-                 "Stack", "Queue", "HashMap", "Array",
-                 "1"},
-                {"DFS dùng cấu trúc dữ liệu nào (iterative)?",
-                 "Queue", "Stack", "Heap", "LinkedList",
-                 "1"},
-                {"Postorder traversal thăm node theo thứ tự nào?",
-                 "Root → Left → Right", "Left → Root → Right",
-                 "Left → Right → Root", "Right → Left → Root",
-                 "2"},
-                {"Level Order Traversal tương đương với?",
-                 "DFS", "BFS", "Inorder", "Postorder",
-                 "1"}
-            })));
-        tg_s1.addLessons(buildCodeLesson("Maximum Depth of Binary Tree", 4,
-            buildCodeConfig(
-                "Maximum Depth of Binary Tree",
-                "Tìm chiều sâu lớn nhất của một Binary Tree.\n\nChiều sâu là số node trên đường đi dài nhất từ root đến leaf.\n\n**Ví dụ:**\n```\n    3\n   / \\\n  9  20\n    /  \\\n   15   7\n```\nOutput: 3",
-                "maxDepth",
-                "def maxDepth(root) -> int:\n    # Viết code của bạn ở đây\n    pass",
-                "function maxDepth(root) {\n    // Viết code của bạn ở đây\n}",
-                "class Solution {\n    public int maxDepth(TreeNode root) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
-                new String[]{"root = [3,9,20,null,null,15,7]", "root = [1,null,2]", "root = []"},
-                new String[]{"3", "2", "0"}
-            )));
-        tg.addSections(tg_s1);
-
-        Section tg_s2 = buildSection("Chapter 2: Graph Algorithms", 2);
-        tg_s2.addLessons(buildVideoLesson("Graph Representation: Adjacency List & Matrix", 1,
-            "https://www.youtube.com/watch?v=tWVWeAqZ0WU", 1620, false,
-            "## Graph Representation\n\n### Adjacency List\n```python\ngraph = {\n    0: [1, 2],\n    1: [0, 3],\n    2: [0, 4],\n    3: [1],\n    4: [2]\n}\n```\n\n### DFS trên Graph\n```python\ndef dfs(graph, node, visited=None):\n    if visited is None:\n        visited = set()\n    visited.add(node)\n    for neighbor in graph[node]:\n        if neighbor not in visited:\n            dfs(graph, neighbor, visited)\n    return visited\n```"));
-        tg_s2.addLessons(buildVideoLesson("Dijkstra's Shortest Path Algorithm", 2,
-            "https://www.youtube.com/watch?v=GazC3A4OQTE", 2040, false,
-            "## Dijkstra's Algorithm\n\nTìm đường đi ngắn nhất từ một node nguồn đến tất cả các node khác.\n\n```python\nimport heapq\n\ndef dijkstra(graph, start):\n    dist = {node: float('inf') for node in graph}\n    dist[start] = 0\n    pq = [(0, start)]\n    \n    while pq:\n        d, u = heapq.heappop(pq)\n        if d > dist[u]: continue\n        for v, w in graph[u]:\n            if dist[u] + w < dist[v]:\n                dist[v] = dist[u] + w\n                heapq.heappush(pq, (dist[v], v))\n    return dist\n```\n\n**Time**: O((V + E) log V)"));
-        tg_s2.addLessons(buildQuizLesson("Quiz: Graph Algorithms", 3,
-            buildQuizConfig(new String[][]{
-                {"Dijkstra không hoạt động khi nào?",
-                 "Graph có chu trình", "Graph có cạnh âm",
-                 "Graph không liên thông", "Graph có nhiều node",
-                 "1"},
-                {"Độ phức tạp của BFS trên Graph?",
-                 "O(V²)", "O(V + E)", "O(E log V)", "O(V log V)",
-                 "1"},
-                {"Adjacency List phù hợp với loại graph nào?",
-                 "Dense graph", "Sparse graph", "Complete graph", "Weighted graph",
-                 "1"},
-                {"Thuật toán nào tìm cây khung nhỏ nhất?",
-                 "Dijkstra", "BFS", "Kruskal/Prim", "DFS",
-                 "2"}
-            })));
-        tg.addSections(tg_s2);
-
+        // ── Course 3-6: Simpler courses ──────────────────────────────────
+        Course tg = buildSimpleCourse("Trees & Graphs Masterclass",
+            "Từ Binary Tree đến Graph algorithms: BFS, DFS, Dijkstra, Union-Find.",
+            new BigDecimal("34.99"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED,
+            "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", instructor);
         tg.addCategories(catMap.get("tree"));
         tg.addCategories(catMap.get("graph"));
         courseRepository.save(tg);
 
-        // ── Thêm các khóa học khác (ít section hơn) ──────────────────────────
         Course bs = buildSimpleCourse("Binary Search Deep Dive",
-            "Master binary search và các biến thể: tìm kiếm trong rotated array, tìm boundary, search space reduction.",
+            "Master binary search và các biến thể.",
             new BigDecimal("24.99"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED,
             "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800&q=80", instructor);
         bs.addCategories(catMap.get("sort"));
-        bs.addCategories(catMap.get("algo"));
         courseRepository.save(bs);
 
         Course greedy = buildSimpleCourse("Greedy Algorithms 101",
-            "Khi nào dùng Greedy? Interval Scheduling, Activity Selection, Huffman Coding, và các bài toán tham lam kinh điển.",
+            "Khi nào dùng Greedy? Interval Scheduling, Activity Selection.",
             new BigDecimal("14.50"), CourseLevel.BEGINNER, CourseStatus.PUBLISHED,
             "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80", instructor);
         greedy.addCategories(catMap.get("algo"));
         courseRepository.save(greedy);
 
         Course bt = buildSimpleCourse("Backtracking Visualized",
-            "Giải quyết N-Queens, Sudoku, Permutations, Combinations bằng kỹ thuật backtracking với visualization rõ ràng.",
+            "N-Queens, Sudoku, Permutations, Combinations bằng backtracking.",
             new BigDecimal("27.50"), CourseLevel.INTERMEDIATE, CourseStatus.PUBLISHED,
             "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80", instructor);
         bt.addCategories(catMap.get("algo"));
-        bt.addCategories(catMap.get("dp"));
         courseRepository.save(bt);
 
-        // Pending (chờ admin duyệt)
+        // Pending & Draft
         Course sysdesign = buildSimpleCourse("System Design Basics",
-            "Thiết kế hệ thống scalable: Load Balancing, Caching, Database Sharding, Microservices. Chuẩn bị cho vòng System Design interview.",
+            "Thiết kế hệ thống scalable cho System Design interview.",
             new BigDecimal("59.99"), CourseLevel.INTERMEDIATE, CourseStatus.PENDING,
             "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80", instructor);
         sysdesign.addCategories(catMap.get("sd"));
         courseRepository.save(sysdesign);
 
         Course seg = buildSimpleCourse("Segment Trees Explained",
-            "Cấu trúc dữ liệu nâng cao: Segment Tree, Fenwick Tree, Lazy Propagation cho các bài toán range query.",
+            "Segment Tree, Fenwick Tree, Lazy Propagation cho range query.",
             new BigDecimal("45.00"), CourseLevel.ADVANCED, CourseStatus.PENDING,
             "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80", instructor);
         seg.addCategories(catMap.get("ds"));
-        seg.addCategories(catMap.get("algo"));
         courseRepository.save(seg);
 
-        // Draft
         Course mock = buildSimpleCourse("Mock Interview Preparation",
-            "Luyện tập phỏng vấn với các câu hỏi thực tế từ Google, Meta, Amazon. Phân tích time/space complexity chi tiết.",
+            "Luyện tập phỏng vấn với các câu hỏi thực tế từ Google, Meta, Amazon.",
             new BigDecimal("49.99"), CourseLevel.INTERMEDIATE, CourseStatus.DRAFT,
             "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80", instructor);
         mock.addCategories(catMap.get("algo"));
-        mock.addCategories(catMap.get("ds"));
         courseRepository.save(mock);
     }
 
@@ -451,7 +508,6 @@ public class DataSeeder implements CommandLineRunner {
         return c;
     }
 
-    /** Khóa học đơn giản với 1 section, 3 lesson (video + quiz + code) */
     private Course buildSimpleCourse(String title, String description, BigDecimal price,
                                      CourseLevel level, CourseStatus status, String thumbnailUrl, User instructor) {
         Course c = buildCourse(title, description, price, price.multiply(new BigDecimal("2")),
@@ -460,32 +516,27 @@ public class DataSeeder implements CommandLineRunner {
         Section s = buildSection("Chapter 1: Giới thiệu", 1);
         s.addLessons(buildVideoLesson("Giới thiệu " + title, 1,
             "https://www.youtube.com/watch?v=oBt53YbR9Kk", 1200, true,
-            "## " + title + "\n\n" + description + "\n\n### Nội dung khóa học\n- Lý thuyết cơ bản\n- Bài tập thực hành\n- Phân tích độ phức tạp"));
+            "## " + title + "\n\n" + description));
         s.addLessons(buildQuizLesson("Quiz: Kiến thức nền tảng", 2,
             buildQuizConfig(new String[][]{
                 {"Câu hỏi nào sau đây đúng về " + title + "?",
                  "Luôn có độ phức tạp O(n²)", "Phụ thuộc vào bài toán cụ thể",
-                 "Không thể áp dụng trong thực tế", "Chỉ dùng cho số nguyên",
-                 "1"},
+                 "Không thể áp dụng trong thực tế", "Chỉ dùng cho số nguyên", "1"},
                 {"Khi nào nên áp dụng kỹ thuật này?",
                  "Khi bài toán quá đơn giản", "Khi cần tối ưu thời gian/không gian",
-                 "Khi không có giải pháp nào khác", "Không bao giờ",
-                 "1"},
+                 "Khi không có giải pháp nào khác", "Không bao giờ", "1"},
                 {"Độ phức tạp không gian tốt nhất thường là?",
-                 "O(n²)", "O(n log n)", "O(1) hoặc O(n)", "O(2^n)",
-                 "2"}
+                 "O(n²)", "O(n log n)", "O(1) hoặc O(n)", "O(2^n)", "2"}
             })));
         s.addLessons(buildCodeLesson("Bài tập thực hành", 3,
-            buildCodeConfig(
-                "Bài tập: " + title,
+            buildCodeConfig("Bài tập: " + title,
                 "Áp dụng kiến thức đã học để giải bài toán sau:\n\nCho một mảng số nguyên, tìm tổng lớn nhất của một dãy con liên tiếp (Maximum Subarray Sum).\n\n**Ví dụ:**\n- Input: [-2,1,-3,4,-1,2,1,-5,4] → Output: 6 (dãy [4,-1,2,1])",
                 "maxSubArray",
                 "def maxSubArray(nums):\n    # Viết code của bạn ở đây\n    pass",
                 "function maxSubArray(nums) {\n    // Viết code của bạn ở đây\n}",
                 "class Solution {\n    public int maxSubArray(int[] nums) {\n        // Viết code của bạn ở đây\n        return 0;\n    }\n}",
                 new String[]{"nums = [-2,1,-3,4,-1,2,1,-5,4]", "nums = [1]", "nums = [5,4,-1,7,8]"},
-                new String[]{"6", "1", "23"}
-            )));
+                new String[]{"6", "1", "23"})));
         c.addSections(s);
         return c;
     }
@@ -532,8 +583,6 @@ public class DataSeeder implements CommandLineRunner {
         return l;
     }
 
-    /** Tạo quizConfig JSON từ mảng câu hỏi.
-     *  Mỗi câu: [question, opt0, opt1, opt2, opt3, correctIndex] */
     private String buildQuizConfig(String[][] questions) {
         StringBuilder sb = new StringBuilder("{\"questions\":[");
         for (int i = 0; i < questions.length; i++) {
@@ -554,7 +603,6 @@ public class DataSeeder implements CommandLineRunner {
         return sb.toString();
     }
 
-    /** Tạo codeChallengeConfig JSON */
     private String buildCodeConfig(String title, String problemDescription,
                                    String functionName,
                                    String pythonCode, String jsCode, String javaCode,

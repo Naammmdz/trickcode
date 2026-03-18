@@ -22,7 +22,7 @@ const QuizBuilder = ({ initialConfig, onChange, courseTitle, courseDescription, 
     useEffect(() => {
         const config = { questions };
         onChange(JSON.stringify(config, null, 2));
-    }, [questions, onChange]);
+    }, [questions]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const addQuestion = () => {
         const newId = `q${Date.now()}`;

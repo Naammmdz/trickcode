@@ -71,7 +71,51 @@ public class CodeExecutionService {
     // ─── Run Code (no test cases, just execute) ─────────────────────
 
     public Map<String, Object> runCode(String sourceCode, String language, String stdin) {
-        return callJDoodle(sourceCode, language, stdin != null ? stdin : "");
+        return runCode(sourceCode, language, stdin, null);
+    }
+
+    /**
+     * Run code with optional lesson context.
+     * When lessonId is provided, wraps LeetCode-style code with the first test case
+     * so that languages requiring an entry point (e.g. Java) work correctly.
+     */
+    public Map<String, Object> runCode(String sourceCode, String language, String stdin, Long lessonId) {
+        String codeToRun = sourceCode;
+        String stdinToUse = stdin != null ? stdin : "";
+
+        if (lessonId != null) {
+            try {
+                Lesson lesson = lessonRepository.findById(lessonId).orElse(null);
+                if (lesson != null && lesson.getCodeChallengeConfig() != null) {
+                    JsonNode config = objectMapper.readTree(lesson.getCodeChallengeConfig());
+                    String functionName = config.has("functionName") && !config.get("functionName").isNull()
+                        ? config.get("functionName").asText() : null;
+                    JsonNode testCasesNode = config.get("testCases");
+
+                    // Auto-detect functionName from student code if missing in config
+                    if ((functionName == null || functionName.isBlank()) && "java".equals(language)) {
+                        functionName = detectJavaFunctionName(sourceCode);
+                        LOG.info("Auto-detected functionName from code: {}", functionName);
+                    }
+                    if ((functionName == null || functionName.isBlank()) && "python".equals(language)) {
+                        functionName = detectPythonFunctionName(sourceCode);
+                    }
+                    if ((functionName == null || functionName.isBlank()) && "javascript".equals(language)) {
+                        functionName = detectJSFunctionName(sourceCode);
+                    }
+
+                    if (functionName != null && !functionName.isBlank() && testCasesNode != null && testCasesNode.isArray() && testCasesNode.size() > 0) {
+                        String firstInput = testCasesNode.get(0).get("input").asText();
+                        codeToRun = wrapCode(sourceCode, language, functionName, firstInput);
+                        stdinToUse = "";
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warn("Could not wrap code for Run with lesson {}: {}", lessonId, e.getMessage(), e);
+            }
+        }
+
+        return callJDoodle(codeToRun, language, stdinToUse);
     }
 
     // ─── Submit Code (run against test cases + save submission) ─────
@@ -92,7 +136,14 @@ public class CodeExecutionService {
             throw new IllegalStateException("Invalid codeChallengeConfig for lesson " + lessonId, e);
         }
 
-        String functionName = config.has("functionName") ? config.get("functionName").asText() : null;
+        String functionName = config.has("functionName") && !config.get("functionName").isNull()
+            ? config.get("functionName").asText() : null;
+        // Auto-detect if missing
+        if (functionName == null || functionName.isBlank()) {
+            if ("java".equals(language)) functionName = detectJavaFunctionName(sourceCode);
+            else if ("python".equals(language)) functionName = detectPythonFunctionName(sourceCode);
+            else if ("javascript".equals(language)) functionName = detectJSFunctionName(sourceCode);
+        }
         JsonNode testCasesNode = config.get("testCases");
         if (testCasesNode == null || !testCasesNode.isArray()) {
             throw new IllegalStateException("No test cases found for lesson " + lessonId);
@@ -116,7 +167,7 @@ public class CodeExecutionService {
             if (result.get("status") instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> statusMap = (Map<String, Object>) result.get("status");
-                statusId = statusMap.get("id") != null ? ((Number) statusMap.get("id")).intValue() : 0;
+                statusId = statusMap.get("id") != null ? Integer.parseInt(statusMap.get("id").toString()) : 0;
             }
 
             String actualRaw = "";
@@ -133,7 +184,7 @@ public class CodeExecutionService {
                 totalTime += Double.parseDouble(result.get("time").toString());
             }
             if (result.get("memory") != null) {
-                int mem = ((Number) result.get("memory")).intValue();
+                int mem = Integer.parseInt(result.get("memory").toString());
                 maxMemory = Math.max(maxMemory, mem);
             }
 
@@ -201,12 +252,36 @@ public class CodeExecutionService {
 
         // Extract param names from test input (e.g., "n = 2" → ["n"], "nums = [1,2,3]" → ["nums"])
         List<String> paramNames = extractParamNames(testInput);
-        String paramCall = String.join(", ", paramNames);
+        String paramCall;
+        String normalizedInput = testInput;
+
+        if (paramNames.isEmpty()) {
+            // Bare value input (e.g., "[1,2,3,4,5]" without variable name)
+            // Detect param names from method signature in student code
+            List<String> methodParams = extractMethodParamNames(studentCode, functionName, language);
+            if (!methodParams.isEmpty()) {
+                // Use actual param names from method signature
+                paramNames = methodParams;
+                // Build normalized input with param names
+                String[] inputLines = testInput.split("\n");
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < Math.min(inputLines.length, paramNames.size()); i++) {
+                    if (sb.length() > 0) sb.append("\n");
+                    sb.append(paramNames.get(i)).append(" = ").append(inputLines[i].trim());
+                }
+                normalizedInput = sb.toString();
+            } else {
+                // Fallback: single arg
+                paramNames = List.of("arg0");
+                normalizedInput = "arg0 = " + testInput.trim();
+            }
+        }
+        paramCall = String.join(", ", paramNames);
 
         return switch (language) {
-            case "python" -> wrapPython(studentCode, functionName, testInput, paramCall);
-            case "javascript" -> wrapJavaScript(studentCode, functionName, testInput, paramCall);
-            case "java" -> wrapJava(studentCode, functionName, testInput, paramCall);
+            case "python" -> wrapPython(studentCode, functionName, normalizedInput, paramCall);
+            case "javascript" -> wrapJavaScript(studentCode, functionName, normalizedInput, paramCall);
+            case "java" -> wrapJava(studentCode, functionName, normalizedInput, paramCall);
             default -> studentCode;
         };
     }
@@ -230,34 +305,180 @@ public class CodeExecutionService {
     }
 
     private String wrapJava(String code, String funcName, String testInput, String paramCall) {
-        // Parse Java initial code to extract method return type and param types
-        // For MVP: wrap with a Main class, convert input to typed Java declarations
-        StringBuilder javaInput = new StringBuilder();
+        boolean usesListNode = code.contains("ListNode");
+        boolean usesTreeNode = code.contains("TreeNode");
+
+        // Parse method signature to extract return type and param types
+        String returnType = "";
+        Map<String, String> paramTypes = new java.util.LinkedHashMap<>();
+        for (String line : code.split("\n")) {
+            String t = line.trim();
+            if (t.contains(funcName) && t.contains("(") && t.contains(")")
+                && !t.startsWith("//") && !t.startsWith("*")) {
+                int fi = t.indexOf(funcName);
+                String before = t.substring(0, fi).trim();
+                String[] words = before.split("\\s+");
+                if (words.length > 0) returnType = words[words.length - 1];
+                int ps = t.indexOf('(', fi);
+                int pe = t.indexOf(')', ps);
+                if (ps >= 0 && pe > ps) {
+                    String params = t.substring(ps + 1, pe).trim();
+                    if (!params.isEmpty()) {
+                        for (String p : params.split(",")) {
+                            String[] parts = p.trim().split("\\s+");
+                            if (parts.length >= 2)
+                                paramTypes.put(parts[parts.length - 1], parts[parts.length - 2]);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        String cleanCode = code.replace("public class Solution", "class Solution");
+        // Remove outer "class Solution { ... }" wrapper, keep only the method body
+        // We'll put Solution as a static inner class of Main
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("import java.util.*;\n\n");
+        sb.append("public class Main {\n\n");
+
+        // Inject LeetCode helper classes as static inner classes
+        if (usesListNode) {
+            sb.append("    static class ListNode {\n")
+              .append("        int val;\n")
+              .append("        ListNode next;\n")
+              .append("        ListNode() {}\n")
+              .append("        ListNode(int val) { this.val = val; }\n")
+              .append("        ListNode(int val, ListNode next) { this.val = val; this.next = next; }\n")
+              .append("    }\n\n");
+        }
+        if (usesTreeNode) {
+            sb.append("    static class TreeNode {\n")
+              .append("        int val;\n")
+              .append("        TreeNode left;\n")
+              .append("        TreeNode right;\n")
+              .append("        TreeNode() {}\n")
+              .append("        TreeNode(int val) { this.val = val; }\n")
+              .append("        TreeNode(int val, TreeNode left, TreeNode right) {\n")
+              .append("            this.val = val; this.left = left; this.right = right;\n")
+              .append("        }\n")
+              .append("    }\n\n");
+        }
+
+        // Embed Solution as static inner class
+        // Replace "class Solution" with "static class Solution"
+        String innerSolution = cleanCode.replace("class Solution", "static class Solution");
+        // Indent each line by 4 spaces
+        for (String solLine : innerSolution.split("\n")) {
+            sb.append("    ").append(solLine).append("\n");
+        }
+
+        sb.append("\n");
+
+        // Helper conversion methods
+        if (usesListNode) {
+            sb.append("    static ListNode toList(int[] a) {\n")
+              .append("        if (a.length == 0) return null;\n")
+              .append("        ListNode d = new ListNode(0), c = d;\n")
+              .append("        for (int v : a) { c.next = new ListNode(v); c = c.next; }\n")
+              .append("        return d.next;\n")
+              .append("    }\n");
+            sb.append("    static String fromList(ListNode n) {\n")
+              .append("        if (n == null) return \"[]\";\n")
+              .append("        StringBuilder s = new StringBuilder(\"[\");\n")
+              .append("        while (n != null) { if (s.length() > 1) s.append(\",\"); s.append(n.val); n = n.next; }\n")
+              .append("        return s.append(\"]\").toString();\n")
+              .append("    }\n");
+        }
+        if (usesTreeNode) {
+            sb.append("    static TreeNode toTree(String[] a) {\n")
+              .append("        if (a.length == 0 || a[0].equals(\"null\")) return null;\n")
+              .append("        TreeNode root = new TreeNode(Integer.parseInt(a[0]));\n")
+              .append("        Queue<TreeNode> q = new LinkedList<>(); q.add(root);\n")
+              .append("        int i = 1;\n")
+              .append("        while (!q.isEmpty() && i < a.length) {\n")
+              .append("            TreeNode cur = q.poll();\n")
+              .append("            if (i < a.length && !a[i].equals(\"null\")) { cur.left = new TreeNode(Integer.parseInt(a[i])); q.add(cur.left); } i++;\n")
+              .append("            if (i < a.length && !a[i].equals(\"null\")) { cur.right = new TreeNode(Integer.parseInt(a[i])); q.add(cur.right); } i++;\n")
+              .append("        }\n")
+              .append("        return root;\n")
+              .append("    }\n");
+            sb.append("    static String fromTree(TreeNode root) {\n")
+              .append("        if (root == null) return \"[]\";\n")
+              .append("        List<String> res = new ArrayList<>();\n")
+              .append("        Queue<TreeNode> q = new LinkedList<>(); q.add(root);\n")
+              .append("        while (!q.isEmpty()) {\n")
+              .append("            TreeNode n = q.poll();\n")
+              .append("            if (n == null) { res.add(\"null\"); continue; }\n")
+              .append("            res.add(String.valueOf(n.val));\n")
+              .append("            q.add(n.left); q.add(n.right);\n")
+              .append("        }\n")
+              .append("        while (res.size() > 0 && res.get(res.size()-1).equals(\"null\")) res.remove(res.size()-1);\n")
+              .append("        return \"[\" + String.join(\",\", res) + \"]\";\n")
+              .append("    }\n");
+        }
+
+        sb.append("\n    public static void main(String[] args) {\n");
+        sb.append("        Solution sol = new Solution();\n");
+
+        // Build variable declarations with type-aware conversion
         for (String line : testInput.split("\n")) {
             line = line.trim();
             if (line.isEmpty()) continue;
-            // Extract variable name and value
             int eqIdx = line.indexOf('=');
             if (eqIdx > 0) {
                 String varName = line.substring(0, eqIdx).trim();
                 String value = line.substring(eqIdx + 1).trim();
-                String javaType = inferJavaType(value);
-                String javaValue = convertToJavaValue(value, javaType);
-                javaInput.append("        ").append(javaType).append(" ").append(varName).append(" = ").append(javaValue).append(";\n");
+                String declaredType = paramTypes.get(varName);
+
+                if ("ListNode".equals(declaredType)) {
+                    if (value.equals("[]") || value.equals("null")) {
+                        sb.append("        ListNode ").append(varName).append(" = null;\n");
+                    } else {
+                        sb.append("        ListNode ").append(varName).append(" = toList(new int[]")
+                          .append(value.replace("[", "{").replace("]", "}"))
+                          .append(");\n");
+                    }
+                } else if ("TreeNode".equals(declaredType)) {
+                    if (value.equals("[]") || value.equals("null")) {
+                        sb.append("        TreeNode ").append(varName).append(" = null;\n");
+                    } else {
+                        // Convert [1,null,2,3] to String array for BFS construction
+                        String inner = value.substring(1, value.length() - 1);
+                        sb.append("        TreeNode ").append(varName).append(" = toTree(new String[]{");
+                        for (String item : inner.split(",")) {
+                            sb.append("\"").append(item.trim()).append("\",");
+                        }
+                        sb.setLength(sb.length() - 1); // remove trailing comma
+                        sb.append("});\n");
+                    }
+                } else {
+                    String javaType = inferJavaType(value);
+                    String javaValue = convertToJavaValue(value, javaType);
+                    sb.append("        ").append(javaType).append(" ").append(varName)
+                      .append(" = ").append(javaValue).append(";\n");
+                }
             }
         }
 
-        // Remove 'public' from Solution class if present (Java allows only one public class)
-        String cleanCode = code.replace("public class Solution", "class Solution");
+        // Print result with proper type conversion
+        String call = "sol." + funcName + "(" + paramCall + ")";
+        if ("ListNode".equals(returnType)) {
+            sb.append("        System.out.println(fromList(").append(call).append("));\n");
+        } else if ("TreeNode".equals(returnType)) {
+            sb.append("        System.out.println(fromTree(").append(call).append("));\n");
+        } else if (returnType.endsWith("[][]")) {
+            sb.append("        System.out.println(Arrays.deepToString(").append(call).append(").replace(\" \", \"\"));\n");
+        } else if (returnType.endsWith("[]")) {
+            sb.append("        System.out.println(Arrays.toString(").append(call).append(").replace(\" \", \"\"));\n");
+        } else {
+            sb.append("        System.out.println(").append(call).append(");\n");
+        }
 
-        return "import java.util.*;\n\n" + cleanCode +
-            "\n\npublic class Main {\n" +
-            "    public static void main(String[] args) {\n" +
-            "        Solution sol = new Solution();\n" +
-            javaInput +
-            "        System.out.println(sol." + funcName + "(" + paramCall + "));\n" +
-            "    }\n" +
-            "}\n";
+        sb.append("    }\n");
+        sb.append("}\n");
+        return sb.toString();
     }
 
     private List<String> extractParamNames(String testInput) {
@@ -268,6 +489,63 @@ public class CodeExecutionService {
             int eqIdx = line.indexOf('=');
             if (eqIdx > 0) {
                 names.add(line.substring(0, eqIdx).trim());
+            }
+        }
+        return names;
+    }
+
+    /**
+     * Extract parameter names from the method signature in student code.
+     * E.g., "public ListNode reverseList(ListNode head)" → ["head"]
+     */
+    private List<String> extractMethodParamNames(String code, String funcName, String language) {
+        List<String> names = new ArrayList<>();
+        if ("java".equals(language)) {
+            for (String line : code.split("\n")) {
+                String t = line.trim();
+                if (t.contains(funcName) && t.contains("(") && t.contains(")")
+                    && !t.startsWith("//") && !t.startsWith("*")) {
+                    int ps = t.indexOf('(');
+                    int pe = t.indexOf(')', ps);
+                    if (ps >= 0 && pe > ps) {
+                        String params = t.substring(ps + 1, pe).trim();
+                        if (!params.isEmpty()) {
+                            for (String p : params.split(",")) {
+                                String[] parts = p.trim().split("\\s+");
+                                if (parts.length >= 2) names.add(parts[parts.length - 1]);
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        } else if ("python".equals(language)) {
+            for (String line : code.split("\n")) {
+                String t = line.trim();
+                if (t.startsWith("def " + funcName) && t.contains("(") && t.contains(")")) {
+                    int ps = t.indexOf('(');
+                    int pe = t.indexOf(')', ps);
+                    String params = t.substring(ps + 1, pe).trim();
+                    for (String p : params.split(",")) {
+                        String name = p.trim().split(":")[0].trim().split("=")[0].trim();
+                        if (!name.isEmpty() && !name.equals("self")) names.add(name);
+                    }
+                    break;
+                }
+            }
+        } else if ("javascript".equals(language)) {
+            for (String line : code.split("\n")) {
+                String t = line.trim();
+                if (t.contains(funcName) && t.contains("(") && t.contains(")")) {
+                    int ps = t.indexOf('(');
+                    int pe = t.indexOf(')', ps);
+                    String params = t.substring(ps + 1, pe).trim();
+                    for (String p : params.split(",")) {
+                        String name = p.trim().split("=")[0].trim();
+                        if (!name.isEmpty()) names.add(name);
+                    }
+                    break;
+                }
             }
         }
         return names;
@@ -490,5 +768,66 @@ public class CodeExecutionService {
         lessonProgressRepository.save(progress);
 
         LOG.info("Auto-completed lesson {} for user {}", lesson.getId(), user.getLogin());
+    }
+
+    /**
+     * Auto-detect function name from Java code by finding the first public method in Solution class.
+     * Pattern: public ReturnType methodName(...)
+     */
+    private String detectJavaFunctionName(String code) {
+        for (String line : code.split("\n")) {
+            String t = line.trim();
+            if (t.startsWith("public ") && t.contains("(") && !t.contains("class ")) {
+                // e.g. "public ListNode reverseList(ListNode head) {"
+                int parenIdx = t.indexOf('(');
+                String beforeParen = t.substring(0, parenIdx).trim();
+                String[] words = beforeParen.split("\\s+");
+                if (words.length >= 2) {
+                    return words[words.length - 1]; // last word before ( is the method name
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Auto-detect function name from Python code.
+     * Pattern: def functionName(...)
+     */
+    private String detectPythonFunctionName(String code) {
+        for (String line : code.split("\n")) {
+            String t = line.trim();
+            if (t.startsWith("def ") && t.contains("(")) {
+                int defEnd = 4; // after "def "
+                int parenIdx = t.indexOf('(');
+                return t.substring(defEnd, parenIdx).trim();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Auto-detect function name from JavaScript code.
+     * Pattern: function functionName(...) or const functionName = ...
+     */
+    private String detectJSFunctionName(String code) {
+        for (String line : code.split("\n")) {
+            String t = line.trim();
+            if (t.startsWith("function ") && t.contains("(")) {
+                int start = 9; // after "function "
+                int parenIdx = t.indexOf('(');
+                return t.substring(start, parenIdx).trim();
+            }
+            if (t.startsWith("var ") || t.startsWith("let ") || t.startsWith("const ")) {
+                int eqIdx = t.indexOf('=');
+                if (eqIdx > 0) {
+                    String varPart = t.substring(t.indexOf(' ') + 1, eqIdx).trim();
+                    if (t.contains("function") || t.contains("=>")) {
+                        return varPart;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

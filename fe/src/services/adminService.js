@@ -36,17 +36,13 @@ const adaptDraftToBackend = (draft) => {
 export const adminService = {
   // Users
   getUsers: async (params) => {
-    // Client-side filtering: BE only supports page/size/sort.
-    // We fetch a bigger slice, filter locally, then paginate locally.
     const pageSize = params.size ?? 10;
     const pageIndex = params.page ?? 0;
 
     const qRaw = (params.q ?? '').trim().toLowerCase();
-    const statusFilter = params.status ?? null; // 'ACTIVE' | 'INACTIVE' | ...
-    const roleFilter = params.roleId ?? null; // e.g. 'ROLE_ADMIN'
+    const statusFilter = params.status ?? null;
+    const roleFilter = params.roleId ?? null;
 
-    // If there is any filter/search, we need more data than a single page.
-    // Pull up to 1000 records (or 5 pages when no filters) to keep things responsive.
     const shouldFilter = Boolean(qRaw || statusFilter || roleFilter);
     const fetchSize = shouldFilter ? 1000 : pageSize;
     const fetchPage = shouldFilter ? 0 : pageIndex;
@@ -61,30 +57,34 @@ export const adminService = {
 
     const all = (response.data || []).map(adaptUserToFrontend);
 
-    const filtered = all.filter((u) => {
-      if (statusFilter && u.status !== statusFilter) return false;
-      if (roleFilter) {
-        const hasRole = (u.roles || []).some((r) => (r?.id || r) === roleFilter || (r?.name || r) === roleFilter);
-        if (!hasRole) return false;
-      }
-      if (qRaw) {
-        const hay = `${u.login || ''} ${u.email || ''} ${u.fullName || ''}`.toLowerCase();
-        if (!hay.includes(qRaw)) return false;
-      }
-      return true;
-    });
+    if (shouldFilter) {
+      // Client-side filtering when filters are active
+      const filtered = all.filter((u) => {
+        if (statusFilter && u.status !== statusFilter) return false;
+        if (roleFilter) {
+          const hasRole = (u.roles || []).some((r) => (r?.id || r) === roleFilter || (r?.name || r) === roleFilter);
+          if (!hasRole) return false;
+        }
+        if (qRaw) {
+          const hay = `${u.login || ''} ${u.email || ''} ${u.fullName || ''}`.toLowerCase();
+          if (!hay.includes(qRaw)) return false;
+        }
+        return true;
+      });
 
-    const totalElements = filtered.length;
+      const totalElements = filtered.length;
+      const totalPages = Math.ceil(totalElements / pageSize);
+      const start = pageIndex * pageSize;
+      const content = filtered.slice(start, start + pageSize);
+
+      return { content, totalElements, totalPages };
+    }
+
+    // Server-side pagination — use X-Total-Count header from JHipster
+    const totalElements = parseInt(response.headers['x-total-count'] || all.length, 10);
     const totalPages = Math.ceil(totalElements / pageSize);
 
-    const start = pageIndex * pageSize;
-    const content = filtered.slice(start, start + pageSize);
-
-    return {
-      content,
-      totalElements,
-      totalPages,
-    };
+    return { content: all, totalElements, totalPages };
   },
 
   createUser: async (data) => {

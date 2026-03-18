@@ -94,7 +94,7 @@ const DashboardChart = ({
                 vertical={false}
               />
               <XAxis
-                dataKey="date"
+                dataKey="label"
                 tick={{ fontSize: 10, fill: '#a3a3a3' }}
                 stroke="transparent"
                 tickMargin={12}
@@ -140,7 +140,7 @@ const DashboardChart = ({
                 vertical={false}
               />
               <XAxis
-                dataKey="date"
+                dataKey="label"
                 tick={{ fontSize: 10, fill: '#a3a3a3' }}
                 stroke="transparent"
                 tickMargin={12}

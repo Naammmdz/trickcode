@@ -75,7 +75,7 @@ const DashboardPieChart = ({ data, title }) => {
         if (!data) return [];
         const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
         return data.map(item => ({
-            name: item.date,
+            name: item.label,
             value: item.value,
             total,
         }));
